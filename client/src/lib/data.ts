@@ -73,31 +73,31 @@ export const builderSteps: BuilderStep[] = [
     options: [
       { id: "traditional", name: "Traditional Service", description: "Full visitation and funeral service.", price: 5000, image: "/assets/hero-chapel.png" },
       { id: "memorial", name: "Memorial Service", description: "Gathering without the body present.", price: 3500, image: "/assets/ceremonial-detail.png" },
-      { id: "graveside", name: "Graveside Service", description: "Ceremony held at the burial site.", price: 2500, image: "/assets/staff-interaction.png" },
+      { id: "graveside", name: "Graveside Service", description: "Ceremony held at the burial site.", price: 2500, image: "/assets/service-graveside.png" },
     ]
   },
   {
     id: "casket",
     title: "Choose a Casket",
     whyCopy: "This choice reflects both tradition and personal preference. We’ll guide you through options at your pace.",
-    previewImage: "/assets/texture-marble.png",
+    previewImage: "/assets/casket-mahogany.png",
     previewCaption: "Craftsmanship that honors a lifetime.",
     options: [
-      { id: "mahogany", name: "Solid Mahogany", description: "Hand-crafted solid wood with velvet interior.", price: 4500, image: "/assets/texture-marble.png" }, 
-      { id: "oak", name: "Classic Oak", description: "Durable oak finish with crepe interior.", price: 3200, image: "/assets/texture-marble.png" },
-      { id: "metal", name: "Brushed Steel", description: "18-gauge steel with gasket protection.", price: 2800, image: "/assets/texture-marble.png" },
+      { id: "mahogany", name: "Solid Mahogany", description: "Hand-crafted solid wood with velvet interior.", price: 4500, image: "/assets/casket-mahogany.png" }, 
+      { id: "oak", name: "Classic Oak", description: "Durable oak finish with crepe interior.", price: 3200, image: "/assets/casket-oak.png" },
+      { id: "metal", name: "Brushed Steel", description: "18-gauge steel with gasket protection.", price: 2800, image: "/assets/casket-metal.png" },
     ]
   },
   {
     id: "flowers",
     title: "Floral Arrangements",
     whyCopy: "Floral tributes add warmth, color, and symbolic meaning to the service.",
-    previewImage: "/assets/ceremonial-detail.png",
+    previewImage: "/assets/flowers-seasonal.png",
     previewCaption: "Nature's beauty as a final tribute.",
     options: [
-      { id: "spray-red", name: "Red Rose Casket Spray", description: "Classic arrangement of deep red roses.", price: 450, image: "/assets/ceremonial-detail.png" },
-      { id: "wreath-white", name: "White Lily Wreath", description: "Elegant standing wreath of white lilies.", price: 350, image: "/assets/ceremonial-detail.png" },
-      { id: "spray-seasonal", name: "Seasonal Mixed Spray", description: "Vibrant mix of seasonal blooms.", price: 400, image: "/assets/ceremonial-detail.png" },
+      { id: "spray-red", name: "Red Rose Casket Spray", description: "Classic arrangement of deep red roses.", price: 450, image: "/assets/flowers-red-rose.png" },
+      { id: "wreath-white", name: "White Lily Wreath", description: "Elegant standing wreath of white lilies.", price: 350, image: "/assets/flowers-white-lily.png" },
+      { id: "spray-seasonal", name: "Seasonal Mixed Spray", description: "Vibrant mix of seasonal blooms.", price: 400, image: "/assets/flowers-seasonal.png" },
     ]
   }
 ];

@@ -32,11 +32,7 @@ export default function About() {
             <div className="order-2 md:order-1 space-y-6 text-muted-foreground font-light leading-loose">
               <h2 className="font-serif text-3xl text-foreground mb-4">A Century of Trust</h2>
               <p>At the heart of our funeral home is a family that has lived, served, and grieved alongside the North Shore community for generations. Rooted in our experience as pastors, we understand the sacredness of life’s transitions and the deep need for compassion, respect, and dignity during times of loss.</p>
-              <p>
-                Today, under the stewardship of the fourth generation, we continue to blend time-honored 
-                traditions with modern sensibilities. We believe that a funeral is not just a time for mourning, 
-                but a profound opportunity to celebrate a life well-lived through storytelling, ritual, and beauty.
-              </p>
+              <p>Our family-founded funeral home and cremation service was born from this calling—to extend the care we’ve always given through ministry into a place where families find comfort, guidance, and peace. We believe that every farewell should be as unique as the life it honors, and we are dedicated to providing personalized, faith-grounded support that reflects your values and your loved one’s legacy.</p>
             </div>
             <div className="order-1 md:order-2">
                <div className="aspect-[4/5] bg-card p-8 border border-white/5 relative">

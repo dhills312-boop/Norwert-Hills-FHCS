@@ -35,7 +35,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       >
         <div className="container mx-auto px-6 flex items-center justify-between">
           <Link href="/">
-            <a className="flex items-center gap-3 group">
+            <a className="flex items-center gap-3 shrink-0">
               <img 
                 src="/assets/logo-crest.png" 
                 alt="Norwert Hills Crest" 
@@ -49,7 +49,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8 ml-[3px] mr-[3px] pl-[50px] pr-[50px]">
+          <nav className="hidden md:flex items-center gap-8 pl-[0px] pr-[0px] pt-[0px] pb-[0px] ml-[-2px] mr-[-2px]">
             {navLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 <a

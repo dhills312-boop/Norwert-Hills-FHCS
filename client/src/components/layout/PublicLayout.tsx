@@ -49,7 +49,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8 ml-[3px] mr-[3px] pl-[50px] pr-[50px]">
+          <nav className="hidden md:flex items-center gap-8 ml-[3px] mr-[3px] pl-[4px] pr-[4px]">
             {navLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 <a

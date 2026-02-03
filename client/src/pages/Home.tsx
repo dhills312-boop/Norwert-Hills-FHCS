@@ -30,10 +30,7 @@ export default function Home() {
               Honoring Life <br/>
               <span className="italic text-primary/90">With Dignity</span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-              A sanctuary of peace and reflection in the heart of New Orleans. 
-              Providing bespoke funeral services tailored to honor your loved one's unique legacy.
-            </p>
+            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto font-light leading-relaxed">A sanctuary of peace and reflection in the heart of North Shores. Providing bespoke funeral services tailored to honor your loved one's unique legacy.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm tracking-widest uppercase px-8 py-6 rounded-none min-w-[200px]">
                 Our Services
@@ -45,7 +42,6 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
-
       {/* Introduction */}
       <section className="py-24 md:py-32 bg-background relative overflow-hidden">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-[url('/assets/texture-marble.png')] opacity-10 mix-blend-overlay" />
@@ -86,7 +82,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
       {/* Featured Services Teaser */}
       <section className="py-24 bg-card">
         <div className="container mx-auto px-6 text-center max-w-3xl mb-16">
@@ -126,7 +121,6 @@ export default function Home() {
           </Link>
         </div>
       </section>
-
       {/* CTA Section */}
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/5" />

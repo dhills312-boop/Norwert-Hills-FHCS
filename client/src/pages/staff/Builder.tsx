@@ -77,10 +77,10 @@ export default function Builder() {
         </div>
 
         {/* RIGHT PANEL: Controls & Story (40%) */}
-        <div className="w-full md:w-[40%] h-full flex flex-col bg-card border-l border-white/5 relative z-20">
+        <div className="w-full md:w-[40%] h-full min-h-0 overflow-y-auto bg-card border-l border-white/5 relative z-20">
           
           {/* Header Area */}
-          <div className="p-8 md:p-10 pb-4">
+          <div className="p-8 md:p-10 pb-4" >
              <div className="flex items-center gap-2 mb-6">
                 <span className="text-xs font-mono text-primary tracking-widest uppercase">
                   Step {currentStepIndex + 1} of {builderSteps.length}
@@ -95,7 +95,7 @@ export default function Builder() {
           </div>
 
           {/* Scrollable Options */}
-          <div className="flex-grow overflow-y-auto px-8 md:px-10 py-4 space-y-4">
+          <div className="px-8 md:px-10 py-4 space-y-4">
              {currentStep.options.map((option) => {
                const isSelected = selections[currentStep.id] === option.id;
                return (

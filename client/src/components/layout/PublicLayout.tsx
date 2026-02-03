@@ -35,21 +35,21 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       >
         <div className="container mx-auto px-6 flex items-center justify-between">
           <Link href="/">
-            <a className="flex items-center gap-3 shrink-0">
+            <a className="flex items-center gap-3 w-[260px] shrink-0">
               <img 
                 src="/assets/logo-crest.png" 
                 alt="Norwert Hills Crest" 
                 className="h-12 w-12 object-contain opacity-90 group-hover:opacity-100 transition-opacity" 
               />
               <div className="flex flex-col">
-                <span className="font-serif text-xl tracking-wider whitespace-nowrap text-foreground uppercase leading-none shrink-0">Norwert Hills</span>
+                <span className="font-serif text-xl tracking-wider whitespace-nowrap text-foreground uppercase leading-none">Norwert Hills</span>
                 <span className="text-[8px] tracking-[0.2em] text-primary/80 uppercase mt-1">Funeral Home and Cremation Services</span>
               </div>
             </a>
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8 pl-[0px] pr-[0px] ml-[0px] mr-[0px]">
+          <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 <a
@@ -104,9 +104,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
             <div className="md:col-span-1">
               <img src="/assets/logo-crest.png" alt="Norwert Hills" className="h-16 w-16 mb-6 opacity-80" />
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Honoring lives with dignity, grace, and unparalleled attention to detail since 1924.
-              </p>
+              <p className="text-muted-foreground text-sm leading-relaxed">Honoring lives with empathy, integrity, and unparalleled attention to detail.</p>
             </div>
             
             <div>

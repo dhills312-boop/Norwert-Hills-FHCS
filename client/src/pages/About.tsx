@@ -31,11 +31,7 @@ export default function About() {
           <div className="grid md:grid-cols-2 gap-16 items-center mb-24">
             <div className="order-2 md:order-1 space-y-6 text-muted-foreground font-light leading-loose">
               <h2 className="font-serif text-3xl text-foreground mb-4">A Century of Trust</h2>
-              <p>
-                Founded in 1924 by Augustus Norwert, our establishment began with a simple promise: 
-                to treat every family as our own. This philosophy has guided us through generations, 
-                allowing us to build deep, lasting relationships with the community we serve.
-              </p>
+              <p>At the heart of our funeral home is a family that has lived, served, and grieved alongside the North Shore community for generations. Rooted in our experience as pastors, we understand the sacredness of life’s transitions and the deep need for compassion, respect, and dignity during times of loss.</p>
               <p>
                 Today, under the stewardship of the fourth generation, we continue to blend time-honored 
                 traditions with modern sensibilities. We believe that a funeral is not just a time for mourning, 

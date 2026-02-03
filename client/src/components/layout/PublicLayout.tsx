@@ -42,14 +42,14 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                 className="h-12 w-12 object-contain opacity-90 group-hover:opacity-100 transition-opacity" 
               />
               <div className="flex flex-col">
-                <span className="font-serif text-xl tracking-wider whitespace-nowrap text-foreground uppercase leading-none">Norwert Hills</span>
+                <span className="font-serif text-xl tracking-wider whitespace-nowrap text-foreground uppercase leading-none shrink-0">Norwert Hills</span>
                 <span className="text-[8px] tracking-[0.2em] text-primary/80 uppercase mt-1">Funeral Home and Cremation Services</span>
               </div>
             </a>
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8 pl-[0px] pr-[0px] pt-[0px] pb-[0px] ml-[-2px] mr-[-2px]">
+          <nav className="hidden md:flex items-center gap-8 pl-[0px] pr-[0px] ml-[0px] mr-[0px]">
             {navLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 <a

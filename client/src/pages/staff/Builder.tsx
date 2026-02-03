@@ -4,9 +4,9 @@ import { builderSteps } from "@/lib/data";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Edit2, FileText, ShieldAlert } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Edit2, FileText, ShieldAlert, Receipt } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Link } from "wouter";
 
 export default function Builder() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -144,14 +144,23 @@ export default function Builder() {
                <ChevronLeft className="mr-2 h-4 w-4" /> Back
              </Button>
 
-             <Button 
-                onClick={handleNext} 
-                disabled={!selections[currentStep.id]}
-                className="bg-primary text-primary-foreground px-8 py-6 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
-             >
-               {isLastStep ? "Complete" : "Continue"}
-               {!isLastStep && <ChevronRight className="ml-2 h-4 w-4" />}
-             </Button>
+             <div className="flex gap-2">
+               {isLastStep && (
+                  <Link href="/staff/billing">
+                    <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
+                      <Receipt className="mr-2 h-4 w-4" /> Statement
+                    </Button>
+                  </Link>
+               )}
+               <Button 
+                  onClick={handleNext} 
+                  disabled={!selections[currentStep.id] && !isLastStep} // Allow completion if last step reached
+                  className="bg-primary text-primary-foreground px-8 py-6 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+               >
+                 {isLastStep ? "Complete" : "Continue"}
+                 {!isLastStep && <ChevronRight className="ml-2 h-4 w-4" />}
+               </Button>
+             </div>
           </div>
 
           {/* Summary Drawer Trigger (Floating or integrated) */}

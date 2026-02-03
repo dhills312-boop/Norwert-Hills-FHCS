@@ -1,7 +1,7 @@
 
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, FileText, Settings, LogOut, User } from "lucide-react";
+import { LayoutGrid, FileText, Settings, LogOut, User, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function StaffLayout({ children }: { children: React.ReactNode }) {
@@ -10,6 +10,7 @@ export function StaffLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: "/staff/dashboard", label: "Sessions", icon: LayoutGrid },
     { href: "/staff/builder", label: "Package Builder", icon: FileText },
+    { href: "/staff/billing", label: "Billing & Statement", icon: Receipt },
     { href: "/staff/settings", label: "Settings", icon: Settings },
   ];
 

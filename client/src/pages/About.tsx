@@ -16,10 +16,7 @@ export default function About() {
                <div className="h-[1px] w-24 bg-primary mb-8" />
             </div>
             <div className="md:w-1/2 pt-4">
-               <p className="text-xl text-muted-foreground font-light leading-relaxed">
-                 For over a century, the Norwert family has been entrusted with the care of New Orleans' 
-                 most beloved citizens. We are more than a funeral home; we are custodians of memory.
-               </p>
+               <p className="text-xl text-muted-foreground font-light leading-relaxed">For over a century, our family has been entrusted with the care of North Shore's most beloved citizens. We are more than a funeral home; we are custodians of memory.</p>
             </div>
           </div>
 

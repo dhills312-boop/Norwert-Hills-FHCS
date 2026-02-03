@@ -62,11 +62,7 @@ export default function Home() {
               Compassionate Care
             </h2>
             <div className="space-y-6 text-muted-foreground font-light leading-relaxed">
-              <p>
-                Since 1924, Norwert Hills has stood as a pillar of support for families in New Orleans. 
-                We understand that saying goodbye is one of life's most profound moments, requiring 
-                sensitivity, grace, and an unwavering commitment to detail.
-              </p>
+              <p>Since our inception, We have stood as a pillar of support for families in North Shores. We understand that saying goodbye is one of life's most profound moments, requiring sensitivity, grace, and an unwavering commitment to detail.</p>
               <p>
                 Our historic chapel and reception spaces offer a serene environment for reflection, 
                 while our dedicated staff ensures that every aspect of the service is handled with 

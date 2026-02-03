@@ -103,8 +103,8 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
             <div className="md:col-span-1">
-              <img src="/assets/logo-crest.png" alt="Norwert Hills" className="h-16 w-16 mb-6 opacity-80" />
-              <p className="text-muted-foreground text-sm leading-relaxed">Honoring lives with empathy, integrity, and unparalleled attention to detail.</p>
+              <img src="/assets/logo-crest.png" alt="Norwert Hills" className="h-16 w-16 mx-auto opacity-80" />
+              <p className="text-muted-foreground text-sm leading-relaxed text-center">Honoring lives with empathy, integrity, and unparalleled attention to detail.</p>
             </div>
             
             <div>

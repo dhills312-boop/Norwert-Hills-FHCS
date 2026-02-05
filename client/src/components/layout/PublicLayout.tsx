@@ -22,6 +22,8 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
     { href: "/", label: "Home" },
     { href: "/services", label: "Services" },
     { href: "/about", label: "Our Story" },
+    { href: "/resources", label: "Resources" },
+    { href: "/contact", label: "Contact" },
     { href: "/staff/login", label: "Staff Portal" },
   ];
 
@@ -35,15 +37,15 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       >
         <div className="container mx-auto px-6 flex items-center justify-between">
           <Link href="/">
-            <a className="flex items-center gap-3 w-[260px] shrink-0">
+            <a className="flex items-center gap-3 group">
               <img 
                 src="/assets/logo-crest.png" 
                 alt="Norwert Hills Crest" 
                 className="h-12 w-12 object-contain opacity-90 group-hover:opacity-100 transition-opacity" 
               />
               <div className="flex flex-col">
-                <span className="font-serif text-xl tracking-wider whitespace-nowrap text-foreground uppercase leading-none">Norwert Hills</span>
-                <span className="text-[8px] tracking-[0.2em] text-primary/80 uppercase mt-1">Funeral Home and Cremation Services</span>
+                <span className="font-serif text-xl tracking-wider text-foreground uppercase leading-none">Norwert Hills</span>
+                <span className="text-[10px] tracking-[0.2em] text-primary/80 uppercase mt-1">Funeral and Cremation Services</span>
               </div>
             </a>
           </Link>
@@ -54,7 +56,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
               <Link key={link.href} href={link.href}>
                 <a
                   className={cn(
-                    "text-sm tracking-widest uppercase transition-colors hover:text-primary relative",
+                    "text-sm tracking-widest uppercase transition-colors hover:text-primary relative whitespace-nowrap",
                     location === link.href ? "text-primary" : "text-muted-foreground",
                     location === link.href && "after:content-[''] after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-[1px] after:bg-primary"
                   )}
@@ -63,9 +65,11 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                 </a>
               </Link>
             ))}
-            <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground uppercase text-xs tracking-widest ml-4">
-              Contact Us
-            </Button>
+            <Link href="/contact">
+              <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground uppercase text-xs tracking-widest ml-4">
+                Contact Us
+              </Button>
+            </Link>
           </nav>
 
           {/* Mobile Menu Toggle */}
@@ -96,24 +100,30 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </header>
+
       <main className="flex-grow pt-0">
         {children}
       </main>
+
       <footer className="bg-secondary pt-20 pb-10 border-t border-white/5">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
             <div className="md:col-span-1">
-              <img src="/assets/logo-crest.png" alt="Norwert Hills" className="h-16 w-16 mx-auto opacity-80" />
-              <p className="text-muted-foreground text-sm leading-relaxed text-center">Honoring lives with empathy, integrity, and unparalleled attention to detail.</p>
+              <img src="/assets/logo-crest.png" alt="Norwert Hills" className="h-16 w-16 mb-6 opacity-80" />
+              <p className="font-serif text-lg text-foreground mb-2">Norwert Hills</p>
+              <p className="text-primary text-[10px] tracking-[0.2em] uppercase mb-4 leading-tight">Funeral and Cremation Services</p>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Honoring lives with dignity, grace, and unparalleled attention to detail since 1924.
+              </p>
             </div>
             
             <div>
               <h4 className="font-serif text-lg text-primary mb-6">Services</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Traditional Ceremonies</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Cremation Services</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Bespoke Memorials</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Pre-Planning</a></li>
+                <li><Link href="/services/traditional-ceremony" className="hover:text-foreground transition-colors">Traditional Ceremonies</Link></li>
+                <li><Link href="/services/cremation-services" className="hover:text-foreground transition-colors">Cremation Services</Link></li>
+                <li><Link href="/services/bespoke-memorials" className="hover:text-foreground transition-colors">Bespoke Memorials</Link></li>
+                <li><Link href="/services/pre-planning" className="hover:text-foreground transition-colors">Pre-Planning</Link></li>
               </ul>
             </div>
 
@@ -146,7 +156,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
           </div>
           
           <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-muted-foreground">
-            <p>&copy; 2024 Norwert Hills Funeral Home. All rights reserved.</p>
+            <p>&copy; 2026 Norwert Hills Funeral and Cremation Services. All rights reserved.</p>
             <div className="flex gap-6 mt-4 md:mt-0">
               <a href="#" className="hover:text-foreground">Privacy Policy</a>
               <a href="#" className="hover:text-foreground">Terms of Service</a>

@@ -9,6 +9,8 @@ import Home from "@/pages/Home";
 import Services from "@/pages/Services";
 import ServiceDetail from "@/pages/ServiceDetail";
 import About from "@/pages/About";
+import Resources from "@/pages/Resources";
+import Contact from "@/pages/Contact";
 import StaffLogin from "@/pages/staff/Login";
 import Dashboard from "@/pages/staff/Dashboard";
 import Builder from "@/pages/staff/Builder";
@@ -21,6 +23,8 @@ function Router() {
       <Route path="/services" component={Services} />
       <Route path="/services/:id" component={ServiceDetail} />
       <Route path="/about" component={About} />
+      <Route path="/resources" component={Resources} />
+      <Route path="/contact" component={Contact} />
       <Route path="/staff/login" component={StaffLogin} />
       <Route path="/staff/dashboard" component={Dashboard} />
       <Route path="/staff/builder" component={Builder} />

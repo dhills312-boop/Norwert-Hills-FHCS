@@ -36,7 +36,7 @@ export default function Contact() {
                     <Phone className="w-5 h-5" />
                     <span className="text-xs uppercase tracking-widest">Phone</span>
                   </div>
-                  <p className="text-xl font-serif">(504) 555-0123</p>
+                  <p className="text-xl font-serif">(985) 318-7574</p>
                   <p className="text-sm text-muted-foreground font-light">Available 24/7 for immediate assistance</p>
                 </div>
                 <div className="space-y-4">

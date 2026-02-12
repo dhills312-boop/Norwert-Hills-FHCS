@@ -44,7 +44,7 @@ export default function Contact() {
                     <Mail className="w-5 h-5" />
                     <span className="text-xs uppercase tracking-widest">Email</span>
                   </div>
-                  <p className="text-xl font-serif">care@norwerthills.com</p>
+                  <p className="text-xl font-serif">norwert@thenhfcs.com</p>
                   <p className="text-sm text-muted-foreground font-light">For inquiries and pre-planning</p>
                 </div>
               </div>

@@ -128,7 +128,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <Button size="lg" className="bg-primary text-primary-foreground min-w-[200px]">
-              <Phone className="mr-2 h-4 w-4" /> (504) 555-0123
+              <Phone className="mr-2 h-4 w-4" /> (985) 318-7574
             </Button>
             <Button size="lg" variant="outline" className="border-white/10 hover:bg-white/5 min-w-[200px]">
               Schedule a Consultation

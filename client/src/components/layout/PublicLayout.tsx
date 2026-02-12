@@ -130,11 +130,11 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-center gap-3">
                   <Phone className="h-4 w-4 text-primary" />
-                  <span>(504) 555-0123</span>
+                  <span>(985)318-7574</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <MapPin className="h-4 w-4 text-primary" />
-                  <span>1234 St. Charles Ave<br/>New Orleans, LA 70130</span>
+                  <span>1601 W Thomas<br/>Hammond, LA 70401</span>
                 </li>
               </ul>
             </div>

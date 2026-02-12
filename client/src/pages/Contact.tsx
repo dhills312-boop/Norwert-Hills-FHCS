@@ -55,8 +55,16 @@ export default function Contact() {
                   <span className="text-xs uppercase tracking-widest">Location</span>
                 </div>
                 <p className="text-xl font-serif">985 W. Thomas, Hammond, LA 70401</p>
-                <div className="aspect-video w-full bg-secondary/50 rounded-sm border border-white/5 flex items-center justify-center grayscale">
-                  <span className="text-muted-foreground italic text-sm">[ Map Placeholder ]</span>
+                <div className="aspect-video w-full overflow-hidden rounded-sm border border-white/5 grayscale">
+                  <iframe
+                    title="Google Map"
+                    className="w-full h-full"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://www.google.com/maps?q=${encodeURIComponent(
+                      "1601 W Thomas, Hammond, LA 70401"
+                    )}&output=embed`}
+                  />
                 </div>
               </div>
 

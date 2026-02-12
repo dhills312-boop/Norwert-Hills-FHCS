@@ -54,7 +54,7 @@ export default function Contact() {
                   <MapPin className="w-5 h-5" />
                   <span className="text-xs uppercase tracking-widest">Location</span>
                 </div>
-                <p className="text-xl font-serif">1234 St. Charles Ave, New Orleans, LA 70130</p>
+                <p className="text-xl font-serif">985 W. Thomas, Hammond, LA 70401</p>
                 <div className="aspect-video w-full bg-secondary/50 rounded-sm border border-white/5 flex items-center justify-center grayscale">
                   <span className="text-muted-foreground italic text-sm">[ Map Placeholder ]</span>
                 </div>

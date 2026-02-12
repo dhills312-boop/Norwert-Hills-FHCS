@@ -1,7 +1,7 @@
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, ExternalLink, MapPin } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export default function ResourcesFAQ() {
@@ -16,10 +16,10 @@ export default function ResourcesFAQ() {
           </Link>
 
           <div className="text-center mb-16 mt-8">
-            <span className="text-primary text-xs uppercase tracking-[0.3em] mb-4 block">Common Questions</span>
+            <span className="text-primary text-xs uppercase tracking-[0.3em] mb-4 block">Louisiana Statutes & Rights</span>
             <h1 className="font-serif text-4xl md:text-5xl mb-6">Frequently Asked Questions</h1>
             <p className="text-muted-foreground text-lg font-light leading-relaxed max-w-2xl mx-auto">
-              Arranging funeral or cremation services can feel overwhelming, especially when decisions must be made quickly. The questions below address some of the most common concerns families have when planning services in Louisiana.
+              Navigating funeral legislation in Louisiana can be complex. We've summarized key points from the Louisiana Funeral Planning Guide to help you understand your rights and responsibilities.
             </p>
           </div>
 
@@ -27,10 +27,19 @@ export default function ResourcesFAQ() {
             <Accordion type="single" collapsible className="w-full space-y-4">
               <AccordionItem value="item-1" className="border-b border-white/10 px-2">
                 <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  Who is legally allowed to make funeral arrangements in Louisiana?
+                  Who is legally responsible for making funeral arrangements?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  Louisiana law establishes a clear order of authority for who may make funeral or cremation arrangements. Responsibility typically falls to a person designated in advance by the deceased, or—if no designation exists—to the surviving spouse, adult children, parents, siblings, or next of kin. In rare cases, a district court judge may make the determination.
+                  According to Louisiana Statute § 37:876, authority follows this order:
+                  <ol className="list-decimal ml-6 mt-4 space-y-2">
+                    <li>An agent appointed by you in a notarized declaration.</li>
+                    <li>Surviving spouse (if not filed for divorce).</li>
+                    <li>Adult children.</li>
+                    <li>Parents.</li>
+                    <li>Siblings.</li>
+                    <li>Next living kin.</li>
+                    <li>A district court judge.</li>
+                  </ol>
                 </AccordionContent>
               </AccordionItem>
 
@@ -39,25 +48,30 @@ export default function ResourcesFAQ() {
                   Do I have to use a funeral home in Louisiana?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  Yes. Louisiana is one of the few states that requires a licensed funeral director to be involved in the disposition of a body. While families may still participate in care and planning, a licensed funeral home must be engaged to complete burial or cremation.
+                  Yes. Louisiana is one of only 8 states where you must legally employ a licensed funeral director to conduct a disposition. While you can care for your deceased at home, a licensed professional must be involved in the final burial or cremation.
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-3" className="border-b border-white/10 px-2">
                 <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  Are funeral homes in Louisiana regulated?
+                  What are the laws regarding embalming?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  All funeral homes in Louisiana are licensed and regulated by the Louisiana State Board of Embalmers and Funeral Directors. In addition, the Federal Trade Commission’s Funeral Rule applies, although Louisiana state law may supersede federal provisions in some areas.
+                  There is no legal requirement for embalming in Louisiana. However, Statute 51 §103 requires either embalming or refrigeration if the disposition does not proceed within 30 hours of death.
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-4" className="border-b border-white/10 px-2">
                 <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  Is embalming required by law?
+                  What are the regulations for scattering ashes?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  No. Louisiana law does not require embalming. However, if disposition does not occur within approximately 30 hours, embalming or refrigeration is required. Some funeral homes may require embalming for public viewings, but families may ask about refrigeration alternatives.
+                  <p className="mb-4">Louisiana Statute 37 §880 provides specific guidelines:</p>
+                  <ul className="list-disc ml-6 space-y-2">
+                    <li><strong>Private Property:</strong> Permitted with landowner consent. Multiple persons' ashes may be commingled here.</li>
+                    <li><strong>Public Land:</strong> Generally permitted unless a specific permit is required.</li>
+                    <li><strong>At Sea:</strong> Governed by EPA Region 6 (Gulf of Mexico). Must be at least 3 nautical miles from shore, and a form must be submitted within 30 days.</li>
+                  </ul>
                 </AccordionContent>
               </AccordionItem>
 
@@ -66,105 +80,66 @@ export default function ResourcesFAQ() {
                   Is a casket required for cremation?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  No. Louisiana law does not require a casket for cremation. A suitable rigid container, often made of reinforced cardboard or plywood, is sufficient.
+                  No. Louisiana law does not require a casket for cremation. Only a "suitable rigid container" is required, which is typically a reinforced cardboard or plywood box.
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-6" className="border-b border-white/10 px-2">
                 <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  What types of cremation options are available?
+                  Can I purchase a casket from a third party?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  Families may choose cremation with a full service, a memorial service held later, or a direct cremation without services. Direct cremation is the simplest option and allows families to plan remembrance in their own time. Additional elements, such as private viewings or upgraded urns, may be added if desired.
+                  Yes. Following a 2013 court case (St. Joseph Abbey), Louisiana residents can purchase caskets from any third-party seller. Under the FTC Funeral Rule, funeral homes must accept these caskets without charging additional handling fees.
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-7" className="border-b border-white/10 px-2">
                 <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  What can be done with cremated remains in Louisiana?
+                  What if the deceased had no insurance and I can't afford a funeral?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  Cremated remains may be buried, placed in a niche, kept by the family, or scattered. Ashes may be scattered on private property with permission. Scattering on public land is generally permitted unless a permit is required. Special regulations apply to sea scattering in the Gulf of Mexico, overseen by the Environmental Protection Agency.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-8" className="border-b border-white/10 px-2">
-                <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  Can ashes be scattered at sea?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  Yes. Sea scattering is permitted in Louisiana waters, but it must comply with EPA regulations. Notification paperwork must be submitted after the scattering, and certain distance requirements apply.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-9" className="border-b border-white/10 px-2">
-                <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  How do families choose between burial and cremation?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  This decision is deeply personal. Faith traditions, family wishes, environmental considerations, and financial factors often play a role. Many families find it helpful to talk openly with loved ones and consult a funeral professional for guidance, while keeping personal values at the center of the decision.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-10" className="border-b border-white/10 px-2">
-                <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  Can funeral arrangements be pre-planned in Louisiana?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  Yes. Pre-planning is allowed and encouraged for families who wish to outline their preferences in advance. Plans may be made directly with a funeral home, through burial insurance, or by setting aside funds in designated accounts. Pre-planning can ease emotional and logistical burdens for loved ones.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-11" className="border-b border-white/10 px-2">
-                <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  What if a family cannot afford funeral services?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  Limited assistance may be available at the parish or state level for individuals without sufficient funds. In such cases, the coroner or parish authorities may coordinate a minimal burial or cremation. A simple cremation is typically the least expensive option.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-12" className="border-b border-white/10 px-2">
-                <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  Can a body be transported to or from Louisiana?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  Yes, but transportation must be arranged through a licensed funeral director and requires specific permits and containers. Cremation at the place of death, followed by transport of cremated remains, is often a simpler alternative.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-13" className="border-b border-white/10 px-2">
-                <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  Where can concerns or complaints about a funeral home be directed?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  Concerns that cannot be resolved directly may be submitted to the Louisiana State Board of Embalmers and Funeral Directors, which oversees licensing and professional standards.
+                  Financial aid for funerals is limited and varies significantly by parish. In cases of indigence, the parish coroner may coordinate a minimal burial or cremation. Direct cremation is typically the most affordable professional option available.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
           </div>
 
-          <div className="bg-secondary/30 border border-white/5 rounded-lg p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="bg-secondary/30 border border-white/5 rounded-lg p-8 flex flex-col md:flex-row items-center justify-between gap-6">
              <div className="flex items-start gap-4">
                 <div className="bg-primary/10 p-3 rounded-full">
                    <FileText className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                   <h3 className="font-serif text-lg mb-1">Louisiana Funeral Planning Guide</h3>
-                   <p className="text-sm text-muted-foreground">Official consumer guide provided by the Louisiana State Board of Embalmers and Funeral Directors.</p>
+                   <h3 className="font-serif text-xl mb-1">Download the Full Guide</h3>
+                   <p className="text-muted-foreground">The complete 2026 Louisiana Funeral Planning Guide PDF.</p>
                 </div>
              </div>
-             <a href="/assets/cremation-guide.pdf" download="Louisiana_Funeral_Planning_Guide.pdf">
-               <Button variant="outline" className="border-white/10 hover:bg-white/5 whitespace-nowrap">
-                 Download PDF
-               </Button>
-             </a>
+             <div className="flex gap-4">
+               <a href="/assets/Louisiana-Funeral-Planning-Guide.pdf" download>
+                 <Button className="bg-primary text-primary-foreground hover:bg-primary/90 uppercase text-xs tracking-widest px-8">
+                   Download PDF
+                 </Button>
+               </a>
+             </div>
           </div>
 
-          <div className="mt-12 text-center pt-8 border-t border-white/5">
-             <p className="text-xs text-muted-foreground uppercase tracking-widest leading-loose">
-               This FAQ is informed by: What to Consider When Arranging a Funeral or Cremation in Louisiana, published by US Funerals Online, including applicable Louisiana statutes and regulatory guidance.
-             </p>
+          <div className="mt-16 pt-12 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div>
+              <h4 className="font-serif text-xl mb-4 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-primary" /> Regulatory Authority
+              </h4>
+              <p className="text-muted-foreground text-sm font-light leading-relaxed">
+                All funeral establishments are licensed by the <strong>Louisiana State Board of Embalmers and Funeral Directors</strong>. For official inquiries or complaints, you may contact them directly.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-serif text-xl mb-4 flex items-center gap-2">
+                <ExternalLink className="w-5 h-5 text-primary" /> Consumer Protection
+              </h4>
+              <p className="text-muted-foreground text-sm font-light leading-relaxed">
+                The Federal Trade Commission's "Funeral Rule" ensures you have the right to choose only the goods and services you want and to receive price information over the phone or in person.
+              </p>
+            </div>
           </div>
         </div>
       </div>

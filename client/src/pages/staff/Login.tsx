@@ -27,7 +27,6 @@ export default function StaffLogin() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
       <div className="absolute inset-0 bg-[url('/assets/texture-marble.png')] opacity-10" />
-      
       <Card className="w-full max-w-md mx-6 border-white/10 bg-card/80 backdrop-blur-md relative z-10 shadow-2xl">
         <CardHeader className="text-center space-y-4 pt-10">
           <div className="mx-auto bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-2">
@@ -39,7 +38,7 @@ export default function StaffLogin() {
         <CardContent className="pb-10">
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="password">Access Code (use 'demo')</Label>
+              <Label htmlFor="password">Access Code</Label>
               <Input 
                 id="password" 
                 type="password" 

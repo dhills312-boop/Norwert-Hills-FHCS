@@ -47,12 +47,13 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-1/3 h-full bg-[url('/assets/texture-marble.png')] opacity-10 mix-blend-overlay" />
         
         <div className="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
-          <div className="relative">
-            <div className="aspect-[4/5] overflow-hidden rounded-sm relative">
+          <div className="relative in-line block">
+            <div className="absolute -bottom-6 -right-6 w-full h-full border border-primary/30 hidden md:block" />
+            <div className=" relative aspect-[4/5] overflow-hidden rounded-sm z-10">
               <img src="/assets/staff-interaction.png" alt="Compassionate Care" className="object-cover w-full h-full hover:scale-105 transition-transform duration-700" />
               <div className="absolute inset-0 bg-primary/10 mix-blend-overlay" />
             </div>
-            <div className="absolute -bottom-6 -right-6 w-2/3 aspect-square border border-primary/30 z-10 hidden md:block" />
+           
           </div>
           
           <div>

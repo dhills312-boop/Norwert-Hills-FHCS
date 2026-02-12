@@ -15,7 +15,7 @@ export default function StaffLogin() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // Simple demo gate
-    if (password === "demo") {
+    if (password === "BeverlyJean") {
       // Determine if mobile or tablet (mock logic, in real app check User Agent or just route)
       // For this demo, let's route to the mobile dashboard by default
       setLocation("/staff/dashboard");

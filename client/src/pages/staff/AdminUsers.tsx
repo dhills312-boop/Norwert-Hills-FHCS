@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { StaffLayout } from "@/components/layout/StaffLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,13 +34,15 @@ export default function AdminUsers() {
   const [deactivateConfirm, setDeactivateConfirm] = useState<{ userId: string; name: string } | null>(null);
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "staff" as "director" | "staff" });
 
-  if (!authLoading && !isAuthenticated) {
-    setLocation("/staff/login");
-    return null;
-  }
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      setLocation("/staff/login");
+    } else if (!authLoading && !isDirector) {
+      setLocation("/staff/dashboard");
+    }
+  }, [authLoading, isAuthenticated, isDirector, setLocation]);
 
-  if (!authLoading && !isDirector) {
-    setLocation("/staff/dashboard");
+  if (!authLoading && (!isAuthenticated || !isDirector)) {
     return null;
   }
 

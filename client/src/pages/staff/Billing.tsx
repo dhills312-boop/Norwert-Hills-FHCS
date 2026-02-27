@@ -88,8 +88,13 @@ export default function Billing() {
   const params = new URLSearchParams(search);
   const arrangementId = params.get("arrangement");
 
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      setLocation("/staff/login");
+    }
+  }, [authLoading, isAuthenticated, setLocation]);
+
   if (!authLoading && !isAuthenticated) {
-    setLocation("/staff/login");
     return null;
   }
 

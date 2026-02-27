@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,13 @@ export default function StaffLogin() {
   const [, setLocation] = useLocation();
   const { login, isLoggingIn, isAuthenticated } = useAuth();
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLocation("/staff/dashboard");
+    }
+  }, [isAuthenticated, setLocation]);
+
   if (isAuthenticated) {
-    setLocation("/staff/dashboard");
     return null;
   }
 

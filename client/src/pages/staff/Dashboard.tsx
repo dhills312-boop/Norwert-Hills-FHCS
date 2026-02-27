@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,8 +31,13 @@ export default function Dashboard() {
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [newFamily, setNewFamily] = useState({ familyName: "", email: "", phone: "", scheduledTime: "" });
 
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      setLocation("/staff/login");
+    }
+  }, [authLoading, isAuthenticated, setLocation]);
+
   if (!authLoading && !isAuthenticated) {
-    setLocation("/staff/login");
     return null;
   }
 

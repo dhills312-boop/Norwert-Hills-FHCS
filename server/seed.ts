@@ -1,30 +1,31 @@
-import { pool, db } from "./db";
+import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { scrypt, randomBytes } from "crypto";
-import { promisify } from "util";
-
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
+import { hashPassword } from "./auth";
 
 export async function seedDatabase() {
   try {
-    const existing = await db.select().from(users).where(eq(users.username, "admin"));
-    if (existing.length === 0) {
-      const hashed = await hashPassword("BeverlyJean");
-      await db.insert(users).values({
-        username: "admin",
-        password: hashed,
-        displayName: "Sarah Jenkins",
-        role: "admin",
-      });
-      console.log("Seeded default admin user (admin / BeverlyJean)");
+    const allUsers = await db.select().from(users);
+    if (allUsers.length > 0) return;
+
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    const adminName = process.env.ADMIN_NAME || "Director";
+
+    if (!adminEmail || !adminPassword) {
+      console.log("No ADMIN_EMAIL/ADMIN_PASSWORD set. Skipping bootstrap. Set these env vars for first-run admin creation.");
+      return;
     }
+
+    const hashed = await hashPassword(adminPassword);
+    await db.insert(users).values({
+      name: adminName,
+      email: adminEmail.toLowerCase().trim(),
+      password: hashed,
+      role: "director",
+      isActive: true,
+    });
+    console.log(`Bootstrap director created: ${adminEmail}`);
   } catch (err) {
     console.error("Seed error:", err);
   }

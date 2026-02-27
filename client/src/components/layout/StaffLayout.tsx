@@ -1,22 +1,27 @@
-
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, FileText, Settings, LogOut, User, Receipt } from "lucide-react";
+import { LayoutGrid, FileText, Settings, LogOut, User, Receipt, Users, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 
 export function StaffLayout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { user, isDirector, logout } = useAuth();
 
   const navItems = [
     { href: "/staff/dashboard", label: "Sessions", icon: LayoutGrid },
     { href: "/staff/builder", label: "Package Builder", icon: FileText },
     { href: "/staff/billing", label: "Billing & Statement", icon: Receipt },
-    { href: "/staff/settings", label: "Settings", icon: Settings },
+    ...(isDirector ? [{ href: "/staff/admin/users", label: "User Management", icon: Users }] : []),
   ];
+
+  const handleLogout = async () => {
+    await logout();
+    setLocation("/staff/login");
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row font-sans">
-      {/* Sidebar for Desktop / Topbar for Mobile */}
       <aside className="w-full md:w-64 bg-card border-r border-white/5 flex flex-col flex-shrink-0">
         <div className="p-6 border-b border-white/5 flex items-center justify-between md:justify-center">
           <div className="flex items-center gap-2">
@@ -49,16 +54,17 @@ export function StaffLayout({ children }: { children: React.ReactNode }) {
               <User className="h-4 w-4 text-primary" />
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-foreground">Staff Member</span>
-              <span className="text-xs text-muted-foreground">Director</span>
+              <span className="text-sm font-medium text-foreground">{user?.name || "Staff"}</span>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                {isDirector && <Shield className="h-3 w-3" />}
+                {user?.role === "director" ? "Director" : "Staff"}
+              </span>
             </div>
           </div>
-          <Link href="/">
-            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </Button>
-          </Link>
+          <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive" onClick={handleLogout} data-testid="button-sidebar-logout">
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
         </div>
       </aside>
 

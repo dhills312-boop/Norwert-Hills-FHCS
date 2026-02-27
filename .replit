@@ -46,3 +46,10 @@ waitForPort = 5000
 [agent]
 stack = "MOCKUP_JS"
 mockupState = "FULLSTACK"
+
+[userenv]
+
+[userenv.shared]
+ADMIN_EMAIL = "admin@thenhfcs.com"
+ADMIN_NAME = "Sarah Jenkins"
+ADMIN_PASSWORD = "BeverlyJean1!"

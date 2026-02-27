@@ -73,7 +73,7 @@ export default function Dashboard() {
           <div>
              <h1 className="font-serif text-2xl md:text-3xl text-foreground" data-testid="text-dashboard-title">Client Sessions</h1>
              <p className="text-muted-foreground text-sm">
-               {user?.displayName ? `Welcome, ${user.displayName}` : "Today's active arrangements"}
+               {user?.name ? `Welcome, ${user.name}` : "Today's active arrangements"}
              </p>
           </div>
           <div className="flex gap-2">

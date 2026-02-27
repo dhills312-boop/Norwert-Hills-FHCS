@@ -16,6 +16,7 @@ import StaffLogin from "@/pages/staff/Login";
 import Dashboard from "@/pages/staff/Dashboard";
 import Builder from "@/pages/staff/Builder";
 import Billing from "@/pages/staff/Billing";
+import AdminUsers from "@/pages/staff/AdminUsers";
 
 function Router() {
   return (
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/staff/dashboard" component={Dashboard} />
       <Route path="/staff/builder" component={Builder} />
       <Route path="/staff/billing" component={Billing} />
+      <Route path="/staff/admin/users" component={AdminUsers} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,8 +1,9 @@
 import { eq, desc } from "drizzle-orm";
 import { db } from "./db";
 import {
-  users, contactSubmissions, arrangements, arrangementItems,
+  users, auditLogs, contactSubmissions, arrangements, arrangementItems,
   type User, type InsertUser,
+  type AuditLog,
   type Contact, type InsertContact,
   type Arrangement, type InsertArrangement,
   type ArrangementItem, type InsertArrangementItem,
@@ -10,8 +11,14 @@ import {
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, data: Partial<Pick<User, "name" | "email" | "role" | "isActive">>): Promise<User | undefined>;
+  updateLastLogin(id: string): Promise<void>;
+
+  createAuditLog(actorId: string, action: string, targetId?: string): Promise<AuditLog>;
+  getAuditLogs(): Promise<AuditLog[]>;
 
   createContact(data: InsertContact): Promise<Contact>;
   getContacts(): Promise<Contact[]>;
@@ -34,14 +41,36 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users).orderBy(desc(users.createdAt));
   }
 
   async createUser(data: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(data).returning();
     return user;
+  }
+
+  async updateUser(id: string, data: Partial<Pick<User, "name" | "email" | "role" | "isActive">>): Promise<User | undefined> {
+    const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+    return user;
+  }
+
+  async updateLastLogin(id: string): Promise<void> {
+    await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, id));
+  }
+
+  async createAuditLog(actorId: string, action: string, targetId?: string): Promise<AuditLog> {
+    const [log] = await db.insert(auditLogs).values({ actorId, action, targetId }).returning();
+    return log;
+  }
+
+  async getAuditLogs(): Promise<AuditLog[]> {
+    return db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt));
   }
 
   async createContact(data: InsertContact): Promise<Contact> {

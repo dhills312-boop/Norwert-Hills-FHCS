@@ -4,9 +4,9 @@ import { queryClient } from "@/lib/queryClient";
 
 interface AuthUser {
   id: string;
-  username: string;
-  displayName: string | null;
-  role: string;
+  name: string;
+  email: string;
+  role: "director" | "staff";
 }
 
 export function useAuth() {
@@ -27,7 +27,7 @@ export function useAuth() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: { username: string; password: string }) => {
+    mutationFn: async (credentials: { email: string; password: string }) => {
       const res = await apiRequest("POST", "/api/auth/login", credentials);
       return res.json();
     },
@@ -49,6 +49,7 @@ export function useAuth() {
     user: user ?? null,
     isLoading,
     isAuthenticated: !!user,
+    isDirector: user?.role === "director",
     login: loginMutation.mutateAsync,
     logout: logoutMutation.mutateAsync,
     loginError: loginMutation.error,

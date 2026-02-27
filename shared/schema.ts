@@ -5,10 +5,21 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  displayName: text("display_name"),
   role: text("role").notNull().default("staff"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastLoginAt: timestamp("last_login_at"),
+});
+
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  actorId: varchar("actor_id").notNull(),
+  action: text("action").notNull(),
+  targetId: varchar("target_id"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const contactSubmissions = pgTable("contact_submissions", {
@@ -43,10 +54,32 @@ export const arrangementItems = pgTable("arrangement_items", {
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
 });
 
+export const passwordSchema = z.string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Must contain an uppercase letter")
+  .regex(/[a-z]/, "Must contain a lowercase letter")
+  .regex(/[0-9]/, "Must contain a number")
+  .regex(/[^A-Za-z0-9]/, "Must contain a special character");
+
+export const staffEmailSchema = z.string()
+  .email("Invalid email format")
+  .refine(
+    (email) => email.endsWith("@thenhfcs.com"),
+    "Email must use @thenhfcs.com domain"
+  );
+
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
+  name: true,
+  email: true,
   password: true,
-  displayName: true,
+  role: true,
+});
+
+export const createUserSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: staffEmailSchema,
+  password: passwordSchema,
+  role: z.enum(["director", "staff"]),
 });
 
 export const insertContactSchema = createInsertSchema(contactSubmissions).pick({
@@ -76,6 +109,7 @@ export const insertArrangementItemSchema = createInsertSchema(arrangementItems).
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertContact = z.infer<typeof insertContactSchema>;
 export type Contact = typeof contactSubmissions.$inferSelect;
 export type InsertArrangement = z.infer<typeof insertArrangementSchema>;

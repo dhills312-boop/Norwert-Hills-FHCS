@@ -8,7 +8,7 @@ import { Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function StaffLogin() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [, setLocation] = useLocation();
@@ -23,10 +23,10 @@ export default function StaffLogin() {
     e.preventDefault();
     setError("");
     try {
-      await login({ username, password });
+      await login({ email, password });
       setLocation("/staff/dashboard");
     } catch (err: any) {
-      setError("Invalid credentials. Please try again.");
+      setError("Invalid email or password.");
     }
   };
 
@@ -44,15 +44,16 @@ export default function StaffLogin() {
         <CardContent className="pb-10">
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="username" data-testid="label-username">Username</Label>
+              <Label htmlFor="email" data-testid="label-email">Email</Label>
               <Input 
-                id="username" 
-                data-testid="input-username"
-                type="text" 
-                placeholder="Username" 
-                value={username}
-                onChange={(e) => { setUsername(e.target.value); setError(""); }}
+                id="email" 
+                data-testid="input-email"
+                type="email" 
+                placeholder="name@thenhfcs.com" 
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError(""); }}
                 className="bg-background/50 border-white/10 focus:border-primary"
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -65,6 +66,7 @@ export default function StaffLogin() {
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(""); }}
                 className="bg-background/50 border-white/10 focus:border-primary"
+                autoComplete="current-password"
               />
               {error && <p className="text-destructive text-sm" data-testid="text-error">{error}</p>}
             </div>

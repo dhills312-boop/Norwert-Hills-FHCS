@@ -39,7 +39,7 @@ const loginLimiter = rateLimit({
   message: { message: "Too many login attempts. Please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
-  validate: { ip: false },
+  validate: { xForwardedForHeader: false, ip: false },
 });
 
 export function setupAuth(app: Express): void {

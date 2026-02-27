@@ -1,13 +1,39 @@
-
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { motion } from "framer-motion";
-import { Phone, Mail, MapPin, Clock, MessageSquare } from "lucide-react";
+import { Phone, Mail, MapPin, Clock, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Contact() {
+  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [submitted, setSubmitted] = useState(false);
+  const { toast } = useToast();
+
+  const submitMutation = useMutation({
+    mutationFn: async (data: typeof form) => {
+      const res = await apiRequest("POST", "/api/contact", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      setSubmitted(true);
+      setForm({ name: "", email: "", subject: "", message: "" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitMutation.mutate(form);
+  };
+
   return (
     <PublicLayout>
       <div className="pt-32 pb-20 bg-background min-h-screen">
@@ -36,7 +62,7 @@ export default function Contact() {
                     <Phone className="w-5 h-5" />
                     <span className="text-xs uppercase tracking-widest">Phone</span>
                   </div>
-                  <p className="text-xl font-serif">(985) 318-7574</p>
+                  <p className="text-xl font-serif" data-testid="text-phone">(985) 318-7574</p>
                   <p className="text-sm text-muted-foreground font-light">Available 24/7 for immediate assistance</p>
                 </div>
                 <div className="space-y-4">
@@ -44,7 +70,7 @@ export default function Contact() {
                     <Mail className="w-5 h-5" />
                     <span className="text-xs uppercase tracking-widest">Email</span>
                   </div>
-                  <p className="text-xl font-serif">norwert@thenhfcs.com</p>
+                  <p className="text-xl font-serif" data-testid="text-email">norwert@thenhfcs.com</p>
                   <p className="text-sm text-muted-foreground font-light">For inquiries and pre-planning</p>
                 </div>
               </div>
@@ -54,7 +80,7 @@ export default function Contact() {
                   <MapPin className="w-5 h-5" />
                   <span className="text-xs uppercase tracking-widest">Location</span>
                 </div>
-                <p className="text-xl font-serif">985 W. Thomas, Hammond, LA 70401</p>
+                <p className="text-xl font-serif" data-testid="text-address">985 W. Thomas, Hammond, LA 70401</p>
                 <div className="aspect-video w-full overflow-hidden rounded-sm border border-white/5 grayscale">
                   <iframe
                     title="Google Map"
@@ -89,30 +115,85 @@ export default function Contact() {
               className="bg-card p-8 md:p-12 border border-white/5 rounded-sm relative"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -z-10" />
-              <h2 className="font-serif text-3xl mb-8">Send a Message</h2>
-              <form className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-xs uppercase tracking-widest text-muted-foreground">Full Name</Label>
-                    <Input id="name" className="bg-background/50 border-white/10" placeholder="John Doe" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-xs uppercase tracking-widest text-muted-foreground">Email Address</Label>
-                    <Input id="email" type="email" className="bg-background/50 border-white/10" placeholder="john@example.com" />
-                  </div>
+              
+              {submitted ? (
+                <div className="text-center py-12 space-y-6">
+                  <CheckCircle className="h-16 w-16 text-primary mx-auto" />
+                  <h2 className="font-serif text-3xl" data-testid="text-success">Message Sent</h2>
+                  <p className="text-muted-foreground font-light max-w-sm mx-auto">
+                    Thank you for reaching out. A member of our team will respond to your message within 24 hours.
+                  </p>
+                  <Button onClick={() => setSubmitted(false)} variant="outline" className="border-white/10" data-testid="button-send-another">
+                    Send Another Message
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="subject" className="text-xs uppercase tracking-widest text-muted-foreground">Subject</Label>
-                  <Input id="subject" className="bg-background/50 border-white/10" placeholder="Pre-planning inquiry" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="message" className="text-xs uppercase tracking-widest text-muted-foreground">Message</Label>
-                  <Textarea id="message" className="bg-background/50 border-white/10 min-h-[150px]" placeholder="How can we help you?" />
-                </div>
-                <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 uppercase text-xs tracking-[0.2em] py-6">
-                   Send Message
-                </Button>
-              </form>
+              ) : (
+                <>
+                  <h2 className="font-serif text-3xl mb-8">Send a Message</h2>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="name" className="text-xs uppercase tracking-widest text-muted-foreground">Full Name</Label>
+                        <Input 
+                          id="name" 
+                          data-testid="input-name"
+                          className="bg-background/50 border-white/10" 
+                          placeholder="John Doe" 
+                          value={form.name}
+                          onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-xs uppercase tracking-widest text-muted-foreground">Email Address</Label>
+                        <Input 
+                          id="email" 
+                          data-testid="input-email"
+                          type="email" 
+                          className="bg-background/50 border-white/10" 
+                          placeholder="john@example.com" 
+                          value={form.email}
+                          onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="subject" className="text-xs uppercase tracking-widest text-muted-foreground">Subject</Label>
+                      <Input 
+                        id="subject" 
+                        data-testid="input-subject"
+                        className="bg-background/50 border-white/10" 
+                        placeholder="Pre-planning inquiry" 
+                        value={form.subject}
+                        onChange={e => setForm(prev => ({ ...prev, subject: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="message" className="text-xs uppercase tracking-widest text-muted-foreground">Message</Label>
+                      <Textarea 
+                        id="message" 
+                        data-testid="input-message"
+                        className="bg-background/50 border-white/10 min-h-[150px]" 
+                        placeholder="How can we help you?" 
+                        value={form.message}
+                        onChange={e => setForm(prev => ({ ...prev, message: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      data-testid="button-submit"
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90 uppercase text-xs tracking-[0.2em] py-6"
+                      disabled={submitMutation.isPending}
+                    >
+                      {submitMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Send Message
+                    </Button>
+                  </form>
+                </>
+              )}
             </motion.div>
           </div>
         </div>

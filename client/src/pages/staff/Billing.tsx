@@ -1,19 +1,114 @@
-
 import { StaffLayout } from "@/components/layout/StaffLayout";
-import { exampleBill, type BillData, type BillSection } from "@/lib/data";
-import { useState } from "react";
+import { exampleBill, builderSteps, type BillData, type BillSection } from "@/lib/data";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Printer, Download, Link as LinkIcon, Check, ShieldCheck, PenSquare, Share2, ArrowLeft, FileText } from "lucide-react";
-import { Link } from "wouter";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Printer, Download, Link as LinkIcon, Check, ShieldCheck, PenSquare, Share2, ArrowLeft, FileText, Loader2 } from "lucide-react";
+import { Link, useSearch } from "wouter";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+
+interface Arrangement {
+  id: string;
+  familyName: string;
+  selections: Record<string, string>;
+  status: string;
+  createdAt: string;
+}
+
+function buildBillFromArrangement(arr: Arrangement): BillData {
+  const selections = arr.selections || {};
+  const serviceItems: { id: string; description: string; amount: number }[] = [];
+  const merchandiseItems: { id: string; description: string; amount: number }[] = [];
+
+  serviceItems.push({ id: "s1", description: "Basic Professional Services of Funeral Director & Staff", amount: 3200 });
+
+  const serviceTypeStep = builderSteps.find(s => s.id === "service-type");
+  if (serviceTypeStep && selections["service-type"]) {
+    const opt = serviceTypeStep.options.find(o => o.id === selections["service-type"]);
+    if (opt) {
+      serviceItems.push({ id: "s2", description: opt.name, amount: opt.price });
+    }
+  }
+
+  serviceItems.push({ id: "s3", description: "Transfer of Remains to Funeral Home", amount: 500 });
+
+  const casketStep = builderSteps.find(s => s.id === "casket");
+  if (casketStep && selections["casket"]) {
+    const opt = casketStep.options.find(o => o.id === selections["casket"]);
+    if (opt) {
+      merchandiseItems.push({ id: "m1", description: opt.name, amount: opt.price });
+    }
+  }
+
+  const flowersStep = builderSteps.find(s => s.id === "flowers");
+  if (flowersStep && selections["flowers"]) {
+    const opt = flowersStep.options.find(o => o.id === selections["flowers"]);
+    if (opt) {
+      merchandiseItems.push({ id: "m2", description: opt.name, amount: opt.price });
+    }
+  }
+
+  const date = new Date(arr.createdAt);
+  const formattedDate = date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+  return {
+    statementNumber: `NH-2026-${arr.id.substring(0, 5).toUpperCase()}`,
+    date: formattedDate,
+    clientName: arr.familyName,
+    staffName: "Staff Director",
+    status: arr.status as BillData["status"],
+    sections: {
+      services: { title: "A. Charges for Services Selected", items: serviceItems },
+      merchandise: { title: "B. Charges for Merchandise Selected", items: merchandiseItems },
+      cashAdvances: {
+        title: "C. Cash Advances",
+        items: [
+          { id: "c1", description: "Certified Death Certificates (5)", amount: 125 },
+          { id: "c2", description: "Clergy Honorarium", amount: 300 },
+        ],
+      },
+    },
+    credits: [],
+    taxRate: 0.0945,
+  };
+}
 
 export default function Billing() {
   const [billData, setBillData] = useState<BillData | null>(null);
-  const [isStaffMode, setIsStaffMode] = useState(true); // Toggle for demo purposes
+  const [isStaffMode] = useState(true);
   const { toast } = useToast();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [, setLocation] = useLocation();
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const arrangementId = params.get("arrangement");
+
+  if (!authLoading && !isAuthenticated) {
+    setLocation("/staff/login");
+    return null;
+  }
+
+  const { data: arrangement } = useQuery<Arrangement>({
+    queryKey: ["/api/arrangements", arrangementId],
+    queryFn: async () => {
+      if (!arrangementId) return null;
+      const res = await fetch(`/api/arrangements/${arrangementId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!arrangementId && isAuthenticated,
+  });
+
+  useEffect(() => {
+    if (arrangement) {
+      setBillData(buildBillFromArrangement(arrangement));
+    }
+  }, [arrangement]);
 
   const handleGenerateExample = () => {
     setBillData(exampleBill);
@@ -35,7 +130,7 @@ export default function Billing() {
     const cashAdvancesTotal = calculateSectionTotal(billData.sections.cashAdvances);
     
     const subtotal = servicesTotal + merchandiseTotal + cashAdvancesTotal;
-    const tax = merchandiseTotal * billData.taxRate; // Typically tax only on merchandise
+    const tax = merchandiseTotal * billData.taxRate;
     const total = subtotal + tax;
     const credits = billData.credits.reduce((sum, item) => sum + item.amount, 0);
     const balance = total - credits;
@@ -61,11 +156,16 @@ export default function Billing() {
           </div>
           <h2 className="font-serif text-3xl">Statement Generator</h2>
           <p className="text-muted-foreground max-w-md">
-            No active statement loaded. Generate an example bill to view the layout and functionality.
+            {arrangementId
+              ? "Loading arrangement data..."
+              : "No active statement loaded. Generate an example bill to view the layout and functionality."}
           </p>
-          <Button onClick={handleGenerateExample} size="lg" className="bg-primary text-primary-foreground">
-            Generate Example Bill
-          </Button>
+          {!arrangementId && (
+            <Button onClick={handleGenerateExample} size="lg" className="bg-primary text-primary-foreground" data-testid="button-generate-example">
+              Generate Example Bill
+            </Button>
+          )}
+          {arrangementId && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
         </div>
       </StaffLayout>
     );
@@ -75,18 +175,17 @@ export default function Billing() {
     <StaffLayout>
       <div className="min-h-screen bg-background flex flex-col font-sans">
         
-        {/* Sticky Header Strip */}
         <header className="sticky top-0 z-40 bg-card border-b border-white/10 shadow-lg">
           <div className="container mx-auto px-6 py-4">
              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                    <Link href="/staff/dashboard">
-                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-white/10 text-muted-foreground hover:text-foreground">
+                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-white/10 text-muted-foreground hover:text-foreground" data-testid="button-back-dashboard">
                        <ArrowLeft className="h-4 w-4" />
                      </Button>
                    </Link>
                    <div>
-                      <h1 className="font-serif text-xl md:text-2xl leading-none mb-1">{billData.clientName}</h1>
+                      <h1 className="font-serif text-xl md:text-2xl leading-none mb-1" data-testid="text-client-name">{billData.clientName}</h1>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono uppercase tracking-wider">
                         <span>{billData.statementNumber}</span>
                         <span className="w-1 h-1 bg-white/20 rounded-full" />
@@ -105,36 +204,35 @@ export default function Billing() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                   <Button variant="outline" size="sm" className="hidden md:flex border-white/10 hover:bg-white/5">
+                   <Button variant="outline" size="sm" className="hidden md:flex border-white/10 hover:bg-white/5" data-testid="button-print">
                      <Printer className="w-4 h-4 mr-2" /> Print
                    </Button>
                    
                    <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="border-white/10 hover:bg-white/5">
+                        <Button variant="outline" size="sm" className="border-white/10 hover:bg-white/5" data-testid="button-send">
                           <Share2 className="w-4 h-4 mr-2" /> Send
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle>Share Statement</DialogTitle>
-                          <DialogDescription>Choose how you would like to send this document.</DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
-                           <Button variant="outline" className="justify-start" onClick={() => handleSend("Summary Link")}>
+                           <Button variant="outline" className="justify-start" onClick={() => handleSend("Summary Link")} data-testid="button-send-link">
                              <LinkIcon className="mr-2 h-4 w-4" /> Send Summary Link
                            </Button>
-                           <Button variant="outline" className="justify-start" onClick={() => handleSend("Receipt")}>
+                           <Button variant="outline" className="justify-start" onClick={() => handleSend("Receipt")} data-testid="button-send-receipt">
                              <Check className="mr-2 h-4 w-4" /> Send Receipt
                            </Button>
-                           <Button variant="outline" className="justify-start" onClick={() => handleSend("Confirmation")}>
+                           <Button variant="outline" className="justify-start" onClick={() => handleSend("Confirmation")} data-testid="button-send-confirmation">
                              <ShieldCheck className="mr-2 h-4 w-4" /> Send Confirmation of Selections
                            </Button>
                         </div>
                       </DialogContent>
                    </Dialog>
 
-                   <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20">
+                   <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20" data-testid="button-finalize">
                      <ShieldCheck className="w-4 h-4 mr-2" /> Finalize
                    </Button>
                 </div>
@@ -142,27 +240,19 @@ export default function Billing() {
           </div>
         </header>
 
-        {/* Microcopy & Chips */}
         <div className="bg-background border-b border-white/5 py-3">
            <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
               <p className="text-sm text-muted-foreground italic">
                 "This page summarizes your selections. Nothing is final until you approve."
               </p>
-              <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 max-w-full no-scrollbar">
-                 <div className="bg-white/5 px-3 py-1 rounded-full text-xs border border-white/5 whitespace-nowrap">Traditional Service</div>
-                 <div className="bg-white/5 px-3 py-1 rounded-full text-xs border border-white/5 whitespace-nowrap">Viewing: Chapel A</div>
-                 <div className="bg-white/5 px-3 py-1 rounded-full text-xs border border-white/5 whitespace-nowrap">Casket: Mahogany</div>
-              </div>
            </div>
         </div>
 
         <main className="flex-grow container mx-auto px-4 md:px-6 py-8">
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
               
-              {/* LEFT COLUMN: Itemized Statement */}
               <div className="lg:col-span-2 space-y-8">
                  
-                 {/* Section A: Services */}
                  <section className="bg-card rounded-lg border border-white/5 p-6 md:p-8">
                     <h3 className="font-serif text-lg md:text-xl border-b border-white/10 pb-4 mb-6 flex justify-between items-end">
                        {billData.sections.services.title}
@@ -185,7 +275,6 @@ export default function Billing() {
                     </div>
                  </section>
 
-                 {/* Section B: Merchandise */}
                  <section className="bg-card rounded-lg border border-white/5 p-6 md:p-8">
                     <h3 className="font-serif text-lg md:text-xl border-b border-white/10 pb-4 mb-6 flex justify-between items-end">
                        {billData.sections.merchandise.title}
@@ -208,7 +297,6 @@ export default function Billing() {
                     </div>
                  </section>
 
-                 {/* Section C: Cash Advances */}
                  <section className="bg-card rounded-lg border border-white/5 p-6 md:p-8">
                     <h3 className="font-serif text-lg md:text-xl border-b border-white/10 pb-4 mb-6 flex justify-between items-end">
                        {billData.sections.cashAdvances.title}
@@ -237,7 +325,6 @@ export default function Billing() {
                  </div>
               </div>
 
-              {/* RIGHT COLUMN: Summary Panel */}
               <div className="lg:col-span-1">
                  <div className="bg-neutral-900 border border-primary/20 rounded-lg p-6 md:p-8 sticky top-32 shadow-2xl">
                     <h3 className="font-serif text-xl mb-6 text-primary">Statement Summary</h3>
@@ -274,30 +361,32 @@ export default function Billing() {
                        </div>
                     </div>
 
-                    <div className="bg-green-900/10 border border-green-500/20 rounded-md p-4 mb-6">
-                       <h4 className="text-xs uppercase tracking-wider text-green-500 mb-3 font-semibold">Credits & Payments</h4>
-                       {billData.credits.map((credit) => (
-                         <div key={credit.id} className="flex justify-between text-sm mb-2">
-                            <span className="text-green-100/70">{credit.description}</span>
-                            <span className="font-mono text-green-400">-${credit.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                         </div>
-                       ))}
-                    </div>
+                    {billData.credits.length > 0 && (
+                      <div className="bg-green-900/10 border border-green-500/20 rounded-md p-4 mb-6">
+                         <h4 className="text-xs uppercase tracking-wider text-green-500 mb-3 font-semibold">Credits & Payments</h4>
+                         {billData.credits.map((credit) => (
+                           <div key={credit.id} className="flex justify-between text-sm mb-2">
+                              <span className="text-green-100/70">{credit.description}</span>
+                              <span className="font-mono text-green-400">-${credit.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                           </div>
+                         ))}
+                      </div>
+                    )}
 
                     <div className="pt-2">
                        <div className="flex justify-between items-baseline">
                           <span className="font-serif text-lg text-primary">Balance Due</span>
-                          <span className="font-mono text-2xl font-bold text-primary">${totals.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          <span className="font-mono text-2xl font-bold text-primary" data-testid="text-balance-due">${totals.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                        </div>
                        <p className="text-xs text-muted-foreground mt-2 text-right">Payment due by {billData.date}</p>
                     </div>
 
                     <div className="mt-8 pt-6 border-t border-white/10">
-                       <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 py-6 text-lg font-serif">
+                       <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 py-6 text-lg font-serif" data-testid="button-sign-accept">
                          <PenSquare className="w-4 h-4 mr-2" /> Sign & Accept
                        </Button>
                        <p className="text-xs text-center text-muted-foreground mt-3">
-                         Secure digital signature via JotForm
+                         Secure digital signature
                        </p>
                     </div>
                  </div>

@@ -1,26 +1,32 @@
-
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Lock } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function StaffLogin() {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
   const [, setLocation] = useLocation();
+  const { login, isLoggingIn, isAuthenticated } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  if (isAuthenticated) {
+    setLocation("/staff/dashboard");
+    return null;
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple demo gate
-    if (password === "BeverlyJean") {
-      // Determine if mobile or tablet (mock logic, in real app check User Agent or just route)
-      // For this demo, let's route to the mobile dashboard by default
+    setError("");
+    try {
+      await login({ username, password });
       setLocation("/staff/dashboard");
-    } else {
-      setError(true);
+    } catch (err: any) {
+      setError("Invalid credentials. Please try again.");
     }
   };
 
@@ -33,27 +39,46 @@ export default function StaffLogin() {
             <Lock className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="font-serif text-3xl">Staff Portal</CardTitle>
-          <CardDescription className="text-muted-foreground">Enter your access code to continue.</CardDescription>
+          <CardDescription className="text-muted-foreground">Enter your credentials to continue.</CardDescription>
         </CardHeader>
         <CardContent className="pb-10">
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="password">Access Code</Label>
+              <Label htmlFor="username" data-testid="label-username">Username</Label>
               <Input 
-                id="password" 
-                type="password" 
-                placeholder="••••••" 
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setError(false); }}
+                id="username" 
+                data-testid="input-username"
+                type="text" 
+                placeholder="Username" 
+                value={username}
+                onChange={(e) => { setUsername(e.target.value); setError(""); }}
                 className="bg-background/50 border-white/10 focus:border-primary"
               />
-              {error && <p className="text-destructive text-sm">Invalid access code.</p>}
             </div>
-            <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+            <div className="space-y-2">
+              <Label htmlFor="password" data-testid="label-password">Password</Label>
+              <Input 
+                id="password" 
+                data-testid="input-password"
+                type="password" 
+                placeholder="••••••••" 
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                className="bg-background/50 border-white/10 focus:border-primary"
+              />
+              {error && <p className="text-destructive text-sm" data-testid="text-error">{error}</p>}
+            </div>
+            <Button 
+              type="submit" 
+              data-testid="button-login"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90" 
+              disabled={isLoggingIn}
+            >
+              {isLoggingIn ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Enter Portal
             </Button>
             <div className="text-center">
-              <a href="/" className="text-xs text-muted-foreground hover:text-primary">Return to Website</a>
+              <a href="/" className="text-xs text-muted-foreground hover:text-primary" data-testid="link-return">Return to Website</a>
             </div>
           </form>
         </CardContent>

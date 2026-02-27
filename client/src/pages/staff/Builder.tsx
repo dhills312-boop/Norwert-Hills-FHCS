@@ -1,23 +1,82 @@
-
 import { StaffLayout } from "@/components/layout/StaffLayout";
 import { builderSteps } from "@/lib/data";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Edit2, FileText, ShieldAlert, Receipt } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Edit2, FileText, ShieldAlert, Receipt, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+interface Arrangement {
+  id: string;
+  familyName: string;
+  selections: Record<string, string>;
+  status: string;
+  nextStep: string;
+}
 
 export default function Builder() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [, setLocation] = useLocation();
+  const search = useSearch();
+  const { toast } = useToast();
+
+  const params = new URLSearchParams(search);
+  const arrangementId = params.get("arrangement");
+
+  if (!authLoading && !isAuthenticated) {
+    setLocation("/staff/login");
+    return null;
+  }
+
+  const { data: arrangement } = useQuery<Arrangement>({
+    queryKey: ["/api/arrangements", arrangementId],
+    queryFn: async () => {
+      if (!arrangementId) return null;
+      const res = await fetch(`/api/arrangements/${arrangementId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!arrangementId && isAuthenticated,
+  });
+
+  useEffect(() => {
+    if (arrangement?.selections && typeof arrangement.selections === 'object') {
+      setSelections(arrangement.selections);
+    }
+  }, [arrangement]);
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: { selections: Record<string, string>; status: string; nextStep: string }) => {
+      if (!arrangementId) return;
+      const res = await apiRequest("PATCH", `/api/arrangements/${arrangementId}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/arrangements"] });
+    },
+  });
 
   const currentStep = builderSteps[currentStepIndex];
   const isLastStep = currentStepIndex === builderSteps.length - 1;
 
   const handleSelect = (optionId: string) => {
-    setSelections(prev => ({ ...prev, [currentStep.id]: optionId }));
+    const newSelections = { ...selections, [currentStep.id]: optionId };
+    setSelections(newSelections);
+
+    if (arrangementId) {
+      const nextStepName = isLastStep
+        ? "Final Review"
+        : builderSteps[currentStepIndex + 1]?.title || "Service Selection";
+      saveMutation.mutate({ selections: newSelections, status: "In Progress", nextStep: nextStepName });
+    }
   };
 
   const handleNext = () => {
@@ -32,7 +91,13 @@ export default function Builder() {
     }
   };
 
-  // Determine current preview image: active selection or step default
+  const handleComplete = () => {
+    if (arrangementId) {
+      saveMutation.mutate({ selections, status: "Pending Signature", nextStep: "Final Review" });
+      toast({ title: "Arrangement Saved", description: "Selections have been finalized." });
+    }
+  };
+
   const activeSelectionId = selections[currentStep.id];
   const activeOption = currentStep.options.find(o => o.id === activeSelectionId);
   const currentImage = activeOption?.image || currentStep.previewImage;
@@ -42,7 +107,6 @@ export default function Builder() {
     <StaffLayout>
       <div className="h-[calc(100vh-60px)] md:h-screen w-full flex flex-col md:flex-row overflow-hidden bg-background">
         
-        {/* LEFT PANEL: Guided Visual Narrative (60%) */}
         <div className="w-full md:w-[60%] h-[40vh] md:h-full relative overflow-hidden bg-black/90">
            <AnimatePresence mode="wait">
              <motion.div
@@ -72,20 +136,24 @@ export default function Builder() {
                 <p className="font-serif text-2xl md:text-4xl text-white/90 leading-relaxed italic max-w-2xl">
                   "{currentCaption}"
                 </p>
+                {arrangement && (
+                  <p className="text-white/50 text-sm mt-4 uppercase tracking-widest">
+                    {arrangement.familyName}
+                  </p>
+                )}
               </motion.div>
            </div>
         </div>
 
-        {/* RIGHT PANEL: Controls & Story (40%) */}
         <div className="w-full md:w-[40%] h-full min-h-0 overflow-y-auto bg-card border-l border-white/5 relative z-20">
           
-          {/* Header Area */}
           <div className="p-8 md:p-10 pb-4" >
              <div className="flex items-center gap-2 mb-6">
                 <span className="text-xs font-mono text-primary tracking-widest uppercase">
                   Step {currentStepIndex + 1} of {builderSteps.length}
                 </span>
                 <div className="h-[1px] flex-grow bg-white/10" />
+                {saveMutation.isPending && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
              </div>
              
              <h2 className="font-serif text-3xl md:text-4xl text-foreground mb-4">{currentStep.title}</h2>
@@ -94,7 +162,6 @@ export default function Builder() {
              </p>
           </div>
 
-          {/* Scrollable Options */}
           <div className="px-8 md:px-10 py-4 space-y-4">
              {currentStep.options.map((option) => {
                const isSelected = selections[currentStep.id] === option.id;
@@ -104,6 +171,7 @@ export default function Builder() {
                    whileHover={{ scale: 1.01 }}
                    whileTap={{ scale: 0.99 }}
                    onClick={() => handleSelect(option.id)}
+                   data-testid={`option-${option.id}`}
                    className={cn(
                      "cursor-pointer rounded-lg border p-5 transition-all duration-300 relative overflow-hidden",
                      isSelected 
@@ -123,39 +191,38 @@ export default function Builder() {
              })}
           </div>
 
-          {/* Staff Tools (Subtle) */}
           <div className="px-8 md:px-10 py-4 border-t border-white/5 bg-background/30">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-2 uppercase tracking-wider">
                <span>Staff Controls</span>
             </div>
             <div className="flex gap-2">
-               <Button variant="outline" size="sm" className="h-8 border-white/10 bg-transparent hover:bg-white/5 text-muted-foreground text-xs">
+               <Button variant="outline" size="sm" className="h-8 border-white/10 bg-transparent hover:bg-white/5 text-muted-foreground text-xs" data-testid="button-add-note">
                  <Edit2 className="w-3 h-3 mr-2" /> Add Note
                </Button>
-               <Button variant="outline" size="sm" className="h-8 border-white/10 bg-transparent hover:bg-white/5 text-muted-foreground text-xs">
+               <Button variant="outline" size="sm" className="h-8 border-white/10 bg-transparent hover:bg-white/5 text-muted-foreground text-xs" data-testid="button-override">
                  <ShieldAlert className="w-3 h-3 mr-2" /> Override
                </Button>
             </div>
           </div>
 
-          {/* Navigation Bar */}
           <div className="p-6 md:p-8 bg-background border-t border-white/5 flex items-center justify-between">
-             <Button variant="ghost" onClick={handleBack} disabled={currentStepIndex === 0} className="text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent">
+             <Button variant="ghost" onClick={handleBack} disabled={currentStepIndex === 0} className="text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent" data-testid="button-back">
                <ChevronLeft className="mr-2 h-4 w-4" /> Back
              </Button>
 
              <div className="flex gap-2">
                {isLastStep && (
-                  <Link href="/staff/billing">
-                    <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
+                  <Link href={arrangementId ? `/staff/billing?arrangement=${arrangementId}` : "/staff/billing"}>
+                    <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/10" data-testid="button-statement">
                       <Receipt className="mr-2 h-4 w-4" /> Statement
                     </Button>
                   </Link>
                )}
                <Button 
-                  onClick={handleNext} 
-                  disabled={!selections[currentStep.id] && !isLastStep} // Allow completion if last step reached
+                  onClick={isLastStep ? handleComplete : handleNext} 
+                  disabled={!selections[currentStep.id] && !isLastStep}
                   className="bg-primary text-primary-foreground px-8 py-6 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+                  data-testid="button-continue"
                >
                  {isLastStep ? "Complete" : "Continue"}
                  {!isLastStep && <ChevronRight className="ml-2 h-4 w-4" />}
@@ -163,15 +230,8 @@ export default function Builder() {
              </div>
           </div>
 
-          {/* Summary Drawer Trigger (Floating or integrated) */}
-          <div 
-             className="absolute top-0 right-8 md:right-10 transform -translate-y-1/2 z-30"
-          >
-             {/* Alternatively, we can put it in the top bar */}
-          </div>
         </div>
 
-        {/* Collapsible Service Summary (Bottom Drawer Style) */}
         <motion.div 
            initial={false}
            animate={{ y: isSummaryOpen ? 0 : "calc(100% - 3rem)" }}
@@ -181,6 +241,7 @@ export default function Builder() {
            <div 
              className="h-12 flex items-center justify-between px-8 cursor-pointer bg-zinc-800/50 hover:bg-zinc-800 transition-colors rounded-t-xl"
              onClick={() => setIsSummaryOpen(!isSummaryOpen)}
+             data-testid="button-toggle-summary"
            >
               <div className="flex items-center gap-2">
                  <FileText className="w-4 h-4 text-primary" />

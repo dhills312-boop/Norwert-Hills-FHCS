@@ -43,16 +43,6 @@ export default function Dashboard() {
   const [demoMode, setDemoMode] = useState(false);
   const [logRange, setLogRange] = useState<"24h" | "2wk" | "1mo">("24h");
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      setLocation("/staff/login");
-    }
-  }, [authLoading, isAuthenticated, setLocation]);
-
-  if (!authLoading && !isAuthenticated) {
-    return null;
-  }
-
   const { data: arrangements = [], isLoading } = useQuery<Arrangement[]>({
     queryKey: ["/api/arrangements"],
     enabled: isAuthenticated,
@@ -69,10 +59,9 @@ export default function Dashboard() {
     enabled: isAuthenticated,
   });
 
-  const demoParam = demoMode ? "?demo=true" : "";
-
   const createMutation = useMutation({
     mutationFn: async (data: typeof newFamily) => {
+      const demoParam = demoMode ? "?demo=true" : "";
       const res = await apiRequest("POST", `/api/arrangements${demoParam}`, data);
       return res.json();
     },
@@ -84,6 +73,16 @@ export default function Dashboard() {
       toast({ title: "Arrangement Created", description: "New client session has been created." });
     },
   });
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      setLocation("/staff/login");
+    }
+  }, [authLoading, isAuthenticated, setLocation]);
+
+  if (!authLoading && !isAuthenticated) {
+    return null;
+  }
 
   const handleSendLink = (type: 'email' | 'sms', name: string) => {
     toast({

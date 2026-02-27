@@ -34,18 +34,6 @@ export default function AdminUsers() {
   const [deactivateConfirm, setDeactivateConfirm] = useState<{ userId: string; name: string } | null>(null);
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "staff" as "director" | "staff" });
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      setLocation("/staff/login");
-    } else if (!authLoading && !isDirector) {
-      setLocation("/staff/dashboard");
-    }
-  }, [authLoading, isAuthenticated, isDirector, setLocation]);
-
-  if (!authLoading && (!isAuthenticated || !isDirector)) {
-    return null;
-  }
-
   const { data: users = [], isLoading } = useQuery<StaffUser[]>({
     queryKey: ["/api/admin/users"],
     enabled: isDirector,
@@ -112,6 +100,18 @@ export default function AdminUsers() {
       toast({ title: "User Activated" });
     },
   });
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      setLocation("/staff/login");
+    } else if (!authLoading && !isDirector) {
+      setLocation("/staff/dashboard");
+    }
+  }, [authLoading, isAuthenticated, isDirector, setLocation]);
+
+  if (!authLoading && (!isAuthenticated || !isDirector)) {
+    return null;
+  }
 
   const formatDate = (d: string | null) => {
     if (!d) return "Never";

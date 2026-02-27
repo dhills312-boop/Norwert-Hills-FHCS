@@ -88,16 +88,6 @@ export default function Billing() {
   const params = new URLSearchParams(search);
   const arrangementId = params.get("arrangement");
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      setLocation("/staff/login");
-    }
-  }, [authLoading, isAuthenticated, setLocation]);
-
-  if (!authLoading && !isAuthenticated) {
-    return null;
-  }
-
   const { data: arrangement } = useQuery<Arrangement>({
     queryKey: ["/api/arrangements", arrangementId],
     queryFn: async () => {
@@ -114,6 +104,16 @@ export default function Billing() {
       setBillData(buildBillFromArrangement(arrangement));
     }
   }, [arrangement]);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      setLocation("/staff/login");
+    }
+  }, [authLoading, isAuthenticated, setLocation]);
+
+  if (!authLoading && !isAuthenticated) {
+    return null;
+  }
 
   const handleGenerateExample = () => {
     setBillData(exampleBill);

@@ -31,16 +31,6 @@ export default function Builder() {
   const params = new URLSearchParams(search);
   const arrangementId = params.get("arrangement");
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      setLocation("/staff/login");
-    }
-  }, [authLoading, isAuthenticated, setLocation]);
-
-  if (!authLoading && !isAuthenticated) {
-    return null;
-  }
-
   const { data: arrangement } = useQuery<Arrangement>({
     queryKey: ["/api/arrangements", arrangementId],
     queryFn: async () => {
@@ -68,6 +58,16 @@ export default function Builder() {
       queryClient.invalidateQueries({ queryKey: ["/api/arrangements"] });
     },
   });
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      setLocation("/staff/login");
+    }
+  }, [authLoading, isAuthenticated, setLocation]);
+
+  if (!authLoading && !isAuthenticated) {
+    return null;
+  }
 
   const currentStep = builderSteps[currentStepIndex];
   const isLastStep = currentStepIndex === builderSteps.length - 1;

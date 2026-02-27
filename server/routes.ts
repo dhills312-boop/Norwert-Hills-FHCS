@@ -182,6 +182,11 @@ export async function registerRoutes(
   app.post("/api/arrangements", requireAuth, async (req, res) => {
     try {
       const data = insertArrangementSchema.parse(req.body);
+      const isDemo = req.query.demo === "true";
+      if (isDemo) {
+        const arr = await storage.createArrangement(data);
+        return res.status(201).json(arr);
+      }
       const result = await db.transaction(async (tx) => {
         const [arr] = await tx.insert(arrangements).values(data).returning();
         await tx.insert(activityLogs).values({
@@ -206,6 +211,12 @@ export async function registerRoutes(
       const validated = updateArrangementSchema.parse(req.body);
       const before = await storage.getArrangement(req.params.id);
       if (!before) return res.status(404).json({ message: "Arrangement not found" });
+      const isDemo = req.query.demo === "true";
+
+      if (isDemo) {
+        const arr = await storage.updateArrangement(req.params.id, validated);
+        return res.json(arr);
+      }
 
       const result = await db.transaction(async (tx) => {
         const [arr] = await tx.update(arrangements).set(validated).where(eq(arrangements.id, req.params.id)).returning();
@@ -237,6 +248,13 @@ export async function registerRoutes(
   app.delete("/api/arrangements/:id", requireAuth, async (req, res) => {
     try {
       const arr = await storage.getArrangement(req.params.id);
+      const isDemo = req.query.demo === "true";
+
+      if (isDemo) {
+        await storage.deleteArrangement(req.params.id);
+        return res.json({ message: "Deleted" });
+      }
+
       await db.transaction(async (tx) => {
         await tx.delete(arrangements).where(eq(arrangements.id, req.params.id));
         await tx.insert(activityLogs).values({
@@ -255,7 +273,15 @@ export async function registerRoutes(
   app.get("/api/activity-logs", requireAuth, async (req, res) => {
     try {
       const arrangementId = req.query.arrangementId as string | undefined;
-      const logs = await storage.getActivityLogs(arrangementId);
+      const since = req.query.since as string | undefined;
+      let sinceDate: Date | undefined;
+      if (since) {
+        const hours = parseInt(since);
+        if (!isNaN(hours) && hours > 0) {
+          sinceDate = new Date(Date.now() - hours * 60 * 60 * 1000);
+        }
+      }
+      const logs = await storage.getActivityLogs(arrangementId, sinceDate);
       const userIds = [...new Set(logs.map((l) => l.actorId))];
       const userMap: Record<string, string> = {};
       for (const uid of userIds) {

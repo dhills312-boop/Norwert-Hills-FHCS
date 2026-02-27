@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, gte } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, auditLogs, contactSubmissions, arrangements, arrangementItems, activityLogs,
@@ -36,7 +36,7 @@ export interface IStorage {
   deleteArrangementItems(arrangementId: string): Promise<void>;
 
   createActivityLog(data: InsertActivityLog): Promise<ActivityLog>;
-  getActivityLogs(arrangementId?: string): Promise<ActivityLog[]>;
+  getActivityLogs(arrangementId?: string, since?: Date): Promise<ActivityLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -133,9 +133,13 @@ export class DatabaseStorage implements IStorage {
     return log;
   }
 
-  async getActivityLogs(arrangementId?: string): Promise<ActivityLog[]> {
-    if (arrangementId) {
-      return db.select().from(activityLogs).where(eq(activityLogs.arrangementId, arrangementId)).orderBy(desc(activityLogs.createdAt));
+  async getActivityLogs(arrangementId?: string, since?: Date): Promise<ActivityLog[]> {
+    const conditions = [];
+    if (arrangementId) conditions.push(eq(activityLogs.arrangementId, arrangementId));
+    if (since) conditions.push(gte(activityLogs.createdAt, since));
+
+    if (conditions.length > 0) {
+      return db.select().from(activityLogs).where(and(...conditions)).orderBy(desc(activityLogs.createdAt));
     }
     return db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt));
   }

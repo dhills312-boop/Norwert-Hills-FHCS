@@ -2,7 +2,7 @@ import { StaffLayout } from "@/components/layout/StaffLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Mail, MessageSquare, Clock, ChevronRight, CheckCircle2, AlertCircle, Plus, Loader2, LogOut, History, FileEdit, Trash2, FilePlus } from "lucide-react";
+import { Mail, MessageSquare, Clock, ChevronRight, CheckCircle2, AlertCircle, Plus, Loader2, LogOut, History, FileEdit, Trash2, FilePlus, FlaskConical } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -40,6 +40,8 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [newFamily, setNewFamily] = useState({ familyName: "", email: "", phone: "", scheduledTime: "" });
+  const [demoMode, setDemoMode] = useState(false);
+  const [logRange, setLogRange] = useState<"24h" | "2wk" | "1mo">("24h");
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -56,14 +58,22 @@ export default function Dashboard() {
     enabled: isAuthenticated,
   });
 
+  const logHours = logRange === "24h" ? 24 : logRange === "2wk" ? 336 : 720;
   const { data: activityLogs = [] } = useQuery<ActivityLogEntry[]>({
-    queryKey: ["/api/activity-logs"],
+    queryKey: ["/api/activity-logs", logHours],
+    queryFn: async () => {
+      const res = await fetch(`/api/activity-logs?since=${logHours}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
     enabled: isAuthenticated,
   });
 
+  const demoParam = demoMode ? "?demo=true" : "";
+
   const createMutation = useMutation({
     mutationFn: async (data: typeof newFamily) => {
-      const res = await apiRequest("POST", "/api/arrangements", data);
+      const res = await apiRequest("POST", `/api/arrangements${demoParam}`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -97,7 +107,23 @@ export default function Dashboard() {
                {user?.name ? `Welcome, ${user.name}` : "Today's active arrangements"}
              </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <Button
+              variant={demoMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setDemoMode(!demoMode);
+                toast({
+                  title: demoMode ? "Demo Mode Off" : "Demo Mode On",
+                  description: demoMode ? "Actions will now be logged." : "Actions will not appear in the activity log.",
+                });
+              }}
+              className={demoMode ? "bg-amber-600 hover:bg-amber-700 text-white text-xs gap-1.5" : "border-white/10 text-muted-foreground text-xs gap-1.5"}
+              data-testid="button-demo-toggle"
+            >
+              <FlaskConical className="h-3.5 w-3.5" />
+              Demo
+            </Button>
             <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-primary text-primary-foreground hidden md:flex" data-testid="button-new-arrangement">
@@ -236,12 +262,28 @@ export default function Dashboard() {
           </div>
         )}
         
-        {activityLogs.length > 0 && (
-          <div className="mt-10">
-            <div className="flex items-center gap-2 mb-4">
+        <div className="mt-10">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
               <History className="h-4 w-4 text-primary" />
               <h2 className="font-serif text-xl text-foreground" data-testid="text-activity-title">Activity Log</h2>
             </div>
+            <div className="flex gap-1 bg-background/30 rounded-lg p-0.5" data-testid="activity-log-filters">
+              {([["24h", "24hr"], ["2wk", "2 Wks"], ["1mo", "1 Mo"]] as const).map(([value, label]) => (
+                <Button
+                  key={value}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setLogRange(value)}
+                  className={`text-xs px-3 py-1 h-7 rounded-md ${logRange === value ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  data-testid={`button-filter-${value}`}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          {activityLogs.length > 0 ? (
             <Card className="border-white/5 bg-card">
               <CardContent className="p-0">
                 <div className="divide-y divide-white/5">
@@ -262,7 +304,6 @@ export default function Dashboard() {
                     ) : (
                       <FileEdit className="h-4 w-4 text-primary" />
                     );
-
                     return (
                       <div key={log.id} className="flex items-start gap-3 px-4 py-3" data-testid={`activity-log-${log.id}`}>
                         <div className="mt-0.5">{actionIcon}</div>
@@ -287,8 +328,10 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        )}
+          ) : (
+            <p className="text-center py-8 text-muted-foreground text-sm">No activity in this time period.</p>
+          )}
+        </div>
 
         <div className="md:hidden fixed bottom-6 right-6">
           <Button 

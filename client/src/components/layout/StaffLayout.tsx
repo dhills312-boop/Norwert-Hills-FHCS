@@ -32,18 +32,18 @@ export function StaffLayout({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-grow p-4 space-y-2 overflow-x-auto md:overflow-visible flex md:flex-col gap-2 md:gap-0">
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href}>
-              <a
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-md transition-all whitespace-nowrap",
-                  location === item.href 
-                    ? "bg-primary/10 text-primary border border-primary/20" 
-                    : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                <span className="font-medium text-sm">{item.label}</span>
-              </a>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-md transition-all whitespace-nowrap",
+                location === item.href 
+                  ? "bg-primary/10 text-primary border border-primary/20" 
+                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+              <span className="font-medium text-sm">{item.label}</span>
             </Link>
           ))}
         </nav>

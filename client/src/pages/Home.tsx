@@ -32,12 +32,16 @@ export default function Home() {
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto font-light leading-relaxed">A sanctuary of peace and reflection in the heart of North Shores. Providing bespoke funeral services tailored to honor your loved one's unique legacy.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm tracking-widest uppercase px-8 py-6 rounded-none min-w-[200px]">
-                Our Services
-              </Button>
-              <Button size="lg" variant="outline" className="border-white/20 text-foreground hover:bg-white/5 hover:text-white text-sm tracking-widest uppercase px-8 py-6 rounded-none min-w-[200px]">
-                Contact Us
-              </Button>
+              <Link href="/services">
+                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm tracking-widest uppercase px-8 py-6 rounded-none min-w-[200px]" data-testid="button-hero-services">
+                  Our Services
+                </Button>
+              </Link>
+              <Link href="/contact">
+                <Button size="lg" variant="outline" className="border-white/20 text-foreground hover:bg-white/5 hover:text-white text-sm tracking-widest uppercase px-8 py-6 rounded-none min-w-[200px]" data-testid="button-hero-contact">
+                  Contact Us
+                </Button>
+              </Link>
             </div>
           </motion.div>
         </div>
@@ -71,10 +75,8 @@ export default function Home() {
                 focus on what truly matters—honoring the memory of those you hold dear.
               </p>
             </div>
-            <Link href="/about">
-              <a className="inline-flex items-center gap-2 text-primary mt-8 hover:text-primary/80 transition-colors uppercase text-xs tracking-widest group">
-                Read Our Story <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </a>
+            <Link href="/about" className="inline-flex items-center gap-2 text-primary mt-8 hover:text-primary/80 transition-colors uppercase text-xs tracking-widest group">
+              Read Our Story <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
         </div>
@@ -94,25 +96,23 @@ export default function Home() {
             { title: "Cremation", image: "/assets/texture-marble.png", desc: "Dignified cremation options with memorial gatherings." },
             { title: "Bespoke", image: "/assets/hero-chapel.png", desc: "Personalized tributes reflecting a unique life." }
           ].map((item, i) => (
-            <Link key={i} href="/services">
-              <a className="group block relative overflow-hidden aspect-[3/4]">
-                <img src={item.image} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors" />
-                <div className="absolute inset-0 flex flex-col justify-end p-8">
-                  <h3 className="font-serif text-2xl text-white mb-2">{item.title}</h3>
-                  <div className="h-[1px] w-12 bg-primary mb-4 transition-all group-hover:w-24" />
-                  <p className="text-white/80 text-sm font-light translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-75">
-                    {item.desc}
-                  </p>
-                </div>
-              </a>
+            <Link key={i} href="/services" className="group block relative overflow-hidden aspect-[3/4]">
+              <img src={item.image} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors" />
+              <div className="absolute inset-0 flex flex-col justify-end p-8">
+                <h3 className="font-serif text-2xl text-white mb-2">{item.title}</h3>
+                <div className="h-[1px] w-12 bg-primary mb-4 transition-all group-hover:w-24" />
+                <p className="text-white/80 text-sm font-light translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-75">
+                  {item.desc}
+                </p>
+              </div>
             </Link>
           ))}
         </div>
         
         <div className="text-center mt-12">
           <Link href="/services">
-            <Button variant="ghost" className="text-foreground hover:text-primary uppercase tracking-widest text-xs">
+            <Button variant="ghost" className="text-foreground hover:text-primary uppercase tracking-widest text-xs" data-testid="button-view-services">
               View All Services
             </Button>
           </Link>
@@ -127,12 +127,16 @@ export default function Home() {
             Our compassionate staff is available 24 hours a day, 7 days a week to assist you.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Button size="lg" className="bg-primary text-primary-foreground min-w-[200px]">
-              <Phone className="mr-2 h-4 w-4" /> (985) 318-7574
-            </Button>
-            <Button size="lg" variant="outline" className="border-white/10 hover:bg-white/5 min-w-[200px]">
-              Schedule a Consultation
-            </Button>
+            <a href="tel:9853187574">
+              <Button size="lg" className="bg-primary text-primary-foreground min-w-[200px]" data-testid="button-call">
+                <Phone className="mr-2 h-4 w-4" /> (985) 318-7574
+              </Button>
+            </a>
+            <Link href="/contact">
+              <Button size="lg" variant="outline" className="border-white/10 hover:bg-white/5 min-w-[200px]" data-testid="button-consult">
+                Schedule a Consultation
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

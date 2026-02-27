@@ -23,10 +23,8 @@ export default function ServiceDetail() {
         <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
         
         <div className="absolute bottom-0 left-0 right-0 p-6 pb-20 container mx-auto">
-          <Link href="/services">
-             <a className="inline-flex items-center text-white/70 hover:text-primary mb-8 text-sm uppercase tracking-widest transition-colors">
-               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Services
-             </a>
+          <Link href="/services" className="inline-flex items-center text-white/70 hover:text-primary mb-8 text-sm uppercase tracking-widest transition-colors">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Services
           </Link>
           <h1 className="font-serif text-5xl md:text-7xl text-white mb-6 max-w-4xl">{service.title}</h1>
         </div>
@@ -61,9 +59,11 @@ export default function ServiceDetail() {
 
             <div className="mt-16 pt-16 border-t border-white/5 flex flex-col items-center text-center">
               <h3 className="font-serif text-2xl mb-6">Interested in this service?</h3>
-              <Button size="lg" className="bg-primary text-primary-foreground min-w-[200px] uppercase tracking-widest text-xs">
-                Schedule a Consultation
-              </Button>
+              <Link href="/contact">
+                <Button size="lg" className="bg-primary text-primary-foreground min-w-[200px] uppercase tracking-widest text-xs" data-testid="button-consult">
+                  Schedule a Consultation
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

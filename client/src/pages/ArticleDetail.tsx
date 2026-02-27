@@ -146,10 +146,8 @@ export default function ArticleDetail() {
     <PublicLayout>
       <div className="pt-32 pb-20 bg-background min-h-screen">
         <div className="container mx-auto px-6 max-w-3xl">
-          <Link href="/resources">
-            <a className="inline-flex items-center text-muted-foreground hover:text-primary mb-8 text-xs uppercase tracking-widest transition-colors cursor-pointer">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Resources
-            </a>
+          <Link href="/resources" className="inline-flex items-center text-muted-foreground hover:text-primary mb-8 text-xs uppercase tracking-widest transition-colors cursor-pointer">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Resources
           </Link>
 
           <div className="mb-8 mt-8">

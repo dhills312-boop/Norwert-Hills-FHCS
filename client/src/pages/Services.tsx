@@ -30,28 +30,26 @@ export default function Services() {
                  viewport={{ once: true }}
                  className="group"
                >
-                 <Link href={`/services/${service.id}`}>
-                   <a className="block">
-                     <div className="aspect-[16/10] overflow-hidden mb-8 relative">
-                       <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
-                       <img 
-                         src={service.image} 
-                         alt={service.title} 
-                         className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105" 
-                       />
+                 <Link href={`/services/${service.id}`} className="block">
+                   <div className="aspect-[16/10] overflow-hidden mb-8 relative">
+                     <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
+                     <img 
+                       src={service.image} 
+                       alt={service.title} 
+                       className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105" 
+                     />
+                   </div>
+                   <div className="flex flex-col border-t border-primary/20 pt-6">
+                     <div className="flex justify-between items-baseline mb-3">
+                       <h2 className="font-serif text-3xl group-hover:text-primary transition-colors">{service.title}</h2>
+                       <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity transform -translate-x-4 group-hover:translate-x-0 duration-300">
+                         <ArrowRight className="w-5 h-5" />
+                       </span>
                      </div>
-                     <div className="flex flex-col border-t border-primary/20 pt-6">
-                       <div className="flex justify-between items-baseline mb-3">
-                         <h2 className="font-serif text-3xl group-hover:text-primary transition-colors">{service.title}</h2>
-                         <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity transform -translate-x-4 group-hover:translate-x-0 duration-300">
-                           <ArrowRight className="w-5 h-5" />
-                         </span>
-                       </div>
-                       <p className="text-muted-foreground font-light leading-relaxed">
-                         {service.description}
-                       </p>
-                     </div>
-                   </a>
+                     <p className="text-muted-foreground font-light leading-relaxed">
+                       {service.description}
+                     </p>
+                   </div>
                  </Link>
                </motion.div>
              ))}

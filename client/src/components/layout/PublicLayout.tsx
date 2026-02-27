@@ -36,33 +36,30 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="container mx-auto px-6 flex items-center justify-between">
-          <Link href="/">
-            <a className="flex items-center gap-3 w-[260px] shrink-0">
-              <img 
-                src="/assets/logo-crest.png" 
-                alt="Norwert Hills Crest" 
-                className="h-12 w-12 object-contain opacity-90 group-hover:opacity-100 transition-opacity" 
-              />
-              <div className="flex flex-col">
-                <span className="font-serif text-xl tracking-wider whitespace-nowrap text-foreground uppercase leading-none">Norwert Hills</span>
-                <span className="text-[10px] tracking-[0.2em] text-primary/80 uppercase mt-1">Funeral and Cremation Services</span>
-              </div>
-            </a>
+          <Link href="/" className="flex items-center gap-3 w-[260px] shrink-0">
+            <img 
+              src="/assets/logo-crest.png" 
+              alt="Norwert Hills Crest" 
+              className="h-12 w-12 object-contain opacity-90 group-hover:opacity-100 transition-opacity" 
+            />
+            <div className="flex flex-col">
+              <span className="font-serif text-xl tracking-wider whitespace-nowrap text-foreground uppercase leading-none">Norwert Hills</span>
+              <span className="text-[10px] tracking-[0.2em] text-primary/80 uppercase mt-1">Funeral and Cremation Services</span>
+            </div>
           </Link>
 
-          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <Link key={link.href} href={link.href}>
-                <a
-                  className={cn(
-                    "text-sm tracking-widest uppercase transition-colors hover:text-primary relative whitespace-nowrap",
-                    location === link.href ? "text-primary" : "text-muted-foreground",
-                    location === link.href && "after:content-[''] after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-[1px] after:bg-primary"
-                  )}
-                >
-                  {link.label}
-                </a>
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "text-sm tracking-widest uppercase transition-colors hover:text-primary relative whitespace-nowrap",
+                  location === link.href ? "text-primary" : "text-muted-foreground",
+                  location === link.href && "after:content-[''] after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-[1px] after:bg-primary"
+                )}
+              >
+                {link.label}
               </Link>
             ))}
             <Link href="/contact">
@@ -72,7 +69,6 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </nav>
 
-          {/* Mobile Menu Toggle */}
           <button
             className="md:hidden text-foreground"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -81,20 +77,19 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        {/* Mobile Nav Overlay */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 right-0 bg-background border-b border-white/10 p-6 md:hidden flex flex-col gap-4 animate-in slide-in-from-top-5">
             {navLinks.map((link) => (
-              <Link key={link.href} href={link.href}>
-                <a
-                  className={cn(
-                    "text-lg font-serif transition-colors",
-                    location === link.href ? "text-primary italic" : "text-foreground"
-                  )}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {link.label}
-                </a>
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "text-lg font-serif transition-colors",
+                  location === link.href ? "text-primary italic" : "text-foreground"
+                )}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {link.label}
               </Link>
             ))}
           </div>

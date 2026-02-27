@@ -50,6 +50,6 @@ mockupState = "FULLSTACK"
 [userenv]
 
 [userenv.shared]
-ADMIN_EMAIL = "admin@thenhfcs.com"
-ADMIN_NAME = "Sarah Jenkins"
+ADMIN_EMAIL = "support@thenhfcs.com"
+ADMIN_NAME = "IT_DANIEL"
 ADMIN_PASSWORD = "BeverlyJean1!"

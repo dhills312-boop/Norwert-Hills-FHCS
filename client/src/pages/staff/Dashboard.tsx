@@ -2,7 +2,7 @@ import { StaffLayout } from "@/components/layout/StaffLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Mail, MessageSquare, Clock, ChevronRight, CheckCircle2, AlertCircle, Plus, Loader2, LogOut } from "lucide-react";
+import { Mail, MessageSquare, Clock, ChevronRight, CheckCircle2, AlertCircle, Plus, Loader2, LogOut, History, FileEdit, Trash2, FilePlus } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,6 +21,16 @@ interface Arrangement {
   status: string;
   nextStep: string;
   scheduledTime: string | null;
+  createdAt: string;
+}
+
+interface ActivityLogEntry {
+  id: string;
+  arrangementId: string;
+  actorId: string;
+  actorName: string;
+  action: string;
+  details: string | null;
   createdAt: string;
 }
 
@@ -46,6 +56,11 @@ export default function Dashboard() {
     enabled: isAuthenticated,
   });
 
+  const { data: activityLogs = [] } = useQuery<ActivityLogEntry[]>({
+    queryKey: ["/api/activity-logs"],
+    enabled: isAuthenticated,
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: typeof newFamily) => {
       const res = await apiRequest("POST", "/api/arrangements", data);
@@ -53,6 +68,7 @@ export default function Dashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/arrangements"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity-logs"] });
       setNewDialogOpen(false);
       setNewFamily({ familyName: "", email: "", phone: "", scheduledTime: "" });
       toast({ title: "Arrangement Created", description: "New client session has been created." });
@@ -220,6 +236,60 @@ export default function Dashboard() {
           </div>
         )}
         
+        {activityLogs.length > 0 && (
+          <div className="mt-10">
+            <div className="flex items-center gap-2 mb-4">
+              <History className="h-4 w-4 text-primary" />
+              <h2 className="font-serif text-xl text-foreground" data-testid="text-activity-title">Activity Log</h2>
+            </div>
+            <Card className="border-white/5 bg-card">
+              <CardContent className="p-0">
+                <div className="divide-y divide-white/5">
+                  {activityLogs.slice(0, 20).map((log) => {
+                    const arrangement = arrangements.find((a) => a.id === log.arrangementId);
+                    const time = new Date(log.createdAt);
+                    const timeStr = time.toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    });
+                    const actionIcon = log.action === "created" ? (
+                      <FilePlus className="h-4 w-4 text-green-400" />
+                    ) : log.action === "deleted" ? (
+                      <Trash2 className="h-4 w-4 text-red-400" />
+                    ) : (
+                      <FileEdit className="h-4 w-4 text-primary" />
+                    );
+
+                    return (
+                      <div key={log.id} className="flex items-start gap-3 px-4 py-3" data-testid={`activity-log-${log.id}`}>
+                        <div className="mt-0.5">{actionIcon}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium text-foreground" data-testid={`activity-actor-${log.id}`}>{log.actorName}</span>
+                            <Badge variant="outline" className="text-[10px] uppercase tracking-wider border-white/10 px-1.5 py-0">
+                              {log.action}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {arrangement ? arrangement.familyName : log.action === "deleted" ? "" : "Deleted arrangement"}
+                            </span>
+                          </div>
+                          {log.details && (
+                            <p className="text-xs text-muted-foreground mt-0.5" data-testid={`activity-details-${log.id}`}>{log.details}</p>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap mt-0.5">{timeStr}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         <div className="md:hidden fixed bottom-6 right-6">
           <Button 
             className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center"

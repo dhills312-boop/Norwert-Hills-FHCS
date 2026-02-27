@@ -1,9 +1,14 @@
 import type { Express } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { arrangements, activityLogs } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { requireAuth, requireDirector, hashPassword } from "./auth";
 import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema } from "@shared/schema";
 import { z } from "zod";
+
+const updateArrangementSchema = insertArrangementSchema.partial();
 
 export async function registerRoutes(
   httpServer: Server,
@@ -177,8 +182,17 @@ export async function registerRoutes(
   app.post("/api/arrangements", requireAuth, async (req, res) => {
     try {
       const data = insertArrangementSchema.parse(req.body);
-      const arr = await storage.createArrangement(data);
-      res.status(201).json(arr);
+      const result = await db.transaction(async (tx) => {
+        const [arr] = await tx.insert(arrangements).values(data).returning();
+        await tx.insert(activityLogs).values({
+          arrangementId: arr.id,
+          actorId: req.user!.id,
+          action: "created",
+          details: `Created arrangement for ${arr.familyName}`,
+        });
+        return arr;
+      });
+      res.status(201).json(result);
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: err.errors });
@@ -189,27 +203,72 @@ export async function registerRoutes(
 
   app.patch("/api/arrangements/:id", requireAuth, async (req, res) => {
     try {
-      const allowedFields = ["familyName", "email", "phone", "status", "nextStep", "scheduledTime", "selections", "notes"];
-      const filtered: Record<string, any> = {};
-      for (const key of allowedFields) {
-        if (req.body[key] !== undefined) {
-          filtered[key] = req.body[key];
-        }
+      const validated = updateArrangementSchema.parse(req.body);
+      const before = await storage.getArrangement(req.params.id);
+      if (!before) return res.status(404).json({ message: "Arrangement not found" });
+
+      const result = await db.transaction(async (tx) => {
+        const [arr] = await tx.update(arrangements).set(validated).where(eq(arrangements.id, req.params.id)).returning();
+
+        const changes: string[] = [];
+        if (validated.status && validated.status !== before.status) changes.push(`Status → ${validated.status}`);
+        if (validated.nextStep && validated.nextStep !== before.nextStep) changes.push(`Next step → ${validated.nextStep}`);
+        if (validated.selections) changes.push("Updated selections");
+        if (validated.notes !== undefined && validated.notes !== before.notes) changes.push("Updated notes");
+        if (validated.familyName && validated.familyName !== before.familyName) changes.push(`Renamed to ${validated.familyName}`);
+
+        await tx.insert(activityLogs).values({
+          arrangementId: arr.id,
+          actorId: req.user!.id,
+          action: "updated",
+          details: changes.length > 0 ? changes.join("; ") : "Updated arrangement details",
+        });
+        return arr;
+      });
+      res.json(result);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
       }
-      const arr = await storage.updateArrangement(req.params.id, filtered);
-      if (!arr) return res.status(404).json({ message: "Arrangement not found" });
-      res.json(arr);
-    } catch {
       res.status(500).json({ message: "Failed to update arrangement" });
     }
   });
 
   app.delete("/api/arrangements/:id", requireAuth, async (req, res) => {
     try {
-      await storage.deleteArrangement(req.params.id);
+      const arr = await storage.getArrangement(req.params.id);
+      await db.transaction(async (tx) => {
+        await tx.delete(arrangements).where(eq(arrangements.id, req.params.id));
+        await tx.insert(activityLogs).values({
+          arrangementId: req.params.id,
+          actorId: req.user!.id,
+          action: "deleted",
+          details: arr ? `Deleted arrangement for ${arr.familyName}` : "Deleted arrangement",
+        });
+      });
       res.json({ message: "Deleted" });
     } catch {
       res.status(500).json({ message: "Failed to delete arrangement" });
+    }
+  });
+
+  app.get("/api/activity-logs", requireAuth, async (req, res) => {
+    try {
+      const arrangementId = req.query.arrangementId as string | undefined;
+      const logs = await storage.getActivityLogs(arrangementId);
+      const userIds = [...new Set(logs.map((l) => l.actorId))];
+      const userMap: Record<string, string> = {};
+      for (const uid of userIds) {
+        const u = await storage.getUser(uid);
+        if (u) userMap[uid] = u.name;
+      }
+      const enriched = logs.map((l) => ({
+        ...l,
+        actorName: userMap[l.actorId] || "Unknown",
+      }));
+      res.json(enriched);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch activity logs" });
     }
   });
 

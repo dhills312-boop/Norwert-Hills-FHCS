@@ -19,10 +19,10 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `server/routes.ts` — API routes for contacts, arrangements, user management, audit logs
 - `server/storage.ts` — `IStorage` interface + `DatabaseStorage` implementation using Drizzle
 - `server/db.ts` — PostgreSQL pool + Drizzle instance
-- `server/seed.ts` — Bootstrap director account from ADMIN_EMAIL/ADMIN_PASSWORD env vars (first-run only)
+- `server/seed.ts` — Bootstrap director account from ADMIN_EMAIL/ADMIN_PASSWORD env vars; syncs credentials on restart if env vars change
 
 ### Shared
-- `shared/schema.ts` — Drizzle tables: `users`, `auditLogs`, `contactSubmissions`, `arrangements`, `arrangementItems` + Zod schemas + password/email validators
+- `shared/schema.ts` — Drizzle tables: `users`, `auditLogs`, `activityLogs`, `contactSubmissions`, `arrangements`, `arrangementItems` + Zod schemas + password/email validators
 
 ### Frontend
 - `client/src/App.tsx` — Router with all public + staff routes
@@ -41,6 +41,7 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `contact_submissions` — id, name, email, subject, message, status, created_at
 - `arrangements` — id, family_name, email, phone, status, next_step, scheduled_time, staff_id, selections (JSONB), notes, created_at
 - `arrangement_items` — id, arrangement_id, section, description, amount
+- `activity_logs` — id, arrangement_id, actor_id, action (created|updated|deleted), details, created_at — tracks all staff actions on arrangements within DB transactions
 
 ## Authentication & Authorization
 - Email-based login at `/staff/login` (email + password)
@@ -75,6 +76,7 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `GET/POST /api/arrangements` — List/create arrangements (auth required)
 - `GET/PATCH/DELETE /api/arrangements/:id` — CRUD single arrangement (auth required)
 - `GET/POST/DELETE /api/arrangements/:id/items` — Arrangement line items (auth required)
+- `GET /api/activity-logs?arrangementId=` — Activity log for arrangements (auth required)
 
 ## Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string

@@ -1,12 +1,13 @@
 import { eq, desc } from "drizzle-orm";
 import { db } from "./db";
 import {
-  users, auditLogs, contactSubmissions, arrangements, arrangementItems,
+  users, auditLogs, contactSubmissions, arrangements, arrangementItems, activityLogs,
   type User, type InsertUser,
   type AuditLog,
   type Contact, type InsertContact,
   type Arrangement, type InsertArrangement,
   type ArrangementItem, type InsertArrangementItem,
+  type ActivityLog, type InsertActivityLog,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -33,6 +34,9 @@ export interface IStorage {
   getArrangementItems(arrangementId: string): Promise<ArrangementItem[]>;
   createArrangementItem(data: InsertArrangementItem): Promise<ArrangementItem>;
   deleteArrangementItems(arrangementId: string): Promise<void>;
+
+  createActivityLog(data: InsertActivityLog): Promise<ActivityLog>;
+  getActivityLogs(arrangementId?: string): Promise<ActivityLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -122,6 +126,18 @@ export class DatabaseStorage implements IStorage {
 
   async deleteArrangementItems(arrangementId: string): Promise<void> {
     await db.delete(arrangementItems).where(eq(arrangementItems.arrangementId, arrangementId));
+  }
+
+  async createActivityLog(data: InsertActivityLog): Promise<ActivityLog> {
+    const [log] = await db.insert(activityLogs).values(data).returning();
+    return log;
+  }
+
+  async getActivityLogs(arrangementId?: string): Promise<ActivityLog[]> {
+    if (arrangementId) {
+      return db.select().from(activityLogs).where(eq(activityLogs.arrangementId, arrangementId)).orderBy(desc(activityLogs.createdAt));
+    }
+    return db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt));
   }
 }
 

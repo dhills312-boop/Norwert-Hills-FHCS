@@ -46,6 +46,15 @@ export const arrangements = pgTable("arrangements", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const activityLogs = pgTable("activity_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  arrangementId: varchar("arrangement_id").notNull(),
+  actorId: varchar("actor_id").notNull(),
+  action: text("action").notNull(),
+  details: text("details"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const arrangementItems = pgTable("arrangement_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   arrangementId: varchar("arrangement_id").notNull(),
@@ -106,6 +115,15 @@ export const insertArrangementItemSchema = createInsertSchema(arrangementItems).
   description: true,
   amount: true,
 });
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs).pick({
+  arrangementId: true,
+  actorId: true,
+  action: true,
+  details: true,
+});
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;

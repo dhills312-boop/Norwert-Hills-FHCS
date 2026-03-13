@@ -26,6 +26,8 @@ import ObituaryPage from "@/pages/announcements/ObituaryPage";
 import AnnouncementsList from "@/pages/staff/AnnouncementsList";
 import AnnouncementEditor from "@/pages/staff/AnnouncementEditor";
 import Cremation from "@/pages/Cremation";
+import CremationOrders from "@/pages/staff/CremationOrders";
+import CremationCaseDetail from "@/pages/staff/CremationCaseDetail";
 
 function Router() {
   return (
@@ -53,6 +55,8 @@ function Router() {
       <Route path="/staff/catalog" component={CatalogAdmin} />
       <Route path="/staff/announcements" component={AnnouncementsList} />
       <Route path="/staff/announcements/:id" component={AnnouncementEditor} />
+      <Route path="/staff/cremation" component={CremationOrders} />
+      <Route path="/staff/cremation/:id" component={CremationCaseDetail} />
       <Route component={NotFound} />
     </Switch>
   );

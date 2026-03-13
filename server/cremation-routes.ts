@@ -106,6 +106,16 @@ export function registerCremationRoutes(app: Express): void {
     }
   });
 
+  app.get("/api/cremation/orders/by-id/:id", requireAuth, async (req, res) => {
+    try {
+      const order = await storage.getCremationOrder(req.params.id);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+      res.json(order);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch cremation order" });
+    }
+  });
+
   app.get("/api/cremation/orders/:token", async (req, res) => {
     try {
       const order = await storage.getCremationOrderByToken(req.params.token);
@@ -170,6 +180,15 @@ export function registerCremationRoutes(app: Express): void {
       res.json(events);
     } catch {
       res.status(500).json({ message: "Failed to fetch cremation events" });
+    }
+  });
+
+  app.get("/api/cremation/waitlist", requireAuth, async (_req, res) => {
+    try {
+      const signups = await storage.listWaitlistSignups();
+      res.json(signups);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch waitlist signups" });
     }
   });
 

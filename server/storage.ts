@@ -2,7 +2,7 @@ import { eq, desc, and, gte } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, auditLogs, contactSubmissions, arrangements, arrangementItems, activityLogs,
-  formTemplates, formInstances, commEvents,
+  formTemplates, formInstances, commEvents, serviceCatalog,
   type User, type InsertUser,
   type AuditLog,
   type Contact, type InsertContact,
@@ -12,6 +12,7 @@ import {
   type FormTemplate, type InsertFormTemplate,
   type FormInstance, type InsertFormInstance,
   type CommEvent, type InsertCommEvent,
+  type ServiceCatalogItem, type InsertServiceCatalogItem,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -53,6 +54,11 @@ export interface IStorage {
 
   getCommEvents(arrangementId: string): Promise<CommEvent[]>;
   createCommEvent(data: InsertCommEvent): Promise<CommEvent>;
+
+  getServiceCatalogItems(itemType?: string, category?: string): Promise<ServiceCatalogItem[]>;
+  getServiceCatalogItem(id: string): Promise<ServiceCatalogItem | undefined>;
+  createServiceCatalogItem(data: InsertServiceCatalogItem): Promise<ServiceCatalogItem>;
+  updateServiceCatalogItem(id: string, data: Partial<InsertServiceCatalogItem>): Promise<ServiceCatalogItem | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -200,6 +206,31 @@ export class DatabaseStorage implements IStorage {
   async createCommEvent(data: InsertCommEvent): Promise<CommEvent> {
     const [ce] = await db.insert(commEvents).values(data).returning();
     return ce;
+  }
+
+  async getServiceCatalogItems(itemType?: string, category?: string): Promise<ServiceCatalogItem[]> {
+    const conditions = [];
+    if (itemType) conditions.push(eq(serviceCatalog.itemType, itemType));
+    if (category) conditions.push(eq(serviceCatalog.category, category));
+    if (conditions.length > 0) {
+      return db.select().from(serviceCatalog).where(and(...conditions)).orderBy(serviceCatalog.displayOrder);
+    }
+    return db.select().from(serviceCatalog).orderBy(serviceCatalog.displayOrder);
+  }
+
+  async getServiceCatalogItem(id: string): Promise<ServiceCatalogItem | undefined> {
+    const [item] = await db.select().from(serviceCatalog).where(eq(serviceCatalog.id, id));
+    return item;
+  }
+
+  async createServiceCatalogItem(data: InsertServiceCatalogItem): Promise<ServiceCatalogItem> {
+    const [item] = await db.insert(serviceCatalog).values(data).returning();
+    return item;
+  }
+
+  async updateServiceCatalogItem(id: string, data: Partial<InsertServiceCatalogItem>): Promise<ServiceCatalogItem | undefined> {
+    const [item] = await db.update(serviceCatalog).set(data).where(eq(serviceCatalog.id, id)).returning();
+    return item;
   }
 }
 

@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, FileText, Settings, LogOut, User, Receipt, Users, Shield } from "lucide-react";
+import { LayoutGrid, FileText, Settings, LogOut, User, Receipt, Users, Shield, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -12,7 +12,10 @@ export function StaffLayout({ children }: { children: React.ReactNode }) {
     { href: "/staff/dashboard", label: "Sessions", icon: LayoutGrid },
     { href: "/staff/builder", label: "Package Builder", icon: FileText },
     { href: "/staff/billing", label: "Billing & Statement", icon: Receipt },
-    ...(isDirector ? [{ href: "/staff/admin/users", label: "User Management", icon: Users }] : []),
+    ...(isDirector ? [
+      { href: "/staff/catalog", label: "Service Catalog", icon: Package },
+      { href: "/staff/admin/users", label: "User Management", icon: Users },
+    ] : []),
   ];
 
   const handleLogout = async () => {

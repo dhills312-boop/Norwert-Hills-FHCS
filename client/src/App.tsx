@@ -17,6 +17,7 @@ import Dashboard from "@/pages/staff/Dashboard";
 import Builder from "@/pages/staff/Builder";
 import Billing from "@/pages/staff/Billing";
 import AdminUsers from "@/pages/staff/AdminUsers";
+import CatalogAdmin from "@/pages/staff/CatalogAdmin";
 import SessionOverview from "@/pages/staff/SessionOverview";
 import FormFill from "@/pages/staff/FormFill";
 import Announcement from "@/pages/announcements/CharlesBraud";
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/staff/builder" component={Builder} />
       <Route path="/staff/billing" component={Billing} />
       <Route path="/staff/admin/users" component={AdminUsers} />
+      <Route path="/staff/catalog" component={CatalogAdmin} />
       <Route component={NotFound} />
     </Switch>
   );

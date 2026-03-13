@@ -22,7 +22,7 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `server/seed.ts` — Bootstrap director account from ADMIN_EMAIL/ADMIN_PASSWORD env vars; syncs credentials on restart if env vars change
 
 ### Shared
-- `shared/schema.ts` — Drizzle tables: `users`, `auditLogs`, `activityLogs`, `contactSubmissions`, `arrangements`, `arrangementItems` + Zod schemas + password/email validators
+- `shared/schema.ts` — Drizzle tables: `users`, `auditLogs`, `activityLogs`, `contactSubmissions`, `arrangements`, `arrangementItems`, `serviceCatalog` + Zod schemas + password/email validators + `ArrangementSelections` interface
 
 ### Frontend
 - `client/src/App.tsx` — Router with all public + staff routes
@@ -39,7 +39,7 @@ A full-stack funeral home website for a Louisiana-based business with an editori
   - Share buttons (Facebook, Twitter/X, Instagram copy-to-clipboard, Copy Link)
   - Get Directions (Google Maps / Apple Maps), Add to Calendar (.ics download)
 - **Staff**: Login (`/staff/login`), Dashboard (`/staff/dashboard`), Builder (`/staff/builder`), Billing (`/staff/billing`)
-- **Director-only**: User Management (`/staff/admin/users`)
+- **Director-only**: User Management (`/staff/admin/users`), Service Catalog (`/staff/catalog`)
 
 ## Database Schema
 - `users` — id (UUID), name, email (unique, @thenhfcs.com domain), password (bcrypt hash), role (director|staff), is_active, created_at, last_login_at
@@ -48,6 +48,7 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `arrangements` — id, family_name, email, phone, status, next_step, scheduled_time, staff_id, selections (JSONB), notes, created_at
 - `arrangement_items` — id, arrangement_id, section, description, amount
 - `activity_logs` — id, arrangement_id, actor_id, action (created|updated|deleted), details, created_at — tracks all staff actions on arrangements within DB transactions
+- `service_catalog` — id (UUID), item_type (package|service|merchandise|add-on|cash-advance), name, description, category, default_price, display_order, included_in (JSONB array of package IDs), is_active
 
 ## Authentication & Authorization
 - Email-based login at `/staff/login` (email + password)
@@ -83,6 +84,11 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `GET/PATCH/DELETE /api/arrangements/:id` — CRUD single arrangement (auth required)
 - `GET/POST/DELETE /api/arrangements/:id/items` — Arrangement line items (auth required)
 - `GET /api/activity-logs?arrangementId=` — Activity log for arrangements (auth required)
+- `GET /api/service-catalog` — List catalog items, optional `?type=` filter (auth required)
+- `GET /api/service-catalog/packages` — Packages with nested included items (auth required)
+- `GET /api/service-catalog/:id` — Single catalog item (auth required)
+- `POST /api/service-catalog` — Create catalog item (director only)
+- `PATCH /api/service-catalog/:id` — Update catalog item (director only)
 
 ## Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string

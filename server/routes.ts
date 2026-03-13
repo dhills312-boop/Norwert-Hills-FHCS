@@ -5,7 +5,7 @@ import { db } from "./db";
 import { arrangements, activityLogs, formInstances } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth, requireDirector, hashPassword } from "./auth";
-import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertCommEventSchema, type FormInstance } from "@shared/schema";
+import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertCommEventSchema, insertServiceCatalogSchema, type FormInstance } from "@shared/schema";
 import { z } from "zod";
 import path from "path";
 
@@ -499,6 +499,70 @@ export async function registerRoutes(
       res.json(events);
     } catch {
       res.status(500).json({ message: "Failed to fetch comm events" });
+    }
+  });
+
+  app.get("/api/service-catalog", requireAuth, async (req, res) => {
+    try {
+      const itemType = req.query.type as string | undefined;
+      const category = req.query.category as string | undefined;
+      const items = await storage.getServiceCatalogItems(itemType, category);
+      res.json(items);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch service catalog" });
+    }
+  });
+
+  app.get("/api/service-catalog/packages", requireAuth, async (_req, res) => {
+    try {
+      const allItems = await storage.getServiceCatalogItems();
+      const packages = allItems.filter(i => i.itemType === "package");
+      const result = packages.map(pkg => ({
+        ...pkg,
+        includedItems: allItems.filter(i => i.itemType !== "package" && (i.includedIn as string[] || []).includes(pkg.id)),
+      }));
+      res.json(result);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch packages" });
+    }
+  });
+
+  app.get("/api/service-catalog/:id", requireAuth, async (req, res) => {
+    try {
+      const item = await storage.getServiceCatalogItem(req.params.id);
+      if (!item) return res.status(404).json({ message: "Catalog item not found" });
+      res.json(item);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch catalog item" });
+    }
+  });
+
+  app.post("/api/service-catalog", requireDirector, async (req, res) => {
+    try {
+      const data = insertServiceCatalogSchema.parse(req.body);
+      const item = await storage.createServiceCatalogItem(data);
+      res.status(201).json(item);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to create catalog item" });
+    }
+  });
+
+  const updateServiceCatalogSchema = insertServiceCatalogSchema.partial();
+
+  app.patch("/api/service-catalog/:id", requireDirector, async (req, res) => {
+    try {
+      const data = updateServiceCatalogSchema.parse(req.body);
+      const item = await storage.updateServiceCatalogItem(req.params.id, data);
+      if (!item) return res.status(404).json({ message: "Catalog item not found" });
+      res.json(item);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to update catalog item" });
     }
   });
 

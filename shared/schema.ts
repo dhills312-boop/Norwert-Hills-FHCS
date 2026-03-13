@@ -32,6 +32,17 @@ export const contactSubmissions = pgTable("contact_submissions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export interface ArrangementSelections {
+  packageId?: string;
+  addOnIds?: string[];
+  merchandiseIds?: string[];
+  cashAdvanceIds?: string[];
+  floralIds?: string[];
+  customItems?: { description: string; section: string; amount: number }[];
+  overrides?: Record<string, number>;
+  [key: string]: unknown;
+}
+
 export const arrangements = pgTable("arrangements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   familyName: text("family_name").notNull(),
@@ -41,7 +52,7 @@ export const arrangements = pgTable("arrangements", {
   nextStep: text("next_step").notNull().default("Service Selection"),
   scheduledTime: text("scheduled_time"),
   staffId: varchar("staff_id"),
-  selections: jsonb("selections").$type<Record<string, string>>().default({}),
+  selections: jsonb("selections").$type<ArrangementSelections>().default({}),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -180,3 +191,19 @@ export type FormInstance = typeof formInstances.$inferSelect;
 export const insertCommEventSchema = createInsertSchema(commEvents).omit({ id: true, createdAt: true });
 export type InsertCommEvent = z.infer<typeof insertCommEventSchema>;
 export type CommEvent = typeof commEvents.$inferSelect;
+
+export const serviceCatalog = pgTable("service_catalog", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemType: text("item_type").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category"),
+  defaultPrice: numeric("default_price", { precision: 10, scale: 2 }).notNull().default("0"),
+  displayOrder: integer("display_order").notNull().default(0),
+  includedIn: jsonb("included_in").$type<string[]>().default([]),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export const insertServiceCatalogSchema = createInsertSchema(serviceCatalog).omit({ id: true });
+export type InsertServiceCatalogItem = z.infer<typeof insertServiceCatalogSchema>;
+export type ServiceCatalogItem = typeof serviceCatalog.$inferSelect;

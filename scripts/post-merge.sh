@@ -48,8 +48,11 @@ CREATE TABLE IF NOT EXISTS service_catalog (
   display_order INTEGER NOT NULL DEFAULT 0,
   included_in JSONB DEFAULT '[]'::jsonb,
   is_active BOOLEAN NOT NULL DEFAULT true,
+  pricing_unit TEXT NOT NULL DEFAULT 'flat',
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+ALTER TABLE service_catalog ADD COLUMN IF NOT EXISTS pricing_unit TEXT NOT NULL DEFAULT 'flat';
 SQL
 
 echo "Database tables synced"

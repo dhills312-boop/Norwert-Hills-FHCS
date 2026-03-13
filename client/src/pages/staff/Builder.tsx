@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Edit2, FileText, ShieldAlert, Receipt, Loader2, Plus, Trash2, Package, X } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Edit2, FileText, ShieldAlert, Receipt, Loader2, Plus, Minus, Trash2, Package, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useSearch } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -209,9 +209,32 @@ export default function Builder() {
     saveSelections({ ...selections, overrides });
   };
 
+  const getQuantity = (itemId: string) => selections.quantities?.[itemId] ?? 1;
+
+  const handleQuantityChange = (itemId: string, delta: number) => {
+    const current = getQuantity(itemId);
+    const newQty = Math.max(1, current + delta);
+    const quantities = { ...(selections.quantities || {}), [itemId]: newQty };
+    saveSelections({ ...selections, quantities });
+  };
+
+  const isQuantityItem = (item: ServiceCatalogItem) => item.pricingUnit !== "flat";
+
+  const getPricingLabel = (item: ServiceCatalogItem) => {
+    if (item.pricingUnit === "per_hour") return "/hr";
+    if (item.pricingUnit === "each") return "/ea";
+    return "";
+  };
+
   const getPrice = (item: ServiceCatalogItem) => {
     if (selections.overrides?.[item.id] !== undefined) return selections.overrides[item.id];
     return parseFloat(item.defaultPrice);
+  };
+
+  const getLineTotal = (item: ServiceCatalogItem) => {
+    const price = getPrice(item);
+    const qty = isQuantityItem(item) ? getQuantity(item.id) : 1;
+    return price * qty;
   };
 
   const handleNext = () => {
@@ -257,26 +280,63 @@ export default function Builder() {
     <div className="px-8 md:px-10 py-4 space-y-3">
       {items.map((item) => {
         const isSelected = selectedIds.includes(item.id);
+        const hasQty = isQuantityItem(item);
+        const qty = getQuantity(item.id);
+        const unitLabel = getPricingLabel(item);
+        const unitPrice = parseFloat(item.defaultPrice);
         return (
           <motion.div
             key={item.id}
             whileHover={{ scale: 1.005 }}
             whileTap={{ scale: 0.995 }}
-            onClick={() => onToggle(item.id)}
             data-testid={`option-${item.id}`}
             className={cn(
-              "cursor-pointer rounded-lg border p-5 transition-all duration-300",
+              "rounded-lg border p-5 transition-all duration-300",
               isSelected ? "bg-primary/10 border-primary shadow-[0_0_15px_rgba(212,175,55,0.1)]" : "bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20"
             )}
           >
-            <div className="flex justify-between items-center mb-1">
+            <div className="flex justify-between items-center mb-1 cursor-pointer" onClick={() => onToggle(item.id)}>
               <span className={cn("font-medium text-lg", isSelected ? "text-primary" : "text-foreground")}>{item.name}</span>
               <div className="flex items-center gap-3">
-                <span className="font-mono text-sm text-muted-foreground">${parseFloat(item.defaultPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="font-mono text-sm text-muted-foreground">
+                  ${unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}{unitLabel}
+                </span>
                 {isSelected && <Check className="text-primary w-5 h-5" />}
               </div>
             </div>
-            {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
+            {item.description && <p className="text-sm text-muted-foreground cursor-pointer" onClick={() => onToggle(item.id)}>{item.description}</p>}
+            {hasQty && isSelected && (
+              <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-white/10 hover:bg-white/10"
+                    onClick={() => handleQuantityChange(item.id, -1)}
+                    disabled={qty <= 1}
+                    data-testid={`qty-minus-${item.id}`}
+                  >
+                    <Minus className="w-3 h-3" />
+                  </Button>
+                  <span className="font-mono text-lg w-8 text-center" data-testid={`qty-value-${item.id}`}>{qty}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-white/10 hover:bg-white/10"
+                    onClick={() => handleQuantityChange(item.id, 1)}
+                    data-testid={`qty-plus-${item.id}`}
+                  >
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    {item.pricingUnit === "per_hour" ? (qty === 1 ? "hour" : "hours") : (qty === 1 ? "set" : "sets")}
+                  </span>
+                </div>
+                <span className="font-mono text-sm text-primary">
+                  ${(unitPrice * qty).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
           </motion.div>
         );
       })}
@@ -395,6 +455,11 @@ export default function Builder() {
                         <div>
                           <span className="text-foreground/80">{si.item.name}</span>
                           <span className="text-xs text-muted-foreground ml-2">({si.section})</span>
+                          {isQuantityItem(si.item) && (
+                            <span className="text-xs text-primary/70 ml-2">
+                              x{getQuantity(si.item.id)} {si.item.pricingUnit === "per_hour" ? "hr" : "ea"}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           {editingOverride === si.item.id ? (
@@ -408,7 +473,7 @@ export default function Builder() {
                               onClick={() => { setEditingOverride(si.item.id); setOverrideValue(String(getPrice(si.item))); }}
                               data-testid={`price-${si.item.id}`}
                             >
-                              ${getPrice(si.item).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              ${getLineTotal(si.item).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </span>
                           )}
                         </div>

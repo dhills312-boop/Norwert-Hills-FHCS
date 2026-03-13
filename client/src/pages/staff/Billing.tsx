@@ -54,10 +54,23 @@ function buildBillFromArrangement(
 ): BillData {
   const sel = (arr.selections || {}) as ArrangementSelections;
   const overrides = sel.overrides || {};
+  const quantities = sel.quantities || {};
 
   const getPrice = (item: ServiceCatalogItem) => {
     if (overrides[item.id] !== undefined) return overrides[item.id];
     return parseFloat(item.defaultPrice);
+  };
+
+  const getQty = (item: ServiceCatalogItem) => {
+    if (item.pricingUnit && item.pricingUnit !== "flat") return quantities[item.id] ?? 1;
+    return 1;
+  };
+
+  const getQtyLabel = (item: ServiceCatalogItem) => {
+    const qty = getQty(item);
+    if (qty <= 1 || !item.pricingUnit || item.pricingUnit === "flat") return "";
+    if (item.pricingUnit === "per_hour") return ` (x${qty} hrs)`;
+    return ` (x${qty})`;
   };
 
   const serviceItems: BillItem[] = [];
@@ -71,11 +84,12 @@ function buildBillFromArrangement(
     packageName = selectedPkg.name;
     selectedPkg.includedItems.forEach((item) => {
       const price = getPrice(item);
+      const qty = getQty(item);
       const target = item.itemType === "service" ? serviceItems : merchandiseItems;
       target.push({
         id: item.id,
-        description: item.name,
-        amount: price,
+        description: item.name + getQtyLabel(item),
+        amount: price * qty,
         isOverridden: overrides[item.id] !== undefined,
       });
     });
@@ -84,14 +98,16 @@ function buildBillFromArrangement(
   (sel.merchandiseIds || []).forEach((id) => {
     const item = catalogItems.find((i) => i.id === id);
     if (item) {
-      merchandiseItems.push({ id: item.id, description: item.name, amount: getPrice(item), isOverridden: overrides[item.id] !== undefined });
+      const qty = getQty(item);
+      merchandiseItems.push({ id: item.id, description: item.name + getQtyLabel(item), amount: getPrice(item) * qty, isOverridden: overrides[item.id] !== undefined });
     }
   });
 
   (sel.floralIds || []).forEach((id) => {
     const item = catalogItems.find((i) => i.id === id);
     if (item) {
-      merchandiseItems.push({ id: item.id, description: item.name, amount: getPrice(item), isOverridden: overrides[item.id] !== undefined });
+      const qty = getQty(item);
+      merchandiseItems.push({ id: item.id, description: item.name + getQtyLabel(item), amount: getPrice(item) * qty, isOverridden: overrides[item.id] !== undefined });
     }
   });
 
@@ -101,14 +117,16 @@ function buildBillFromArrangement(
       const category = item.category || "";
       const isTransportOrFacility = ["transportation", "facility"].includes(category);
       const target = isTransportOrFacility ? serviceItems : merchandiseItems;
-      target.push({ id: item.id, description: item.name, amount: getPrice(item), isOverridden: overrides[item.id] !== undefined });
+      const qty = getQty(item);
+      target.push({ id: item.id, description: item.name + getQtyLabel(item), amount: getPrice(item) * qty, isOverridden: overrides[item.id] !== undefined });
     }
   });
 
   (sel.cashAdvanceIds || []).forEach((id) => {
     const item = catalogItems.find((i) => i.id === id);
     if (item) {
-      cashAdvanceItems.push({ id: item.id, description: item.name, amount: getPrice(item), isOverridden: overrides[item.id] !== undefined });
+      const qty = getQty(item);
+      cashAdvanceItems.push({ id: item.id, description: item.name + getQtyLabel(item), amount: getPrice(item) * qty, isOverridden: overrides[item.id] !== undefined });
     }
   });
 

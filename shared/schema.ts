@@ -40,6 +40,7 @@ export interface ArrangementSelections {
   floralIds?: string[];
   customItems?: { description: string; section: string; amount: number }[];
   overrides?: Record<string, number>;
+  quantities?: Record<string, number>;
   [key: string]: unknown;
 }
 
@@ -202,6 +203,7 @@ export const serviceCatalog = pgTable("service_catalog", {
   displayOrder: integer("display_order").notNull().default(0),
   includedIn: jsonb("included_in").$type<string[]>().default([]),
   isActive: boolean("is_active").notNull().default(true),
+  pricingUnit: text("pricing_unit").notNull().default("flat"),
 });
 
 export const insertServiceCatalogSchema = createInsertSchema(serviceCatalog).omit({ id: true });

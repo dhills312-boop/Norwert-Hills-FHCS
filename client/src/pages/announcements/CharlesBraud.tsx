@@ -192,9 +192,9 @@ export default function Announcement() {
                   top: "50%",
                   left: "50%",
                   transform: "translate(-50%, -60%)",
-                  background: "radial-gradient(ellipse 60% 50% at 50% 35%, rgba(201,169,110,0.4) 0%, rgba(201,169,110,0.15) 30%, rgba(201,169,110,0.04) 60%, transparent 100%)",
+                  background: "radial-gradient(ellipse 65% 55% at 50% 35%, rgba(201,169,110,0.7) 0%, rgba(201,169,110,0.35) 25%, rgba(201,169,110,0.12) 50%, transparent 80%)",
                   animation: "announcement-halo-pulse 4s ease-in-out infinite alternate",
-                  filter: "blur(20px)",
+                  filter: "blur(25px)",
                   zIndex: 0,
                 }}
               />

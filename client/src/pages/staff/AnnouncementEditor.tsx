@@ -96,6 +96,7 @@ export default function AnnouncementEditor() {
 
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const { data: existingAnnouncement, isLoading: loadingExisting } = useQuery<AnnouncementData | null>({
     queryKey: ['/api/announcements/by-arrangement', arrangementId],
@@ -175,6 +176,7 @@ export default function AnnouncementEditor() {
       }
     },
     onSuccess: (data: AnnouncementData) => {
+      setFieldErrors({});
       queryClient.invalidateQueries({ queryKey: ['/api/announcements'] });
       toast({ title: 'Saved', description: 'Announcement has been saved.' });
       if (!dataToLoad) {
@@ -182,6 +184,35 @@ export default function AnnouncementEditor() {
       }
     },
     onError: (err: Error) => {
+      const fieldLabels: Record<string, string> = {
+        deceasedFirstName: 'First Name',
+        deceasedLastName: 'Last Name',
+        slug: 'URL Slug',
+      };
+      try {
+        const jsonMatch = err.message.match(/\{.*\}/s);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.errors && Array.isArray(parsed.errors)) {
+            const errors: Record<string, string> = {};
+            const messages: string[] = [];
+            for (const e of parsed.errors) {
+              const field = e.path?.[0] || 'unknown';
+              const label = fieldLabels[field] || field;
+              const msg = `${label} is required`;
+              errors[field] = msg;
+              messages.push(msg);
+            }
+            setFieldErrors(errors);
+            toast({ title: 'Missing required fields', description: messages.join(', '), variant: 'destructive' });
+            return;
+          }
+          if (parsed.message) {
+            toast({ title: 'Error', description: parsed.message, variant: 'destructive' });
+            return;
+          }
+        }
+      } catch {}
       toast({ title: 'Error', description: err.message || 'Failed to save', variant: 'destructive' });
     },
   });
@@ -204,7 +235,19 @@ export default function AnnouncementEditor() {
     }
   };
 
-  const handleSave = () => saveMutation.mutate(form);
+  const handleSave = () => {
+    const errors: Record<string, string> = {};
+    if (!form.deceasedFirstName.trim()) errors.deceasedFirstName = 'First Name is required';
+    if (!form.deceasedLastName.trim()) errors.deceasedLastName = 'Last Name is required';
+    const slug = form.slug || slugify(form.deceasedFirstName, form.deceasedLastName);
+    if (!slug.trim()) errors.slug = 'URL Slug is required (fill in first and last name)';
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast({ title: 'Missing required fields', description: Object.values(errors).join(', '), variant: 'destructive' });
+      return;
+    }
+    saveMutation.mutate(form);
+  };
 
   const handleCopy = (type: 'announcement' | 'obituary') => {
     const sl = form.slug || slugify(form.deceasedFirstName, form.deceasedLastName);
@@ -257,12 +300,14 @@ export default function AnnouncementEditor() {
                 <h2 className="font-serif text-lg text-foreground mb-2">Deceased Information</h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>First Name</Label>
-                    <Input value={form.deceasedFirstName} onChange={e => setForm(f => ({ ...f, deceasedFirstName: e.target.value }))} onBlur={handleAutoSlug} data-testid="input-first-name" />
+                    <Label>First Name <span className="text-red-400">*</span></Label>
+                    <Input value={form.deceasedFirstName} onChange={e => { setForm(f => ({ ...f, deceasedFirstName: e.target.value })); setFieldErrors(fe => { const n = {...fe}; delete n.deceasedFirstName; return n; }); }} onBlur={handleAutoSlug} className={fieldErrors.deceasedFirstName ? 'border-red-500' : ''} data-testid="input-first-name" />
+                    {fieldErrors.deceasedFirstName && <p className="text-xs text-red-400">{fieldErrors.deceasedFirstName}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label>Last Name</Label>
-                    <Input value={form.deceasedLastName} onChange={e => setForm(f => ({ ...f, deceasedLastName: e.target.value }))} onBlur={handleAutoSlug} data-testid="input-last-name" />
+                    <Label>Last Name <span className="text-red-400">*</span></Label>
+                    <Input value={form.deceasedLastName} onChange={e => { setForm(f => ({ ...f, deceasedLastName: e.target.value })); setFieldErrors(fe => { const n = {...fe}; delete n.deceasedLastName; return n; }); }} onBlur={handleAutoSlug} className={fieldErrors.deceasedLastName ? 'border-red-500' : ''} data-testid="input-last-name" />
+                    {fieldErrors.deceasedLastName && <p className="text-xs text-red-400">{fieldErrors.deceasedLastName}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -280,11 +325,12 @@ export default function AnnouncementEditor() {
                   <Input value={form.epitaph} onChange={e => setForm(f => ({ ...f, epitaph: e.target.value }))} placeholder="Beloved Father · Grandfather · Friend" data-testid="input-epitaph" />
                 </div>
                 <div className="space-y-2">
-                  <Label>URL Slug</Label>
+                  <Label>URL Slug <span className="text-red-400">*</span></Label>
                   <div className="flex gap-2">
-                    <Input value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} placeholder="john-doe" data-testid="input-slug" />
+                    <Input value={form.slug} onChange={e => { setForm(f => ({ ...f, slug: e.target.value })); setFieldErrors(fe => { const n = {...fe}; delete n.slug; return n; }); }} placeholder="john-doe" className={fieldErrors.slug ? 'border-red-500' : ''} data-testid="input-slug" />
                     <Button variant="outline" size="sm" onClick={handleAutoSlug} className="border-white/10">Auto</Button>
                   </div>
+                  {fieldErrors.slug && <p className="text-xs text-red-400">{fieldErrors.slug}</p>}
                   <p className="text-xs text-muted-foreground">/announcements/{form.slug || '...'}</p>
                 </div>
               </CardContent>

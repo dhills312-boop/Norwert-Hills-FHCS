@@ -297,6 +297,8 @@ export const cremationOrders = pgTable("cremation_orders", {
   paymentTimestamp: timestamp("payment_timestamp"),
   packetLocked: boolean("packet_locked").notNull().default(false),
   driveRootFolderId: text("drive_root_folder_id"),
+  driveRootFolderUrl: text("drive_root_folder_url"),
+  driveSubfolders: jsonb("drive_subfolders").$type<Record<string, string>>().default({}),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

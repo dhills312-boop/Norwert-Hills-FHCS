@@ -60,7 +60,7 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `service_catalog` — id (UUID), item_type (package|service|merchandise|add-on|cash-advance), name, description, category, default_price, display_order, included_in (JSONB array of package IDs), is_active
 - `announcements` — id (UUID), arrangement_id, slug (unique), deceased_first_name, deceased_last_name, date_of_birth, date_of_passing, brief_obituary, full_obituary, epitaph, service_details (JSONB), portrait_image_path, memorial_song_url, media_gallery (JSONB), is_published, created_at
 - `condolence_messages` — id (UUID), announcement_id, visitor_name, message, created_at
-- `cremation_orders` — id (UUID), order_token (unique, URL-safe), contact_name, contact_email, contact_phone, decedent_name, state_of_death, current_phase (intake|forms|payment|fulfillment|completed), payment_status, payment_reference, payment_timestamp, packet_locked, drive_root_folder_id, created_at, updated_at
+- `cremation_orders` — id (UUID), order_token (unique, URL-safe), contact_name, contact_email, contact_phone, decedent_name, state_of_death, current_phase (intake|forms|payment|fulfillment|completed), payment_status, payment_reference, payment_timestamp, packet_locked, drive_root_folder_id, drive_root_folder_url, drive_subfolders (JSONB map of subfolder name → Drive folder ID), created_at, updated_at
 - `cremation_events` — id (UUID), order_id, event_type (ORDER_CREATED|FORM_SUBMITTED|PAYMENT_CONFIRMED|REMAINS_RECEIVED|CREMATION_SCHEDULED|CREMATION_COMPLETED|RELEASE_RECORDED|SHIPMENT_RECORDED|CASE_COMPLETED), actor_type (system|staff|family), actor_id, details (JSONB), created_at
 - `cremation_documents` — id (UUID), order_id, drive_file_id, drive_url, document_type, folder_path, created_at
 - `waitlist_signups` — id (UUID), email, zip, created_at
@@ -121,6 +121,9 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `POST /api/cremation/orders/:id/events` — Staff, logs operational events
 - `GET /api/cremation/orders/:id/events` — Staff, retrieves event timeline
 - `POST /api/cremation/waitlist` — Public, captures out-of-area interest
+- `GET /api/cremation/orders/:id/documents` — List Drive document references for a case (auth required)
+- `GET /api/cremation/orders/:id/drive-link` — Get root Drive folder URL for a case (auth required)
+- `POST /api/cremation/orders/:id/create-drive-folder` — Create Drive folder structure for a case (auth required)
 
 ## Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string
@@ -128,6 +131,14 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `ADMIN_EMAIL` — Bootstrap admin email (first-run)
 - `ADMIN_PASSWORD` — Bootstrap admin password (first-run)
 - `ADMIN_NAME` — Bootstrap admin display name (first-run)
+- `GOOGLE_SERVICE_ACCOUNT_JSON` — Google Workspace service account credentials JSON (for Drive integration)
+- `GOOGLE_DRIVE_PARENT_FOLDER_ID` — Google Drive parent folder ID where Orders/ folder structure is created
+
+## Google Drive Integration
+- Service module: `server/services/google-drive.ts` — authenticates via service account, creates case folder structures, uploads files, lists files
+- Case folder structure: `Orders/{OrderToken}/` with subfolders: 01 Intake, 02 Authorization, 03 Vital Stats, 04 SSN Restricted, 05 Shipping & Urn, 06 Compliance Packet
+- References stored in `cremation_documents` table (only Drive IDs/URLs, no sensitive documents in DB)
+- Exposed methods: `createFolder()`, `createCaseStructure()`, `uploadFile()`, `getFileUrl()`, `getFolderUrl()`, `listFiles()`, `isConfigured()`
 
 ## Design
 - Dark theme with muted gold primary (#D4AF37-ish via CSS variables)

@@ -4,6 +4,7 @@ import { cremationPhases, cremationEventTypes } from "@shared/schema";
 import { requireAuth } from "./auth";
 import { checkServiceArea } from "./service-area";
 import { emitCremationEvent } from "./cremation-events";
+import * as googleDrive from "./services/google-drive";
 import { z } from "zod";
 import crypto from "crypto";
 
@@ -35,6 +36,8 @@ const updateOrderSchema = z.object({
   paymentTimestamp: z.coerce.date().optional(),
   packetLocked: z.boolean().optional(),
   driveRootFolderId: z.string().optional(),
+  driveRootFolderUrl: z.string().optional(),
+  driveSubfolders: z.record(z.string()).optional(),
 });
 
 const logEventSchema = z.object({
@@ -82,6 +85,8 @@ export function registerCremationRoutes(app: Express): void {
         paymentReference: null,
         paymentTimestamp: null,
         driveRootFolderId: null,
+        driveRootFolderUrl: null,
+        driveSubfolders: {},
       });
 
       await emitCremationEvent(order.id, "ORDER_CREATED", { type: "system" }, {
@@ -175,6 +180,93 @@ export function registerCremationRoutes(app: Express): void {
         return res.status(400).json({ message: "Validation error", errors: err.errors });
       }
       res.status(500).json({ message: "Failed to join waitlist" });
+    }
+  });
+
+  app.get("/api/cremation/orders/:id/documents", requireAuth, async (req, res) => {
+    try {
+      const order = await storage.getCremationOrder(req.params.id);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+
+      const documents = await storage.listCremationDocuments(req.params.id);
+      const subfolders = (order.driveSubfolders || {}) as Record<string, string>;
+      const files: Record<string, Array<{ id: string; name: string; mimeType: string; url: string }>> = {};
+
+      if (googleDrive.isConfigured()) {
+        for (const [folderName, folderId] of Object.entries(subfolders)) {
+          try {
+            files[folderName] = await googleDrive.listFiles(folderId);
+          } catch {
+            files[folderName] = [];
+          }
+        }
+      }
+
+      res.json({
+        orderId: order.id,
+        orderToken: order.orderToken,
+        rootFolderId: order.driveRootFolderId,
+        rootFolderUrl: order.driveRootFolderUrl,
+        subfolders,
+        files,
+        documents,
+      });
+    } catch (err) {
+      console.error("Failed to fetch cremation documents:", err);
+      res.status(500).json({ message: "Failed to fetch cremation documents" });
+    }
+  });
+
+  app.get("/api/cremation/orders/:id/drive-link", requireAuth, async (req, res) => {
+    try {
+      const order = await storage.getCremationOrder(req.params.id);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+      if (!order.driveRootFolderId) return res.status(404).json({ message: "No Drive folder found for this case" });
+      res.json({
+        rootFolderId: order.driveRootFolderId,
+        rootFolderUrl: order.driveRootFolderUrl,
+        orderToken: order.orderToken,
+      });
+    } catch {
+      res.status(500).json({ message: "Failed to fetch Drive link" });
+    }
+  });
+
+  app.post("/api/cremation/orders/:id/create-drive-folder", requireAuth, async (req, res) => {
+    try {
+      if (!googleDrive.isConfigured()) {
+        return res.status(503).json({ message: "Google Drive integration is not configured" });
+      }
+
+      const order = await storage.getCremationOrder(req.params.id);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+
+      if (order.driveRootFolderId) {
+        return res.json({
+          message: "Drive folder already exists",
+          rootFolderUrl: order.driveRootFolderUrl,
+          rootFolderId: order.driveRootFolderId,
+        });
+      }
+
+      const folderName = `${order.decedentName.replace(/[^a-zA-Z0-9]/g, "-")}-${order.orderToken.slice(0, 8)}`;
+      const driveResult = await googleDrive.createCaseStructure(folderName);
+
+      const updated = await storage.updateCremationOrder(order.id, {
+        driveRootFolderId: driveResult.rootFolderId,
+        driveRootFolderUrl: driveResult.rootFolderUrl,
+        driveSubfolders: driveResult.subfolders,
+      });
+
+      await emitCremationEvent(order.id, "ORDER_CREATED", { type: "staff", id: req.user!.id }, {
+        action: "drive_folder_created",
+        folderName,
+      });
+
+      res.status(201).json(updated);
+    } catch (err) {
+      console.error("Failed to create Drive folder:", err);
+      res.status(500).json({ message: "Failed to create Google Drive folder structure" });
     }
   });
 }

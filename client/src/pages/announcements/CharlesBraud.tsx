@@ -1,5 +1,5 @@
-import { Music, Facebook, Instagram, Twitter, Copy } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Music, Facebook, Instagram, Twitter, Copy, Check } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
 
 const logoImage = '/assets/announcements/charles-braud/logo.png';
 const backgroundImage = '/assets/announcements/charles-braud/background.png';
@@ -43,9 +43,25 @@ function StarField() {
 }
 
 export default function Announcement() {
-  // Configurable dates - set to empty string or actual dates
-  const dateOfBirth = ''; // e.g., 'AUGUST 12, 1947'
-  const dateOfPassing = ''; // e.g., 'MARCH 8, 2026'
+  const [copied, setCopied] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const dateOfBirth = '';
+  const dateOfPassing = '';
+
+  const handlePlayMusic = () => {
+    if (isPlaying && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      if (!audioRef.current) {
+        audioRef.current = new Audio('https://www.youtube.com/audiolibrary_download?vid=dQw4w9WgXcQ');
+      }
+      window.open('https://www.youtube.com/watch?v=wEBlaMOmKV4', '_blank');
+    }
+  };
+
   const handleShare = (platform: string) => {
     const url = encodeURIComponent(window.location.href);
     const title = encodeURIComponent('In Loving Memory of Charles Braud');
@@ -60,7 +76,21 @@ export default function Announcement() {
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      const textarea = document.createElement('textarea');
+      textarea.value = window.location.href;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   const handleGetDirections = () => {
@@ -200,11 +230,11 @@ export default function Announcement() {
                   {dateOfBirth} {dateOfBirth && dateOfPassing && '·'} {dateOfPassing}
                 </div>
               )}
-            <h1 className="mb-2" data-testid="text-deceased-name">
+            <h1 className="mb-2 whitespace-nowrap" data-testid="text-deceased-name">
               <span
+                className="text-[40px] sm:text-[60px]"
                 style={{
                   fontFamily: 'Cormorant Garamond, serif',
-                  fontSize: '60px',
                   fontWeight: 300,
                   fontStyle: 'italic',
                   letterSpacing: '0.06em',
@@ -215,9 +245,9 @@ export default function Announcement() {
               </span>
               {' '}
               <span
+                className="text-[40px] sm:text-[60px]"
                 style={{
                   fontFamily: 'Cormorant Garamond, serif',
-                  fontSize: '60px',
                   fontWeight: 400,
                   letterSpacing: '0.06em',
                   color: '#f5f0e8'
@@ -310,10 +340,10 @@ export default function Announcement() {
                   LOCATION
                 </div>
                 <div className="mb-1" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '19px', fontWeight: 300, color: '#f5f0e8' }}>
-                  Norwert Hills
+                  Norwert Hills Funeral Home
                 </div>
                 <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '14px', fontStyle: 'italic', color: 'rgba(245,240,232,0.4)' }}>
-                  1601 W. Thomas St., Hammond, LA
+                  Main Chapel &middot; 1601 W. Thomas St., Hammond, LA
                 </div>
               </div>
 
@@ -392,8 +422,10 @@ export default function Announcement() {
                 </div>
               </div>
               <button
-                className="px-4 py-2"
+                onClick={handlePlayMusic}
+                className="px-4 py-2 transition-all hover:bg-[rgba(201,169,110,0.1)]"
                 style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', color: '#c9a96e', border: '1px solid rgba(201,169,110,0.18)', textTransform: 'uppercase' }}
+                data-testid="button-play-music"
               >
                 PLAY
               </button>
@@ -483,12 +515,12 @@ export default function Announcement() {
 
               <button
                 onClick={handleCopyLink}
-                className="flex items-center gap-2 px-4 py-2.5"
-                style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: 'rgba(255,255,255,0.03)', color: '#c9a96e', border: '1px solid rgba(201,169,110,0.18)', textTransform: 'uppercase' }}
+                className="flex items-center gap-2 px-4 py-2.5 transition-all"
+                style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: copied ? 'rgba(201,169,110,0.2)' : 'rgba(255,255,255,0.03)', color: '#c9a96e', border: `1px solid ${copied ? 'rgba(201,169,110,0.4)' : 'rgba(201,169,110,0.18)'}`, textTransform: 'uppercase' }}
                 data-testid="button-copy-link"
               >
-                <Copy size={14} />
-                COPY LINK
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? 'COPIED!' : 'COPY LINK'}
               </button>
             </div>
           </div>

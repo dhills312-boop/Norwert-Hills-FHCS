@@ -60,7 +60,7 @@ export function registerCremationRoutes(app: Express): void {
       const { zip } = checkServiceAreaSchema.parse(req.body);
       const result = checkServiceArea(zip);
       if (!result) {
-        return res.status(400).json({ message: "Could not determine location for the provided zip code" });
+        return res.json({ inServiceArea: false, distanceMiles: -1 });
       }
       res.json(result);
     } catch (err) {

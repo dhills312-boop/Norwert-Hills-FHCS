@@ -3,6 +3,7 @@ import { db } from "./db";
 import {
   users, auditLogs, contactSubmissions, arrangements, arrangementItems, activityLogs,
   formTemplates, formInstances, commEvents, serviceCatalog, announcements, condolenceMessages,
+  cremationOrders, cremationEvents, cremationDocuments, waitlistSignups,
   type User, type InsertUser,
   type AuditLog,
   type Contact, type InsertContact,
@@ -15,6 +16,10 @@ import {
   type ServiceCatalogItem, type InsertServiceCatalogItem,
   type Announcement, type InsertAnnouncement,
   type CondolenceMessage, type InsertCondolenceMessage,
+  type CremationOrder, type InsertCremationOrder,
+  type CremationEvent, type InsertCremationEvent,
+  type CremationDocument, type InsertCremationDocument,
+  type WaitlistSignup, type InsertWaitlistSignup,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -73,6 +78,21 @@ export interface IStorage {
   getCondolenceMessages(announcementId: string): Promise<CondolenceMessage[]>;
   createCondolenceMessage(data: InsertCondolenceMessage): Promise<CondolenceMessage>;
   deleteCondolenceMessage(id: string): Promise<void>;
+
+  createCremationOrder(data: InsertCremationOrder): Promise<CremationOrder>;
+  getCremationOrder(id: string): Promise<CremationOrder | undefined>;
+  getCremationOrderByToken(token: string): Promise<CremationOrder | undefined>;
+  updateCremationOrder(id: string, data: Partial<InsertCremationOrder>): Promise<CremationOrder | undefined>;
+  listCremationOrders(): Promise<CremationOrder[]>;
+
+  createCremationEvent(data: InsertCremationEvent): Promise<CremationEvent>;
+  listCremationEvents(orderId: string): Promise<CremationEvent[]>;
+
+  createCremationDocument(data: InsertCremationDocument): Promise<CremationDocument>;
+  listCremationDocuments(orderId: string): Promise<CremationDocument[]>;
+
+  createWaitlistSignup(data: InsertWaitlistSignup): Promise<WaitlistSignup>;
+  listWaitlistSignups(): Promise<WaitlistSignup[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -294,6 +314,57 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCondolenceMessage(id: string): Promise<void> {
     await db.delete(condolenceMessages).where(eq(condolenceMessages.id, id));
+  }
+
+  async createCremationOrder(data: InsertCremationOrder): Promise<CremationOrder> {
+    const [order] = await db.insert(cremationOrders).values(data).returning();
+    return order;
+  }
+
+  async getCremationOrder(id: string): Promise<CremationOrder | undefined> {
+    const [order] = await db.select().from(cremationOrders).where(eq(cremationOrders.id, id));
+    return order;
+  }
+
+  async getCremationOrderByToken(token: string): Promise<CremationOrder | undefined> {
+    const [order] = await db.select().from(cremationOrders).where(eq(cremationOrders.orderToken, token));
+    return order;
+  }
+
+  async updateCremationOrder(id: string, data: Partial<InsertCremationOrder>): Promise<CremationOrder | undefined> {
+    const [order] = await db.update(cremationOrders).set({ ...data, updatedAt: new Date() }).where(eq(cremationOrders.id, id)).returning();
+    return order;
+  }
+
+  async listCremationOrders(): Promise<CremationOrder[]> {
+    return db.select().from(cremationOrders).orderBy(desc(cremationOrders.createdAt));
+  }
+
+  async createCremationEvent(data: InsertCremationEvent): Promise<CremationEvent> {
+    const [event] = await db.insert(cremationEvents).values(data).returning();
+    return event;
+  }
+
+  async listCremationEvents(orderId: string): Promise<CremationEvent[]> {
+    return db.select().from(cremationEvents).where(eq(cremationEvents.orderId, orderId)).orderBy(desc(cremationEvents.createdAt));
+  }
+
+  async createCremationDocument(data: InsertCremationDocument): Promise<CremationDocument> {
+    const [doc] = await db.insert(cremationDocuments).values(data).returning();
+    return doc;
+  }
+
+  async listCremationDocuments(orderId: string): Promise<CremationDocument[]> {
+    return db.select().from(cremationDocuments).where(eq(cremationDocuments.orderId, orderId)).orderBy(desc(cremationDocuments.createdAt));
+  }
+
+  async createWaitlistSignup(data: InsertWaitlistSignup): Promise<WaitlistSignup> {
+    const [signup] = await db.insert(waitlistSignups).values(data).returning();
+    return signup;
+  }
+
+  async listWaitlistSignups(): Promise<WaitlistSignup[]> {
+    return db.select().from(waitlistSignups).orderBy(desc(waitlistSignups.createdAt));
   }
 }
 

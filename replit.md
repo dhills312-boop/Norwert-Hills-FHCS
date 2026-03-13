@@ -17,12 +17,16 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `server/index.ts` — Express server entry point, middleware, auth setup, seed call
 - `server/auth.ts` — Passport local strategy (email-based), session config, login/logout routes, `requireAuth` + `requireDirector` middleware, rate limiting
 - `server/routes.ts` — API routes for contacts, arrangements, user management, audit logs
+- `server/cremation-routes.ts` — Cremation system API routes (service area check, orders, events, waitlist)
+- `server/cremation-events.ts` — Event emission utility with handler registration for cremation workflow
+- `server/service-area.ts` — Geofencing utility (60mi radius from Hammond, LA chapel)
+- `server/zip-coordinates.json` — Static zip-to-coordinates dataset for Louisiana area
 - `server/storage.ts` — `IStorage` interface + `DatabaseStorage` implementation using Drizzle
 - `server/db.ts` — PostgreSQL pool + Drizzle instance
 - `server/seed.ts` — Bootstrap director account from ADMIN_EMAIL/ADMIN_PASSWORD env vars; syncs credentials on restart if env vars change
 
 ### Shared
-- `shared/schema.ts` — Drizzle tables: `users`, `auditLogs`, `activityLogs`, `contactSubmissions`, `arrangements`, `arrangementItems`, `serviceCatalog`, `announcements`, `condolenceMessages` + Zod schemas + password/email validators + `ArrangementSelections`, `ServiceDetails`, `MediaGallery` interfaces
+- `shared/schema.ts` — Drizzle tables: `users`, `auditLogs`, `activityLogs`, `contactSubmissions`, `arrangements`, `arrangementItems`, `serviceCatalog`, `announcements`, `condolenceMessages`, `cremationOrders`, `cremationEvents`, `cremationDocuments`, `waitlistSignups` + Zod schemas + password/email validators + `ArrangementSelections`, `ServiceDetails`, `MediaGallery` interfaces + cremation phase/event/actor type enums
 
 ### Frontend
 - `client/src/App.tsx` — Router with all public + staff routes
@@ -56,6 +60,10 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `service_catalog` — id (UUID), item_type (package|service|merchandise|add-on|cash-advance), name, description, category, default_price, display_order, included_in (JSONB array of package IDs), is_active
 - `announcements` — id (UUID), arrangement_id, slug (unique), deceased_first_name, deceased_last_name, date_of_birth, date_of_passing, brief_obituary, full_obituary, epitaph, service_details (JSONB), portrait_image_path, memorial_song_url, media_gallery (JSONB), is_published, created_at
 - `condolence_messages` — id (UUID), announcement_id, visitor_name, message, created_at
+- `cremation_orders` — id (UUID), order_token (unique, URL-safe), contact_name, contact_email, contact_phone, decedent_name, state_of_death, current_phase (intake|forms|payment|fulfillment|completed), payment_status, payment_reference, payment_timestamp, packet_locked, drive_root_folder_id, created_at, updated_at
+- `cremation_events` — id (UUID), order_id, event_type (ORDER_CREATED|FORM_SUBMITTED|PAYMENT_CONFIRMED|REMAINS_RECEIVED|CREMATION_SCHEDULED|CREMATION_COMPLETED|RELEASE_RECORDED|SHIPMENT_RECORDED|CASE_COMPLETED), actor_type (system|staff|family), actor_id, details (JSONB), created_at
+- `cremation_documents` — id (UUID), order_id, drive_file_id, drive_url, document_type, folder_path, created_at
+- `waitlist_signups` — id (UUID), email, zip, created_at
 
 ## Authentication & Authorization
 - Email-based login at `/staff/login` (email + password)
@@ -105,6 +113,14 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `GET /api/public/obituaries/:slug` — Public obituary data (published only)
 - `GET /api/public/announcements/:slug/condolences` — Public condolence list
 - `POST /api/public/announcements/:slug/condolences` — Public condolence submission (with length validation)
+- `POST /api/cremation/check-service-area` — Public, checks if zip is within 60mi of Hammond, LA
+- `POST /api/cremation/orders` — Public, creates cremation order with auto-generated token
+- `GET /api/cremation/orders/:token` — Public, retrieves order by token (family portal)
+- `GET /api/cremation/orders` — Staff, lists all cremation orders
+- `PATCH /api/cremation/orders/:id` — Staff, updates cremation order
+- `POST /api/cremation/orders/:id/events` — Staff, logs operational events
+- `GET /api/cremation/orders/:id/events` — Staff, retrieves event timeline
+- `POST /api/cremation/waitlist` — Public, captures out-of-area interest
 
 ## Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string

@@ -263,3 +263,83 @@ export const serviceCatalog = pgTable("service_catalog", {
 export const insertServiceCatalogSchema = createInsertSchema(serviceCatalog).omit({ id: true });
 export type InsertServiceCatalogItem = z.infer<typeof insertServiceCatalogSchema>;
 export type ServiceCatalogItem = typeof serviceCatalog.$inferSelect;
+
+export const cremationPhases = ["intake", "forms", "payment", "fulfillment", "completed"] as const;
+export type CremationPhase = (typeof cremationPhases)[number];
+
+export const cremationEventTypes = [
+  "ORDER_CREATED",
+  "FORM_SUBMITTED",
+  "PAYMENT_CONFIRMED",
+  "REMAINS_RECEIVED",
+  "CREMATION_SCHEDULED",
+  "CREMATION_COMPLETED",
+  "RELEASE_RECORDED",
+  "SHIPMENT_RECORDED",
+  "CASE_COMPLETED",
+] as const;
+export type CremationEventType = (typeof cremationEventTypes)[number];
+
+export const cremationActorTypes = ["system", "staff", "family"] as const;
+export type CremationActorType = (typeof cremationActorTypes)[number];
+
+export const cremationOrders = pgTable("cremation_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderToken: text("order_token").notNull().unique(),
+  contactName: text("contact_name").notNull(),
+  contactEmail: text("contact_email").notNull(),
+  contactPhone: text("contact_phone"),
+  decedentName: text("decedent_name").notNull(),
+  stateOfDeath: text("state_of_death"),
+  currentPhase: text("current_phase").notNull().default("intake"),
+  paymentStatus: text("payment_status"),
+  paymentReference: text("payment_reference"),
+  paymentTimestamp: timestamp("payment_timestamp"),
+  packetLocked: boolean("packet_locked").notNull().default(false),
+  driveRootFolderId: text("drive_root_folder_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const cremationEvents = pgTable("cremation_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => cremationOrders.id),
+  eventType: text("event_type").notNull(),
+  actorType: text("actor_type").notNull().default("system"),
+  actorId: text("actor_id"),
+  details: jsonb("details").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const cremationDocuments = pgTable("cremation_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => cremationOrders.id),
+  driveFileId: text("drive_file_id").notNull(),
+  driveUrl: text("drive_url").notNull(),
+  documentType: text("document_type").notNull(),
+  folderPath: text("folder_path"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const waitlistSignups = pgTable("waitlist_signups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  zip: text("zip"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertCremationOrderSchema = createInsertSchema(cremationOrders).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertCremationOrder = z.infer<typeof insertCremationOrderSchema>;
+export type CremationOrder = typeof cremationOrders.$inferSelect;
+
+export const insertCremationEventSchema = createInsertSchema(cremationEvents).omit({ id: true, createdAt: true });
+export type InsertCremationEvent = z.infer<typeof insertCremationEventSchema>;
+export type CremationEvent = typeof cremationEvents.$inferSelect;
+
+export const insertCremationDocumentSchema = createInsertSchema(cremationDocuments).omit({ id: true, createdAt: true });
+export type InsertCremationDocument = z.infer<typeof insertCremationDocumentSchema>;
+export type CremationDocument = typeof cremationDocuments.$inferSelect;
+
+export const insertWaitlistSignupSchema = createInsertSchema(waitlistSignups).omit({ id: true, createdAt: true });
+export type InsertWaitlistSignup = z.infer<typeof insertWaitlistSignupSchema>;
+export type WaitlistSignup = typeof waitlistSignups.$inferSelect;

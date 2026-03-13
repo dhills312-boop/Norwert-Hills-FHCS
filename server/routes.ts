@@ -8,6 +8,7 @@ import { requireAuth, requireDirector, hashPassword } from "./auth";
 import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertCommEventSchema, insertServiceCatalogSchema, insertAnnouncementSchema, insertCondolenceMessageSchema, type FormInstance } from "@shared/schema";
 import { z } from "zod";
 import path from "path";
+import { registerCremationRoutes } from "./cremation-routes";
 
 function maskDestination(dest: string, channel: string): string {
   if (channel === "email") {
@@ -714,6 +715,8 @@ export async function registerRoutes(
       res.status(500).json({ message: "Failed to delete condolence message" });
     }
   });
+
+  registerCremationRoutes(app);
 
   const ASSETS_BASE = path.resolve("attached_assets");
 

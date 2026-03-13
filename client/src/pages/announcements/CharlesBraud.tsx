@@ -9,7 +9,7 @@ function StarField() {
   const [stars, setStars] = useState<{ id: number; x: number; y: number; size: number; delay: number; duration: number }[]>([]);
 
   useEffect(() => {
-    const generatedStars = Array.from({ length: 50 }, (_, i) => ({
+    const generatedStars = Array.from({ length: 100 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
@@ -42,7 +42,10 @@ function StarField() {
   );
 }
 
-export default function CharlesBraud() {
+export default function Announcement() {
+  // Configurable dates - set to empty string or actual dates
+  const dateOfBirth = ''; // e.g., 'AUGUST 12, 1947'
+  const dateOfPassing = ''; // e.g., 'MARCH 8, 2026'
   const handleShare = (platform: string) => {
     const url = encodeURIComponent(window.location.href);
     const title = encodeURIComponent('In Loving Memory of Charles Braud');

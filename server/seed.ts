@@ -11,14 +11,14 @@ async function seedFormTemplates() {
     {
       name: "Vital Statistics",
       jotformId: "PLACEHOLDER_VITAL_STATS",
-      pdfPath: "attached_assets/vital_statistics_form.pdf",
+      pdfPath: "attached_assets/NHFCS_Vital_Statiscs_1773391441854.pdf",
       requiredForServiceTypes: ["all"],
       sortOrder: 1,
     },
     {
       name: "Authorization for Embalming / Cremation",
       jotformId: "PLACEHOLDER_AUTHORIZATION",
-      pdfPath: "attached_assets/authorization_form.pdf",
+      pdfPath: "attached_assets/NHFCS_Authorization_to_Embalm.docx1_1773391441853.pdf",
       requiredForServiceTypes: ["embalm", "traditional", "cremation"],
       sortOrder: 2,
     },

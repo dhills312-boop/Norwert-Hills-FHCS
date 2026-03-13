@@ -182,7 +182,24 @@ export default function Announcement() {
             </div>
           </div>
 
-          <div className="absolute bottom-16 left-0 right-0 text-center px-12">
+     
+            {/* Text Content - Anchored to bottom */}
+            <div className="absolute bottom-16 left-0 right-0 text-center px-12">
+              {/* Life Dates - Only show if dates are provided */}
+              {(dateOfBirth || dateOfPassing) && (
+                <div 
+                  className="mb-4"
+                  style={{
+                    fontFamily: 'Cinzel, serif',
+                    fontSize: '9px',
+                    letterSpacing: '0.38em',
+                    color: '#c9a96e',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  {dateOfBirth} {dateOfBirth && dateOfPassing && '·'} {dateOfPassing}
+                </div>
+              )}
             <h1 className="mb-2" data-testid="text-deceased-name">
               <span
                 style={{

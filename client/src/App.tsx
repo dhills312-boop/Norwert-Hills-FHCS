@@ -17,7 +17,7 @@ import Dashboard from "@/pages/staff/Dashboard";
 import Builder from "@/pages/staff/Builder";
 import Billing from "@/pages/staff/Billing";
 import AdminUsers from "@/pages/staff/AdminUsers";
-import CharlesBraud from "@/pages/announcements/CharlesBraud";
+import Announcement from "@/pages/announcements/CharlesBraud";
 
 function Router() {
   return (
@@ -30,7 +30,7 @@ function Router() {
       <Route path="/resources/faq" component={ResourcesFAQ} />
       <Route path="/resources/article/:id" component={ArticleDetail} />
       <Route path="/contact" component={Contact} />
-      <Route path="/announcements/charles-braud" component={CharlesBraud} />
+      <Route path="/announcements/charles-braud" component={Announcement} />
       <Route path="/staff/login" component={StaffLogin} />
       <Route path="/staff/dashboard" component={Dashboard} />
       <Route path="/staff/builder" component={Builder} />

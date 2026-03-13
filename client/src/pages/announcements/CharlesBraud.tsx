@@ -1,5 +1,5 @@
-import { Music, Facebook, Instagram, Twitter, Copy, Check } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
+import { Facebook, Instagram, Twitter, Copy, Check } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const logoImage = '/assets/announcements/charles-braud/logo.png';
 const backgroundImage = '/assets/announcements/charles-braud/background.png';
@@ -44,23 +44,10 @@ function StarField() {
 
 export default function Announcement() {
   const [copied, setCopied] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const dateOfBirth = '';
   const dateOfPassing = '';
 
-  const handlePlayMusic = () => {
-    if (isPlaying && audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      if (!audioRef.current) {
-        audioRef.current = new Audio('https://www.youtube.com/audiolibrary_download?vid=dQw4w9WgXcQ');
-      }
-      window.open('https://www.youtube.com/watch?v=wEBlaMOmKV4', '_blank');
-    }
-  };
 
   const handleShare = (platform: string) => {
     const url = encodeURIComponent(window.location.href);
@@ -406,30 +393,17 @@ export default function Announcement() {
               MUSICAL SELECTION
             </h2>
 
-            <div
-              className="flex items-center justify-between p-5"
-              style={{ backgroundColor: 'rgba(9,7,12,0.85)', border: '1px solid rgba(201,169,110,0.18)' }}
-            >
-              <div className="flex items-center gap-4">
-                <Music size={20} style={{ color: '#c9a96e' }} />
-                <div>
-                  <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '17px', color: '#f5f0e8' }}>
-                    A Change Is Gonna Come
-                  </div>
-                  <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '14px', fontStyle: 'italic', color: 'rgba(245,240,232,0.4)' }}>
-                    Sam Cooke
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={handlePlayMusic}
-                className="px-4 py-2 transition-all hover:bg-[rgba(201,169,110,0.1)]"
-                style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', color: '#c9a96e', border: '1px solid rgba(201,169,110,0.18)', textTransform: 'uppercase' }}
-                data-testid="button-play-music"
-              >
-                PLAY
-              </button>
-            </div>
+            <iframe
+              data-testid="embed-spotify"
+              style={{ borderRadius: '12px' }}
+              src="https://open.spotify.com/embed/track/0KOE1hat4SIer491XKk4Pa?utm_source=generator"
+              width="100%"
+              height="352"
+              frameBorder="0"
+              allowFullScreen
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              loading="lazy"
+            />
           </div>
 
           <div className="mb-[52px]" data-testid="section-scripture">

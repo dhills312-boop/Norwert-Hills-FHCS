@@ -178,7 +178,7 @@ export default function Announcement() {
                 textTransform: "uppercase",
               }}
             >
-              NORWERT HILLS FCS
+              NORWERT HILLS
             </div>
           </div>
 

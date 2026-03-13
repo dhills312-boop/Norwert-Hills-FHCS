@@ -9,7 +9,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
 import { useRoute, useLocation, Link } from "wouter";
-import { ArrowLeft, Save, Eye, Copy, Check, Loader2, Trash2, Plus, ExternalLink } from "lucide-react";
+import { ArrowLeft, Save, Eye, Copy, Check, Loader2, Trash2, Plus, ExternalLink, Upload, ImageIcon } from "lucide-react";
 
 interface ServiceDetails {
   viewingDate?: string;
@@ -97,6 +97,33 @@ export default function AnnouncementEditor() {
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState(false);
+
+  const handlePortraitUpload = async (file: File) => {
+    const slug = form.slug || slugify(form.deceasedFirstName, form.deceasedLastName);
+    if (!slug) {
+      toast({ title: 'Error', description: 'Please enter a first and last name before uploading a portrait.', variant: 'destructive' });
+      return;
+    }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('portrait', file);
+      const res = await fetch(`/api/announcements/upload/${slug}`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      setForm(f => ({ ...f, portraitImagePath: data.path, slug: f.slug || slug }));
+      toast({ title: 'Uploaded', description: 'Portrait image uploaded successfully.' });
+    } catch {
+      toast({ title: 'Error', description: 'Failed to upload portrait image.', variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const { data: existingAnnouncement, isLoading: loadingExisting } = useQuery<AnnouncementData | null>({
     queryKey: ['/api/announcements/by-arrangement', arrangementId],
@@ -339,13 +366,48 @@ export default function AnnouncementEditor() {
             <Card className="border-white/5 bg-card">
               <CardContent className="p-6 space-y-4">
                 <h2 className="font-serif text-lg text-foreground mb-2">Portrait & Media</h2>
-                <div className="space-y-2">
-                  <Label>Portrait Image URL</Label>
-                  <Input value={form.portraitImagePath} onChange={e => setForm(f => ({ ...f, portraitImagePath: e.target.value }))} placeholder="/assets/announcements/charles-braud/portrait.png" data-testid="input-portrait" />
+                <div className="space-y-3">
+                  <Label>Portrait Image</Label>
+                  <div className="flex gap-4 items-start">
+                    <div className="w-28 h-28 rounded-full overflow-hidden border border-white/10 bg-muted flex items-center justify-center flex-shrink-0">
+                      {form.portraitImagePath ? (
+                        <img src={form.portraitImagePath} alt="Portrait preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            className="hidden"
+                            onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (file) handlePortraitUpload(file);
+                              e.target.value = '';
+                            }}
+                            data-testid="input-portrait-file"
+                          />
+                          <span className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-md border border-white/10 bg-background hover:bg-muted transition-colors cursor-pointer">
+                            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                            {uploading ? 'Uploading...' : 'Upload Image'}
+                          </span>
+                        </label>
+                        <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WebP or GIF up to 10MB</p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Or enter image URL</Label>
+                        <Input value={form.portraitImagePath} onChange={e => setForm(f => ({ ...f, portraitImagePath: e.target.value }))} placeholder="/assets/announcements/slug/portrait.png" className="text-xs" data-testid="input-portrait" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Memorial Song URL (SoundCloud or YouTube)</Label>
                   <Input value={form.memorialSongUrl} onChange={e => setForm(f => ({ ...f, memorialSongUrl: e.target.value }))} placeholder="https://soundcloud.com/..." data-testid="input-song-url" />
+                  <p className="text-xs text-muted-foreground">YouTube links will display as an audio-only player (no video visible)</p>
                 </div>
               </CardContent>
             </Card>

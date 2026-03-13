@@ -8,6 +8,8 @@ import { requireAuth, requireDirector, hashPassword } from "./auth";
 import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertCommEventSchema, insertServiceCatalogSchema, insertAnnouncementSchema, insertCondolenceMessageSchema, type FormInstance } from "@shared/schema";
 import { z } from "zod";
 import path from "path";
+import fs from "fs";
+import multer from "multer";
 import { registerCremationRoutes } from "./cremation-routes";
 
 function maskDestination(dest: string, channel: string): string {
@@ -593,6 +595,33 @@ export async function registerRoutes(
     } catch {
       res.status(500).json({ message: "Failed to fetch announcement" });
     }
+  });
+
+  const uploadsDir = path.resolve("client/public/assets/announcements");
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: (_req, _file, cb) => {
+        const slug = _req.params.slug || 'temp';
+        const dir = path.join(uploadsDir, slug);
+        fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+      },
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname) || '.png';
+        cb(null, `portrait${ext}`);
+      },
+    }),
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      cb(null, allowed.includes(file.mimetype));
+    },
+  });
+
+  app.post("/api/announcements/upload/:slug", requireAuth, upload.single('portrait'), (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "No valid image file provided" });
+    const publicPath = `/assets/announcements/${req.params.slug}/${req.file.filename}`;
+    res.json({ path: publicPath });
   });
 
   app.post("/api/announcements", requireAuth, async (req, res) => {

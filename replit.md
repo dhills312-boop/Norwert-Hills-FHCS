@@ -43,6 +43,8 @@ A full-stack funeral home website for a Louisiana-based business with an editori
   - Legacy: `/announcements/charles-braud` (hardcoded Charles Braud page)
   - Dynamic: `/announcements/:slug` — public announcement page (brief obituary, service info, portrait, memorial song, share/directions/calendar)
   - Dynamic: `/obituaries/:slug` — public obituary page (full obituary, guestbook with condolence messages, Send Flowers/Sympathy Gifts placeholders, link back to announcement)
+  - Portrait image upload: POST `/api/announcements/upload/:slug` (multer, max 10MB, JPG/PNG/WebP/GIF)
+  - YouTube embeds rendered as audio-only custom player (uses YouTube IFrame API, no video visible)
   - Assets stored in `client/public/assets/announcements/<slug>/`
   - Uses Cinzel, EB Garamond, Cormorant Garamond fonts
   - CSS keyframes: `announcement-slow-zoom`, `announcement-twinkle`, `announcement-float` in index.css

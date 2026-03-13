@@ -1,5 +1,5 @@
 import { Facebook, Instagram, Twitter, Copy, Check } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRoute, Link } from 'wouter';
 
 const logoImage = '/assets/announcements/charles-braud/logo.png';
@@ -76,6 +76,120 @@ function StarField() {
   );
 }
 
+function YouTubeAudioPlayer({ videoId }: { videoId: string }) {
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const playerRef = useRef<any>(null);
+  const intervalRef = useRef<any>(null);
+  const containerRef = useRef<string>(`yt-player-${videoId}-${Math.random().toString(36).slice(2)}`);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  useEffect(() => {
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      document.head.appendChild(tag);
+    }
+
+    const initPlayer = () => {
+      if (!(window as any).YT?.Player) {
+        setTimeout(initPlayer, 200);
+        return;
+      }
+      playerRef.current = new (window as any).YT.Player(containerRef.current, {
+        height: '0',
+        width: '0',
+        videoId,
+        playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, modestbranding: 1, rel: 0 },
+        events: {
+          onReady: (e: any) => {
+            setDuration(e.target.getDuration());
+          },
+          onStateChange: (e: any) => {
+            if (e.data === 1) {
+              setPlaying(true);
+              intervalRef.current = setInterval(() => {
+                const t = e.target.getCurrentTime();
+                const d = e.target.getDuration();
+                setCurrentTime(t);
+                setProgress(d > 0 ? (t / d) * 100 : 0);
+              }, 250);
+            } else {
+              setPlaying(false);
+              if (intervalRef.current) clearInterval(intervalRef.current);
+            }
+          },
+        },
+      });
+    };
+
+    if ((window as any).YT?.Player) initPlayer();
+    else {
+      const prevCallback = (window as any).onYouTubeIframeAPIReady;
+      (window as any).onYouTubeIframeAPIReady = () => {
+        if (prevCallback) prevCallback();
+        initPlayer();
+      };
+    }
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (playerRef.current?.destroy) playerRef.current.destroy();
+    };
+  }, [videoId]);
+
+  const togglePlay = useCallback(() => {
+    if (!playerRef.current) return;
+    if (playing) playerRef.current.pauseVideo();
+    else playerRef.current.playVideo();
+  }, [playing]);
+
+  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!playerRef.current || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    playerRef.current.seekTo(pct * duration, true);
+    setProgress(pct * 100);
+    setCurrentTime(pct * duration);
+  }, [duration]);
+
+  return (
+    <div className="rounded" style={{ background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.18)', padding: '16px 20px' }} data-testid="embed-youtube-audio">
+      <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div id={containerRef.current} />
+      </div>
+      <div className="flex items-center gap-4">
+        <button onClick={togglePlay} className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors" style={{ backgroundColor: 'rgba(201,169,110,0.15)', border: '1px solid rgba(201,169,110,0.3)' }} data-testid="button-yt-play">
+          {playing ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#c9a96e"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#c9a96e"><path d="M8 5v14l11-7L8 5z"/></svg>
+          )}
+        </button>
+        <div className="flex-1 space-y-1">
+          <div className="cursor-pointer h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(201,169,110,0.12)' }} onClick={handleSeek} data-testid="progress-bar">
+            <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: '#c9a96e' }} />
+          </div>
+          <div className="flex justify-between">
+            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '9px', letterSpacing: '0.15em', color: 'rgba(201,169,110,0.6)' }}>{formatTime(currentTime)}</span>
+            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '9px', letterSpacing: '0.15em', color: 'rgba(201,169,110,0.6)' }}>{formatTime(duration)}</span>
+          </div>
+        </div>
+        <div className="flex-shrink-0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(201,169,110,0.5)" strokeWidth="1.5"><path d="M9 18V5l12 7-12 7z"/></svg>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function renderSongEmbed(url: string) {
   if (url.includes('soundcloud.com')) {
     const encodedUrl = encodeURIComponent(url);
@@ -101,15 +215,7 @@ function renderSongEmbed(url: string) {
     }
     if (videoId) {
       return (
-        <iframe
-          width="100%"
-          height="200"
-          src={`https://www.youtube.com/embed/${videoId}`}
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          data-testid="embed-youtube"
-        />
+        <YouTubeAudioPlayer videoId={videoId} />
       );
     }
   }

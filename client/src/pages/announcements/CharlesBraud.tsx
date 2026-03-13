@@ -187,12 +187,12 @@ export default function Announcement() {
               <div
                 className="absolute rounded-full"
                 style={{
-                  width: "280px",
-                  height: "280px",
+                  width: "400px",
+                  height: "400px",
                   top: "50%",
                   left: "50%",
                   transform: "translate(-50%, -50%)",
-                  background: "radial-gradient(circle, rgba(201,169,110,0.3) 30%, rgba(201,169,110,0.12) 60%, transparent 80%)",
+                  background: "radial-gradient(circle, rgba(201,169,110,0.35) 20%, rgba(201,169,110,0.18) 45%, rgba(201,169,110,0.06) 65%, transparent 85%)",
                   animation: "announcement-halo-pulse 4s ease-in-out infinite alternate",
                   zIndex: 0,
                 }}

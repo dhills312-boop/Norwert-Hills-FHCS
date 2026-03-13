@@ -396,7 +396,7 @@ export default function Announcement() {
             <iframe
               data-testid="embed-spotify"
               style={{ borderRadius: '12px' }}
-              src="https://open.spotify.com/embed/track/0KOE1hat4SIer491XKk4Pa?utm_source=generator&autoplay=1"
+              src="https://soundcloud.com/helenizm/sam-cooke-a-change-is-gonna?utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing&autoplay=1"
               width="100%"
               height="352"
               frameBorder="0"

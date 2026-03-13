@@ -81,7 +81,7 @@ export default function Announcement() {
   };
 
   const handleGetDirections = () => {
-    const address = '1601 W. Thomas St., Hammond, LA 70401';
+    const address = '240 Pine St., Laplace, LA 70068';
     const encodedAddress = encodeURIComponent(address);
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     if (isIOS) {
@@ -94,8 +94,8 @@ export default function Announcement() {
   const handleAddToCalendar = () => {
     const event = {
       title: 'Funeral Service - Charles Braud',
-      description: 'Funeral service at Norwert Hills Funeral & Cremation Services',
-      location: '1601 W. Thomas St., Hammond, LA 70401',
+      description: 'Funeral service at Providence Baptist Church',
+      location: '240 Pine St., Laplace, LA 70068',
       startDate: '2026-03-13T10:00:00',
       endDate: '2026-03-13T11:00:00'
     };
@@ -435,7 +435,7 @@ export default function Announcement() {
                     color: "#f5f0e8",
                   }}
                 >
-                  Norwert Hills Funeral Home
+                  Providence Baptist Church
                 </div>
                 <div
                   style={{
@@ -445,7 +445,7 @@ export default function Announcement() {
                     color: "rgba(245,240,232,0.4)",
                   }}
                 >
-                  Main Chapel &middot; 1601 W. Thomas St., Hammond, LA
+                  240 Pine St., Laplace, LA
                 </div>
               </div>
 

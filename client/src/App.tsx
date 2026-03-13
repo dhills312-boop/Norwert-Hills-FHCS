@@ -25,11 +25,13 @@ import AnnouncementPage from "@/pages/announcements/AnnouncementPage";
 import ObituaryPage from "@/pages/announcements/ObituaryPage";
 import AnnouncementsList from "@/pages/staff/AnnouncementsList";
 import AnnouncementEditor from "@/pages/staff/AnnouncementEditor";
+import Cremation from "@/pages/Cremation";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/cremation" component={Cremation} />
       <Route path="/services" component={Services} />
       <Route path="/services/:id" component={ServiceDetail} />
       <Route path="/about" component={About} />

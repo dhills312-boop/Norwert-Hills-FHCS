@@ -21,6 +21,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/services", label: "Services" },
+    { href: "/cremation", label: "Cremation" },
     { href: "/about", label: "Our Story" },
     { href: "/resources", label: "Resources" },
     { href: "/contact", label: "Contact" },

@@ -187,32 +187,22 @@ export default function Announcement() {
               <div
                 className="absolute rounded-full"
                 style={{
-                  width: "340px",
-                  height: "340px",
+                  width: "280px",
+                  height: "280px",
                   top: "50%",
                   left: "50%",
                   transform: "translate(-50%, -50%)",
-                  background: "radial-gradient(circle, rgba(201,169,110,0.25) 0%, rgba(201,169,110,0.08) 40%, transparent 70%)",
+                  background: "radial-gradient(circle, rgba(201,169,110,0.3) 30%, rgba(201,169,110,0.12) 60%, transparent 80%)",
                   animation: "announcement-halo-pulse 4s ease-in-out infinite alternate",
-                }}
-              />
-              <div
-                className="absolute rounded-full"
-                style={{
-                  width: "308px",
-                  height: "308px",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  border: "1px solid rgba(201,169,110,0.12)",
-                  boxShadow: "0 0 30px rgba(201,169,110,0.15), 0 0 60px rgba(201,169,110,0.08)",
+                  zIndex: 0,
                 }}
               />
               <div
                 className="relative w-[280px] h-[280px] rounded-full overflow-hidden"
                 style={{
-                  border: "2px solid rgba(201,169,110,0.3)",
-                  boxShadow: "inset 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(201,169,110,0.2), 0 0 40px rgba(201,169,110,0.1)",
+                  border: "2px solid rgba(201,169,110,0.25)",
+                  boxShadow: "inset 0 20px 40px rgba(0,0,0,0.4)",
+                  zIndex: 1,
                 }}
               >
                 <img

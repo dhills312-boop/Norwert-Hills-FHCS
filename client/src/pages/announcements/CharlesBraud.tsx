@@ -185,15 +185,16 @@ export default function Announcement() {
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 mt-8">
             <div className="relative">
               <div
-                className="absolute rounded-full"
+                className="absolute"
                 style={{
-                  width: "320px",
-                  height: "320px",
+                  width: "450px",
+                  height: "450px",
                   top: "50%",
                   left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  background: "radial-gradient(circle, rgba(201,169,110,0.35) 20%, rgba(201,169,110,0.18) 45%, rgba(201,169,110,0.06) 65%, transparent 85%)",
+                  transform: "translate(-50%, -60%)",
+                  background: "radial-gradient(ellipse 60% 50% at 50% 35%, rgba(201,169,110,0.4) 0%, rgba(201,169,110,0.15) 30%, rgba(201,169,110,0.04) 60%, transparent 100%)",
                   animation: "announcement-halo-pulse 4s ease-in-out infinite alternate",
+                  filter: "blur(20px)",
                   zIndex: 0,
                 }}
               />

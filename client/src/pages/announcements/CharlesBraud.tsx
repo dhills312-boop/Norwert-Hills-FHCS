@@ -187,8 +187,8 @@ export default function Announcement() {
               <div
                 className="absolute rounded-full"
                 style={{
-                  width: "400px",
-                  height: "400px",
+                  width: "320px",
+                  height: "320px",
                   top: "50%",
                   left: "50%",
                   transform: "translate(-50%, -50%)",

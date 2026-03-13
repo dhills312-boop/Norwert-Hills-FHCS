@@ -43,9 +43,6 @@ function StarField() {
 }
 
 export default function CharlesBraud() {
-  const dateOfBirth = '';
-  const dateOfPassing = '';
-
   const handleShare = (platform: string) => {
     const url = encodeURIComponent(window.location.href);
     const title = encodeURIComponent('In Loving Memory of Charles Braud');
@@ -183,21 +180,6 @@ export default function CharlesBraud() {
           </div>
 
           <div className="absolute bottom-16 left-0 right-0 text-center px-12">
-            {(dateOfBirth || dateOfPassing) && (
-              <div
-                className="mb-4"
-                style={{
-                  fontFamily: 'Cinzel, serif',
-                  fontSize: '9px',
-                  letterSpacing: '0.38em',
-                  color: '#c9a96e',
-                  textTransform: 'uppercase'
-                }}
-              >
-                {dateOfBirth} {dateOfBirth && dateOfPassing && '\u00B7'} {dateOfPassing}
-              </div>
-            )}
-
             <h1 className="mb-2" data-testid="text-deceased-name">
               <span
                 style={{

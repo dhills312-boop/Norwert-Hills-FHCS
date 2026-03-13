@@ -8,6 +8,7 @@ import { checkServiceArea } from "./service-area";
 import { emitCremationEvent } from "./cremation-events";
 import * as googleDrive from "./services/google-drive";
 import { createCheckoutLink, verifyWebhookSignature, isSquareConfigured, isWebhookSignatureKeyConfigured, type SquareWebhookEvent } from "./services/square";
+import { generateCompliancePacket, checkLouisianaWaitingPeriod, checkComplianceReadiness } from "./services/compliance-engine";
 import { z } from "zod";
 import crypto from "crypto";
 
@@ -140,6 +141,20 @@ export function registerCremationRoutes(app: Express): void {
       const data = updateOrderSchema.parse(req.body);
       const existing = await storage.getCremationOrder(req.params.id);
       if (!existing) return res.status(404).json({ message: "Order not found" });
+
+      if (existing.packetLocked) {
+        await emitCremationEvent(req.params.id as string, "CASE_COMPLETED", { type: "staff", id: req.user!.id }, {
+          addendum: true,
+          action: "modification_attempted",
+          reason: "Modification attempted on locked case",
+          attemptedChanges: data,
+        });
+        return res.status(403).json({
+          message: "This case is locked. The modification has been recorded as an addendum event.",
+          packetLocked: true,
+        });
+      }
+
       const updated = await storage.updateCremationOrder(req.params.id, data);
       if (!updated) return res.status(404).json({ message: "Order not found" });
       res.json(updated);
@@ -156,6 +171,31 @@ export function registerCremationRoutes(app: Express): void {
       const data = logEventSchema.parse(req.body);
       const order = await storage.getCremationOrder(req.params.id as string);
       if (!order) return res.status(404).json({ message: "Order not found" });
+
+      if (data.eventType === "CREMATION_SCHEDULED" || data.eventType === "CREMATION_COMPLETED") {
+        const events = await storage.listCremationEvents(req.params.id);
+        const waitingCheck = checkLouisianaWaitingPeriod(events, order.stateOfDeath);
+        if (!waitingCheck.compliant) {
+          return res.status(400).json({
+            message: waitingCheck.message,
+            warning: "louisiana_waiting_period",
+            hoursElapsed: waitingCheck.hoursElapsed,
+          });
+        }
+      }
+
+      if (order.packetLocked && data.eventType !== "CASE_COMPLETED") {
+        await emitCremationEvent(
+          req.params.id as string,
+          data.eventType,
+          { type: "staff", id: req.user!.id },
+          { ...data.details, addendum: true, note: "Event recorded after compliance packet lock" }
+        );
+        return res.status(201).json({
+          message: "Event recorded as addendum (case is locked)",
+          addendum: true,
+        });
+      }
 
       const event = await emitCremationEvent(
         req.params.id as string,
@@ -446,6 +486,74 @@ export function registerCremationRoutes(app: Express): void {
       });
     } catch {
       res.status(500).json({ message: "Failed to fetch payment status" });
+    }
+  });
+
+  app.post("/api/cremation/orders/:id/compliance-packet", requireAuth, async (req, res) => {
+    try {
+      const order = await storage.getCremationOrder(req.params.id);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+
+      if (order.packetLocked) {
+        return res.status(403).json({
+          message: "Compliance packet is already locked and cannot be regenerated.",
+          packetLocked: true,
+        });
+      }
+
+      const events = await storage.listCremationEvents(req.params.id);
+      const readiness = checkComplianceReadiness(events);
+      if (!readiness.ready) {
+        return res.status(400).json({
+          message: `Case not ready for compliance packet. Missing events: ${readiness.missing.join(", ")}`,
+          missing: readiness.missing,
+        });
+      }
+
+      const result = await generateCompliancePacket(req.params.id);
+      if (!result.success) {
+        return res.status(500).json({ message: result.message });
+      }
+
+      await storage.updateCremationOrder(req.params.id, {
+        packetLocked: true,
+        currentPhase: "completed",
+      });
+
+      await emitCremationEvent(req.params.id as string, "CASE_COMPLETED", { type: "staff", id: req.user!.id }, {
+        compliancePacket: result.documents,
+        packetLocked: true,
+        trigger: "manual",
+      });
+
+      res.json(result);
+    } catch (err) {
+      console.error("Failed to generate compliance packet:", err);
+      res.status(500).json({ message: "Failed to generate compliance packet" });
+    }
+  });
+
+  app.get("/api/cremation/orders/:id/compliance-status", requireAuth, async (req, res) => {
+    try {
+      const order = await storage.getCremationOrder(req.params.id);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+
+      const events = await storage.listCremationEvents(req.params.id);
+      const readiness = checkComplianceReadiness(events);
+      const waitingPeriod = checkLouisianaWaitingPeriod(events, order.stateOfDeath);
+
+      const documents = await storage.listCremationDocuments(req.params.id);
+      const complianceDocs = documents.filter(d => d.documentType.startsWith("compliance_"));
+
+      res.json({
+        packetLocked: order.packetLocked,
+        ready: readiness.ready,
+        missing: readiness.missing,
+        louisianaCompliance: waitingPeriod,
+        complianceDocuments: complianceDocs,
+      });
+    } catch {
+      res.status(500).json({ message: "Failed to fetch compliance status" });
     }
   });
 }

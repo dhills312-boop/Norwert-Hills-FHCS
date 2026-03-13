@@ -17,8 +17,11 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `server/index.ts` — Express server entry point, middleware, auth setup, seed call
 - `server/auth.ts` — Passport local strategy (email-based), session config, login/logout routes, `requireAuth` + `requireDirector` middleware, rate limiting
 - `server/routes.ts` — API routes for contacts, arrangements, user management, audit logs
-- `server/cremation-routes.ts` — Cremation system API routes (service area check, orders, events, waitlist)
+- `server/cremation-routes.ts` — Cremation system API routes (service area check, orders, events, waitlist, compliance)
 - `server/cremation-events.ts` — Event emission utility with handler registration for cremation workflow
+- `server/compliance-trigger.ts` — Registers auto-trigger for compliance packet generation when CREMATION_COMPLETED + RELEASE/SHIPMENT events exist
+- `server/services/pdf-generator.ts` — PDF generation for compliance documents (case summary, chain of custody, payment record, release/shipping record, merged packet) using PDFKit + pdf-lib
+- `server/services/compliance-engine.ts` — Orchestrates compliance packet assembly, Louisiana compliance checks, Drive uploads, and case completion
 - `server/service-area.ts` — Geofencing utility (60mi radius from Hammond, LA chapel)
 - `server/zip-coordinates.json` — Static zip-to-coordinates dataset for Louisiana area
 - `server/storage.ts` — `IStorage` interface + `DatabaseStorage` implementation using Drizzle
@@ -127,6 +130,8 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `POST /api/cremation/orders/:id/payment-link` — Generate Square checkout link (auth required)
 - `POST /api/cremation/webhooks/square` — Square webhook endpoint (public, signature-verified)
 - `GET /api/cremation/orders/:id/payment-status` — Get payment status (auth required)
+- `POST /api/cremation/orders/:id/compliance-packet` — Manually trigger/regenerate compliance packet (auth required, blocked if locked)
+- `GET /api/cremation/orders/:id/compliance-status` — Get compliance readiness, Louisiana checks, and generated documents (auth required)
 
 ## Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string

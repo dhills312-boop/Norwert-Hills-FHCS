@@ -237,24 +237,15 @@ export default function Dashboard() {
                     </Link>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <Link href={`/staff/sessions/${session.id}`}>
                     <Button 
                       variant="outline" 
                       className="w-full border-white/10 hover:bg-white/5 text-xs"
-                      onClick={() => handleSendLink('email', session.familyName)}
-                      data-testid={`button-email-${session.id}`}
+                      data-testid={`button-view-session-${session.id}`}
                     >
-                      <Mail className="mr-2 h-3 w-3" /> Email Forms
+                      <FileEdit className="mr-2 h-3 w-3" /> View Session
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-white/10 hover:bg-white/5 text-xs"
-                      onClick={() => handleSendLink('sms', session.familyName)}
-                      data-testid={`button-sms-${session.id}`}
-                    >
-                      <MessageSquare className="mr-2 h-3 w-3" /> SMS Link
-                    </Button>
-                  </div>
+                  </Link>
                 </CardContent>
               </Card>
             ))}

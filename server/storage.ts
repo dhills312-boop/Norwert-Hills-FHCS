@@ -2,12 +2,16 @@ import { eq, desc, and, gte } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, auditLogs, contactSubmissions, arrangements, arrangementItems, activityLogs,
+  formTemplates, formInstances, commEvents,
   type User, type InsertUser,
   type AuditLog,
   type Contact, type InsertContact,
   type Arrangement, type InsertArrangement,
   type ArrangementItem, type InsertArrangementItem,
   type ActivityLog, type InsertActivityLog,
+  type FormTemplate, type InsertFormTemplate,
+  type FormInstance, type InsertFormInstance,
+  type CommEvent, type InsertCommEvent,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -37,6 +41,18 @@ export interface IStorage {
 
   createActivityLog(data: InsertActivityLog): Promise<ActivityLog>;
   getActivityLogs(arrangementId?: string, since?: Date): Promise<ActivityLog[]>;
+
+  getFormTemplates(): Promise<FormTemplate[]>;
+  getFormTemplate(id: string): Promise<FormTemplate | undefined>;
+  createFormTemplate(data: InsertFormTemplate): Promise<FormTemplate>;
+
+  getFormInstances(arrangementId: string): Promise<FormInstance[]>;
+  getFormInstance(id: string): Promise<FormInstance | undefined>;
+  createFormInstance(data: InsertFormInstance): Promise<FormInstance>;
+  updateFormInstance(id: string, data: Partial<Pick<FormInstance, "status" | "sentVia" | "sentTo" | "sentAt" | "completedAt" | "formUrl">>): Promise<FormInstance | undefined>;
+
+  getCommEvents(arrangementId: string): Promise<CommEvent[]>;
+  createCommEvent(data: InsertCommEvent): Promise<CommEvent>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -142,6 +158,48 @@ export class DatabaseStorage implements IStorage {
       return db.select().from(activityLogs).where(and(...conditions)).orderBy(desc(activityLogs.createdAt));
     }
     return db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt));
+  }
+
+  async getFormTemplates(): Promise<FormTemplate[]> {
+    return db.select().from(formTemplates).orderBy(formTemplates.sortOrder);
+  }
+
+  async getFormTemplate(id: string): Promise<FormTemplate | undefined> {
+    const [t] = await db.select().from(formTemplates).where(eq(formTemplates.id, id));
+    return t;
+  }
+
+  async createFormTemplate(data: InsertFormTemplate): Promise<FormTemplate> {
+    const [t] = await db.insert(formTemplates).values(data).returning();
+    return t;
+  }
+
+  async getFormInstances(arrangementId: string): Promise<FormInstance[]> {
+    return db.select().from(formInstances).where(eq(formInstances.arrangementId, arrangementId));
+  }
+
+  async getFormInstance(id: string): Promise<FormInstance | undefined> {
+    const [fi] = await db.select().from(formInstances).where(eq(formInstances.id, id));
+    return fi;
+  }
+
+  async createFormInstance(data: InsertFormInstance): Promise<FormInstance> {
+    const [fi] = await db.insert(formInstances).values(data).returning();
+    return fi;
+  }
+
+  async updateFormInstance(id: string, data: Partial<Pick<FormInstance, "status" | "sentVia" | "sentTo" | "sentAt" | "completedAt" | "formUrl">>): Promise<FormInstance | undefined> {
+    const [fi] = await db.update(formInstances).set(data).where(eq(formInstances.id, id)).returning();
+    return fi;
+  }
+
+  async getCommEvents(arrangementId: string): Promise<CommEvent[]> {
+    return db.select().from(commEvents).where(eq(commEvents.arrangementId, arrangementId)).orderBy(desc(commEvents.createdAt));
+  }
+
+  async createCommEvent(data: InsertCommEvent): Promise<CommEvent> {
+    const [ce] = await db.insert(commEvents).values(data).returning();
+    return ce;
   }
 }
 

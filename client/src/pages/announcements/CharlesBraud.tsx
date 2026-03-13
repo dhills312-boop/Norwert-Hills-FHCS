@@ -445,7 +445,7 @@ export default function Announcement() {
                     color: "rgba(245,240,232,0.4)",
                   }}
                 >
-                  240 Pine St., Laplace, LA
+                  240 Pine St., Laplace, LA 70068
                 </div>
               </div>
 

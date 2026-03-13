@@ -134,3 +134,49 @@ export type InsertArrangement = z.infer<typeof insertArrangementSchema>;
 export type Arrangement = typeof arrangements.$inferSelect;
 export type InsertArrangementItem = z.infer<typeof insertArrangementItemSchema>;
 export type ArrangementItem = typeof arrangementItems.$inferSelect;
+
+export const formTemplates = pgTable("form_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  jotformId: text("jotform_id"),
+  pdfPath: text("pdf_path"),
+  requiredForServiceTypes: text("required_for_service_types").array().notNull().default(sql`'{}'::text[]`),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const formInstances = pgTable("form_instances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  arrangementId: varchar("arrangement_id").notNull(),
+  templateId: varchar("template_id").notNull(),
+  status: text("status").notNull().default("not_sent"),
+  formUrl: text("form_url"),
+  sentVia: text("sent_via"),
+  sentTo: text("sent_to"),
+  sentAt: timestamp("sent_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const commEvents = pgTable("comm_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  arrangementId: varchar("arrangement_id").notNull(),
+  actorId: varchar("actor_id").notNull(),
+  channel: text("channel").notNull(),
+  destination: text("destination").notNull(),
+  templateId: varchar("template_id"),
+  details: text("details"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertFormTemplateSchema = createInsertSchema(formTemplates).omit({ id: true, createdAt: true });
+export type InsertFormTemplate = z.infer<typeof insertFormTemplateSchema>;
+export type FormTemplate = typeof formTemplates.$inferSelect;
+
+export const insertFormInstanceSchema = createInsertSchema(formInstances).omit({ id: true, createdAt: true });
+export type InsertFormInstance = z.infer<typeof insertFormInstanceSchema>;
+export type FormInstance = typeof formInstances.$inferSelect;
+
+export const insertCommEventSchema = createInsertSchema(commEvents).omit({ id: true, createdAt: true });
+export type InsertCommEvent = z.infer<typeof insertCommEventSchema>;
+export type CommEvent = typeof commEvents.$inferSelect;

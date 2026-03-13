@@ -2,11 +2,28 @@ import type { Express } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { arrangements, activityLogs } from "@shared/schema";
+import { arrangements, activityLogs, formInstances } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth, requireDirector, hashPassword } from "./auth";
-import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema } from "@shared/schema";
+import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertCommEventSchema, type FormInstance } from "@shared/schema";
 import { z } from "zod";
+import path from "path";
+
+function maskDestination(dest: string, channel: string): string {
+  if (channel === "email") {
+    const [local, domain] = dest.split("@");
+    if (!local || !domain) return "***@***.***";
+    const maskedLocal = local.charAt(0) + "***";
+    const domainParts = domain.split(".");
+    const maskedDomain = domainParts[0].charAt(0) + "***." + (domainParts.slice(1).join(".") || "***");
+    return `${maskedLocal}@${maskedDomain}`;
+  }
+  const digits = dest.replace(/\D/g, "");
+  if (digits.length >= 4) {
+    return "***-***-" + digits.slice(-4);
+  }
+  return "***";
+}
 
 const updateArrangementSchema = insertArrangementSchema.partial();
 
@@ -184,17 +201,52 @@ export async function registerRoutes(
       const data = insertArrangementSchema.parse(req.body);
       const isDemo = req.query.demo === "true";
       if (isDemo) {
-        const arr = await storage.createArrangement(data);
+        const arr = await storage.createArrangement({ ...data, nextStep: "Forms" });
+        const templates = await storage.getFormTemplates();
+        const serviceType = data.selections?.["service-type"] || "";
+        for (const tmpl of templates) {
+          const required = tmpl.requiredForServiceTypes;
+          const serviceUnknown = !serviceType;
+          const isRequired = required.includes("all") || required.length === 0 || serviceUnknown || required.includes(serviceType);
+          if (!isRequired) continue;
+          const formUrl = tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")
+            ? `https://form.jotform.com/${tmpl.jotformId}?sessionId=${arr.id}&familyName=${encodeURIComponent(arr.familyName)}&serviceType=${encodeURIComponent(serviceType)}&staffName=${encodeURIComponent(req.user?.name || "")}`
+            : `/staff/sessions/${arr.id}/forms/${tmpl.id}/fill`;
+          await storage.createFormInstance({ arrangementId: arr.id, templateId: tmpl.id, status: "not_sent", formUrl });
+        }
         return res.status(201).json(arr);
       }
       const result = await db.transaction(async (tx) => {
-        const [arr] = await tx.insert(arrangements).values(data).returning();
+        const [arr] = await tx.insert(arrangements).values({
+          ...data,
+          nextStep: "Forms",
+        }).returning();
         await tx.insert(activityLogs).values({
           arrangementId: arr.id,
           actorId: req.user!.id,
           action: "created",
           details: `Created arrangement for ${arr.familyName}`,
         });
+
+        const templates = await storage.getFormTemplates();
+        const serviceType = data.selections?.["service-type"] || "";
+        for (const tmpl of templates) {
+          const required = tmpl.requiredForServiceTypes;
+          const serviceUnknown = !serviceType;
+          const isRequired = required.includes("all") || required.length === 0 || serviceUnknown || required.includes(serviceType);
+          if (!isRequired) continue;
+
+          const formUrl = tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")
+            ? `https://form.jotform.com/${tmpl.jotformId}?sessionId=${arr.id}&familyName=${encodeURIComponent(arr.familyName)}&serviceType=${encodeURIComponent(serviceType)}&staffName=${encodeURIComponent(req.user!.name || "")}`
+            : `/staff/sessions/${arr.id}/forms/${tmpl.id}/fill`;
+          await tx.insert(formInstances).values({
+            arrangementId: arr.id,
+            templateId: tmpl.id,
+            status: "not_sent",
+            formUrl,
+          });
+        }
+
         return arr;
       });
       res.status(201).json(result);
@@ -329,6 +381,142 @@ export async function registerRoutes(
       res.json({ message: "Items deleted" });
     } catch {
       res.status(500).json({ message: "Failed to delete items" });
+    }
+  });
+
+  app.get("/api/form-templates", requireAuth, async (_req, res) => {
+    try {
+      const templates = await storage.getFormTemplates();
+      res.json(templates);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch form templates" });
+    }
+  });
+
+  app.get("/api/arrangements/:id/forms", requireAuth, async (req, res) => {
+    try {
+      const instances = await storage.getFormInstances(req.params.id);
+      const templates = await storage.getFormTemplates();
+      const templateMap = Object.fromEntries(templates.map(t => [t.id, t]));
+      const enriched = instances.map(fi => ({
+        ...fi,
+        sentTo: fi.sentTo ? maskDestination(fi.sentTo, fi.sentVia || "email") : null,
+        template: templateMap[fi.templateId] || null,
+      }));
+      res.json(enriched);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch form instances" });
+    }
+  });
+
+  const formStatusEnum = z.enum(["not_sent", "sent", "completed", "error"]);
+  const formChannelEnum = z.enum(["email", "sms"]);
+  const updateFormInstanceSchema = z.object({
+    status: formStatusEnum.optional(),
+    sentVia: formChannelEnum.optional(),
+    sentTo: z.string().optional(),
+  });
+
+  app.patch("/api/form-instances/:id", requireAuth, async (req, res) => {
+    try {
+      const parsed = updateFormInstanceSchema.parse(req.body);
+      const existing = await storage.getFormInstance(req.params.id);
+      if (!existing) return res.status(404).json({ message: "Form instance not found" });
+
+      const updates: Partial<Pick<FormInstance, "status" | "sentVia" | "sentTo" | "sentAt" | "completedAt">> = {};
+      if (parsed.status) updates.status = parsed.status;
+      if (parsed.sentVia) updates.sentVia = parsed.sentVia;
+      if (parsed.sentTo) updates.sentTo = parsed.sentTo;
+      if (parsed.status === "sent") updates.sentAt = new Date();
+      if (parsed.status === "completed") updates.completedAt = new Date();
+      const fi = await storage.updateFormInstance(req.params.id, updates);
+      if (!fi) return res.status(404).json({ message: "Form instance not found" });
+      res.json(fi);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to update form instance" });
+    }
+  });
+
+  const commEventChannelSchema = z.object({
+    channel: z.enum(["email", "sms"]),
+    destination: z.string().min(1),
+    templateId: z.string().optional(),
+    details: z.string().optional(),
+  });
+
+  app.post("/api/arrangements/:id/comm-events", requireAuth, async (req, res) => {
+    try {
+      const validated = commEventChannelSchema.parse(req.body);
+      const masked = maskDestination(validated.destination, validated.channel);
+      const data = insertCommEventSchema.parse({
+        ...validated,
+        arrangementId: req.params.id,
+        actorId: req.user!.id,
+        destination: masked,
+      });
+
+      if (data.templateId) {
+        const arr = await storage.getArrangement(req.params.id);
+        const tmpl = await storage.getFormTemplate(data.templateId);
+        if (arr && tmpl) {
+          const serviceType = (arr.selections as Record<string, string> | null)?.["service-type"] || "";
+          const formUrl = tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")
+            ? `https://form.jotform.com/${tmpl.jotformId}?sessionId=${arr.id}&familyName=${encodeURIComponent(arr.familyName)}&serviceType=${encodeURIComponent(serviceType)}&staffName=${encodeURIComponent(req.user!.name || "")}`
+            : `/staff/sessions/${arr.id}/forms/${tmpl.id}/fill`;
+
+          const instances = await storage.getFormInstances(req.params.id);
+          const fi = instances.find(i => i.templateId === data.templateId);
+          if (fi) {
+            await storage.updateFormInstance(fi.id, { formUrl });
+          }
+        }
+      }
+
+      const ce = await storage.createCommEvent(data);
+
+      await storage.createActivityLog({
+        arrangementId: req.params.id,
+        actorId: req.user!.id,
+        action: "send_form_link",
+        details: `Sent form link via ${data.channel} to ${masked}`,
+      });
+
+      res.status(201).json(ce);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to create comm event" });
+    }
+  });
+
+  app.get("/api/arrangements/:id/comm-events", requireAuth, async (req, res) => {
+    try {
+      const events = await storage.getCommEvents(req.params.id);
+      res.json(events);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch comm events" });
+    }
+  });
+
+  const ASSETS_BASE = path.resolve("attached_assets");
+
+  app.get("/api/form-templates/:id/download", requireAuth, async (req, res) => {
+    try {
+      const template = await storage.getFormTemplate(req.params.id);
+      if (!template || !template.pdfPath) {
+        return res.status(404).json({ message: "PDF not available for this form" });
+      }
+      const filePath = path.resolve(template.pdfPath);
+      if (!filePath.startsWith(ASSETS_BASE)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      res.download(filePath);
+    } catch {
+      res.status(500).json({ message: "Failed to download form" });
     }
   });
 

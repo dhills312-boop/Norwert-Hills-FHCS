@@ -17,6 +17,8 @@ import Dashboard from "@/pages/staff/Dashboard";
 import Builder from "@/pages/staff/Builder";
 import Billing from "@/pages/staff/Billing";
 import AdminUsers from "@/pages/staff/AdminUsers";
+import SessionOverview from "@/pages/staff/SessionOverview";
+import FormFill from "@/pages/staff/FormFill";
 import Announcement from "@/pages/announcements/CharlesBraud";
 
 function Router() {
@@ -33,6 +35,8 @@ function Router() {
       <Route path="/announcements/charles-braud" component={Announcement} />
       <Route path="/staff/login" component={StaffLogin} />
       <Route path="/staff/dashboard" component={Dashboard} />
+      <Route path="/staff/sessions/:id" component={SessionOverview} />
+      <Route path="/staff/sessions/:id/forms/:templateId/fill" component={FormFill} />
       <Route path="/staff/builder" component={Builder} />
       <Route path="/staff/billing" component={Billing} />
       <Route path="/staff/admin/users" component={AdminUsers} />

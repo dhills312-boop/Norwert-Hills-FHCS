@@ -1,10 +1,34 @@
 import { db } from "./db";
-import { users } from "@shared/schema";
+import { users, formTemplates } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "./auth";
 
+async function seedFormTemplates() {
+  const existing = await db.select().from(formTemplates);
+  if (existing.length > 0) return;
+
+  await db.insert(formTemplates).values([
+    {
+      name: "Vital Statistics",
+      jotformId: "PLACEHOLDER_VITAL_STATS",
+      pdfPath: "attached_assets/vital_statistics_form.pdf",
+      requiredForServiceTypes: ["all"],
+      sortOrder: 1,
+    },
+    {
+      name: "Authorization for Embalming / Cremation",
+      jotformId: "PLACEHOLDER_AUTHORIZATION",
+      pdfPath: "attached_assets/authorization_form.pdf",
+      requiredForServiceTypes: ["embalm", "traditional", "cremation"],
+      sortOrder: 2,
+    },
+  ]);
+  console.log("Form templates seeded.");
+}
+
 export async function seedDatabase() {
   try {
+    await seedFormTemplates();
     const adminEmail = process.env.ADMIN_EMAIL;
     const adminPassword = process.env.ADMIN_PASSWORD;
     const adminName = process.env.ADMIN_NAME || "Director";

@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
+import { getAnnouncementMeta, injectAnnouncementMeta } from "./announcement-meta";
 
 export function serveStatic(app: Express) {
   const distPath = path.resolve(__dirname, "public");
@@ -12,8 +13,23 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("/{*path}", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  app.use("/{*path}", (req, res) => {
+    const indexPath = path.resolve(distPath, "index.html");
+    const url = req.originalUrl;
+
+    const announcementMatch = url.match(/^\/announcements\/([^/?#]+)/);
+    if (announcementMatch) {
+      const meta = getAnnouncementMeta(announcementMatch[1]);
+      if (meta) {
+        let html = fs.readFileSync(indexPath, "utf-8");
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers['host'] || '';
+        const baseUrl = `${protocol}://${host}`;
+        html = injectAnnouncementMeta(html, meta, baseUrl);
+        return res.status(200).set({ "Content-Type": "text/html" }).end(html);
+      }
+    }
+
+    res.sendFile(indexPath);
   });
 }

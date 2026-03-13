@@ -5,6 +5,7 @@ import viteConfig from "../vite.config";
 import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
+import { getAnnouncementMeta, injectAnnouncementMeta } from "./announcement-meta";
 
 const viteLogger = createLogger();
 
@@ -42,12 +43,23 @@ export async function setupVite(server: Server, app: Express) {
         "index.html",
       );
 
-      // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
+
+      const announcementMatch = url.match(/^\/announcements\/([^/?#]+)/);
+      if (announcementMatch) {
+        const meta = getAnnouncementMeta(announcementMatch[1]);
+        if (meta) {
+          const protocol = req.headers['x-forwarded-proto'] || 'https';
+          const host = req.headers['host'] || '';
+          const baseUrl = `${protocol}://${host}`;
+          template = injectAnnouncementMeta(template, meta, baseUrl);
+        }
+      }
+
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {

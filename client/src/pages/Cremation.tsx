@@ -154,9 +154,7 @@ export default function Cremation() {
                   <span className="text-xs uppercase tracking-widest">Step 1 of 2</span>
                 </div>
                 <h2 className="font-serif text-3xl mb-3" data-testid="text-step-title">Check Service Availability</h2>
-                <p className="text-muted-foreground text-sm font-light mb-8">
-                  We currently serve families within 60 miles of Hammond, Louisiana. Enter your zip code to check if we can serve your area.
-                </p>
+                <p className="text-muted-foreground text-sm font-light mb-8">We currently serve families within the Greater North Shores area of Louisiana. Enter your zip code to check if we can serve your area.</p>
                 <form onSubmit={handleZipSubmit} className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="zipCode" className="text-xs uppercase tracking-widest text-muted-foreground">Zip Code</Label>

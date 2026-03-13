@@ -270,7 +270,9 @@ export type CremationPhase = (typeof cremationPhases)[number];
 export const cremationEventTypes = [
   "ORDER_CREATED",
   "FORM_SUBMITTED",
+  "PAYMENT_LINK_CREATED",
   "PAYMENT_CONFIRMED",
+  "PAYMENT_FAILED",
   "REMAINS_RECEIVED",
   "CREMATION_SCHEDULED",
   "CREMATION_COMPLETED",

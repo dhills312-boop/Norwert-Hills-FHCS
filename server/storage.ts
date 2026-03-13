@@ -87,6 +87,7 @@ export interface IStorage {
 
   createCremationEvent(data: InsertCremationEvent): Promise<CremationEvent>;
   listCremationEvents(orderId: string): Promise<CremationEvent[]>;
+  getCremationEventBySquareEventId(squareEventId: string): Promise<CremationEvent | undefined>;
 
   createCremationDocument(data: InsertCremationDocument): Promise<CremationDocument>;
   listCremationDocuments(orderId: string): Promise<CremationDocument[]>;
@@ -347,6 +348,11 @@ export class DatabaseStorage implements IStorage {
 
   async listCremationEvents(orderId: string): Promise<CremationEvent[]> {
     return db.select().from(cremationEvents).where(eq(cremationEvents.orderId, orderId)).orderBy(desc(cremationEvents.createdAt));
+  }
+
+  async getCremationEventBySquareEventId(squareEventId: string): Promise<CremationEvent | undefined> {
+    const all = await db.select().from(cremationEvents);
+    return all.find(e => (e.details as Record<string, unknown>)?.squareEventId === squareEventId);
   }
 
   async createCremationDocument(data: InsertCremationDocument): Promise<CremationDocument> {

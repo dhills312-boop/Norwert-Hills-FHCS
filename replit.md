@@ -32,6 +32,12 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 
 ### Pages
 - **Public**: Home, Services, ServiceDetail, About, Resources, ResourcesFAQ, ArticleDetail, Contact
+- **Announcements**: Per-deceased memorial pages at `/announcements/<slug>` (e.g., `/announcements/charles-braud`)
+  - Assets stored in `public/assets/announcements/<slug>/`
+  - Uses Cinzel, EB Garamond, Cormorant Garamond fonts
+  - CSS keyframes: `announcement-slow-zoom`, `announcement-twinkle`, `announcement-float` in index.css
+  - Share buttons (Facebook, Twitter/X, Instagram copy-to-clipboard, Copy Link)
+  - Get Directions (Google Maps / Apple Maps), Add to Calendar (.ics download)
 - **Staff**: Login (`/staff/login`), Dashboard (`/staff/dashboard`), Builder (`/staff/builder`), Billing (`/staff/billing`)
 - **Director-only**: User Management (`/staff/admin/users`)
 

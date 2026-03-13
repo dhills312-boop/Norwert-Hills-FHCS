@@ -580,11 +580,9 @@ export default function AnnouncementEditor() {
                         {copiedAnn ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
                         {copiedAnn ? 'Copied' : 'Copy'}
                       </Button>
-                      <Link href={`/announcements/${form.slug}`} target="_blank">
-                        <Button variant="outline" size="sm" className="border-white/10" data-testid="button-preview-announcement">
-                          <Eye className="h-3 w-3 mr-1" /> Preview
-                        </Button>
-                      </Link>
+                      <Button variant="outline" size="sm" className="border-white/10" onClick={() => window.open(`/announcements/${form.slug}?preview`, '_blank')} data-testid="button-preview-announcement-link">
+                        <Eye className="h-3 w-3 mr-1" /> Preview
+                      </Button>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground flex-1">Obituary: /obituaries/{form.slug}</span>
@@ -592,11 +590,9 @@ export default function AnnouncementEditor() {
                         {copiedObit ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
                         {copiedObit ? 'Copied' : 'Copy'}
                       </Button>
-                      <Link href={`/obituaries/${form.slug}`} target="_blank">
-                        <Button variant="outline" size="sm" className="border-white/10" data-testid="button-preview-obituary">
-                          <Eye className="h-3 w-3 mr-1" /> Preview
-                        </Button>
-                      </Link>
+                      <Button variant="outline" size="sm" className="border-white/10" onClick={() => window.open(`/obituaries/${form.slug}?preview`, '_blank')} data-testid="button-preview-obituary-link">
+                        <Eye className="h-3 w-3 mr-1" /> Preview
+                      </Button>
                     </div>
                   </div>
                 )}

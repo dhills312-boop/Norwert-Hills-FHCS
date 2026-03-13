@@ -396,7 +396,7 @@ export default function Announcement() {
             <iframe
               data-testid="embed-spotify"
               style={{ borderRadius: '12px' }}
-              src="https://open.spotify.com/embed/track/0KOE1hat4SIer491XKk4Pa?utm_source=generator"
+              src="https://open.spotify.com/embed/track/0KOE1hat4SIer491XKk4Pa?utm_source=generator&autoplay=1"
               width="100%"
               height="352"
               frameBorder="0"

@@ -22,7 +22,7 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `server/seed.ts` — Bootstrap director account from ADMIN_EMAIL/ADMIN_PASSWORD env vars; syncs credentials on restart if env vars change
 
 ### Shared
-- `shared/schema.ts` — Drizzle tables: `users`, `auditLogs`, `activityLogs`, `contactSubmissions`, `arrangements`, `arrangementItems`, `serviceCatalog` + Zod schemas + password/email validators + `ArrangementSelections` interface
+- `shared/schema.ts` — Drizzle tables: `users`, `auditLogs`, `activityLogs`, `contactSubmissions`, `arrangements`, `arrangementItems`, `serviceCatalog`, `announcements`, `condolenceMessages` + Zod schemas + password/email validators + `ArrangementSelections`, `ServiceDetails`, `MediaGallery` interfaces
 
 ### Frontend
 - `client/src/App.tsx` — Router with all public + staff routes
@@ -32,13 +32,18 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 
 ### Pages
 - **Public**: Home, Services, ServiceDetail, About, Resources, ResourcesFAQ, ArticleDetail, Contact
-- **Announcements**: Per-deceased memorial pages at `/announcements/<slug>` (e.g., `/announcements/charles-braud`)
-  - Assets stored in `public/assets/announcements/<slug>/`
+- **Announcements**: Dynamic database-driven memorial pages
+  - Legacy: `/announcements/charles-braud` (hardcoded Charles Braud page)
+  - Dynamic: `/announcements/:slug` — public announcement page (brief obituary, service info, portrait, memorial song, share/directions/calendar)
+  - Dynamic: `/obituaries/:slug` — public obituary page (full obituary, guestbook with condolence messages, Send Flowers/Sympathy Gifts placeholders, link back to announcement)
+  - Assets stored in `client/public/assets/announcements/<slug>/`
   - Uses Cinzel, EB Garamond, Cormorant Garamond fonts
   - CSS keyframes: `announcement-slow-zoom`, `announcement-twinkle`, `announcement-float` in index.css
   - Share buttons (Facebook, Twitter/X, Instagram copy-to-clipboard, Copy Link)
   - Get Directions (Google Maps / Apple Maps), Add to Calendar (.ics download)
 - **Staff**: Login (`/staff/login`), Dashboard (`/staff/dashboard`), Builder (`/staff/builder`), Billing (`/staff/billing`)
+  - Announcements management at `/staff/announcements` (list) and `/staff/announcements/:id` (editor)
+  - Accessible from SessionOverview via "Manage Announcement" button at `/staff/sessions/:id/announcement`
 - **Director-only**: User Management (`/staff/admin/users`), Service Catalog (`/staff/catalog`)
 
 ## Database Schema
@@ -49,6 +54,8 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `arrangement_items` — id, arrangement_id, section, description, amount
 - `activity_logs` — id, arrangement_id, actor_id, action (created|updated|deleted), details, created_at — tracks all staff actions on arrangements within DB transactions
 - `service_catalog` — id (UUID), item_type (package|service|merchandise|add-on|cash-advance), name, description, category, default_price, display_order, included_in (JSONB array of package IDs), is_active
+- `announcements` — id (UUID), arrangement_id, slug (unique), deceased_first_name, deceased_last_name, date_of_birth, date_of_passing, brief_obituary, full_obituary, epitaph, service_details (JSONB), portrait_image_path, memorial_song_url, media_gallery (JSONB), is_published, created_at
+- `condolence_messages` — id (UUID), announcement_id, visitor_name, message, created_at
 
 ## Authentication & Authorization
 - Email-based login at `/staff/login` (email + password)
@@ -89,6 +96,15 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `GET /api/service-catalog/:id` — Single catalog item (auth required)
 - `POST /api/service-catalog` — Create catalog item (director only)
 - `PATCH /api/service-catalog/:id` — Update catalog item (director only)
+- `GET/POST /api/announcements` — List/create announcements (auth required)
+- `GET/PATCH/DELETE /api/announcements/:id` — CRUD single announcement (auth required)
+- `GET /api/announcements/by-arrangement/:arrangementId` — Get announcement for arrangement (auth required)
+- `GET /api/announcements/:id/condolences` — Staff condolence moderation (auth required)
+- `DELETE /api/condolences/:id` — Delete condolence message (auth required)
+- `GET /api/public/announcements/:slug` — Public announcement data (published only)
+- `GET /api/public/obituaries/:slug` — Public obituary data (published only)
+- `GET /api/public/announcements/:slug/condolences` — Public condolence list
+- `POST /api/public/announcements/:slug/condolences` — Public condolence submission (with length validation)
 
 ## Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string

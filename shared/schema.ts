@@ -193,6 +193,60 @@ export const insertCommEventSchema = createInsertSchema(commEvents).omit({ id: t
 export type InsertCommEvent = z.infer<typeof insertCommEventSchema>;
 export type CommEvent = typeof commEvents.$inferSelect;
 
+export interface ServiceDetails {
+  viewingDate?: string;
+  viewingTime?: string;
+  funeralDate?: string;
+  funeralTime?: string;
+  location?: string;
+  locationAddress?: string;
+  interment?: string;
+  intermentDetails?: string;
+  [key: string]: unknown;
+}
+
+export interface MediaGallery {
+  photos?: string[];
+  tributeVideoUrls?: string[];
+  livestreamUrl?: string;
+  [key: string]: unknown;
+}
+
+export const announcements = pgTable("announcements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  arrangementId: varchar("arrangement_id"),
+  slug: text("slug").notNull().unique(),
+  deceasedFirstName: text("deceased_first_name").notNull(),
+  deceasedLastName: text("deceased_last_name").notNull(),
+  dateOfBirth: text("date_of_birth"),
+  dateOfPassing: text("date_of_passing"),
+  briefObituary: text("brief_obituary"),
+  fullObituary: text("full_obituary"),
+  epitaph: text("epitaph"),
+  serviceDetails: jsonb("service_details").$type<ServiceDetails>().default({}),
+  portraitImagePath: text("portrait_image_path"),
+  memorialSongUrl: text("memorial_song_url"),
+  mediaGallery: jsonb("media_gallery").$type<MediaGallery>().default({}),
+  isPublished: boolean("is_published").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const condolenceMessages = pgTable("condolence_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  announcementId: varchar("announcement_id").notNull(),
+  visitorName: text("visitor_name").notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({ id: true, createdAt: true });
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+export type Announcement = typeof announcements.$inferSelect;
+
+export const insertCondolenceMessageSchema = createInsertSchema(condolenceMessages).omit({ id: true, createdAt: true });
+export type InsertCondolenceMessage = z.infer<typeof insertCondolenceMessageSchema>;
+export type CondolenceMessage = typeof condolenceMessages.$inferSelect;
+
 export const serviceCatalog = pgTable("service_catalog", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   itemType: text("item_type").notNull(),

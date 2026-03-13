@@ -20,7 +20,11 @@ import AdminUsers from "@/pages/staff/AdminUsers";
 import CatalogAdmin from "@/pages/staff/CatalogAdmin";
 import SessionOverview from "@/pages/staff/SessionOverview";
 import FormFill from "@/pages/staff/FormFill";
-import Announcement from "@/pages/announcements/CharlesBraud";
+import CharlesBraudAnnouncement from "@/pages/announcements/CharlesBraud";
+import AnnouncementPage from "@/pages/announcements/AnnouncementPage";
+import ObituaryPage from "@/pages/announcements/ObituaryPage";
+import AnnouncementsList from "@/pages/staff/AnnouncementsList";
+import AnnouncementEditor from "@/pages/staff/AnnouncementEditor";
 
 function Router() {
   return (
@@ -33,15 +37,20 @@ function Router() {
       <Route path="/resources/faq" component={ResourcesFAQ} />
       <Route path="/resources/article/:id" component={ArticleDetail} />
       <Route path="/contact" component={Contact} />
-      <Route path="/announcements/charles-braud" component={Announcement} />
+      <Route path="/announcements/charles-braud" component={CharlesBraudAnnouncement} />
+      <Route path="/announcements/:slug" component={AnnouncementPage} />
+      <Route path="/obituaries/:slug" component={ObituaryPage} />
       <Route path="/staff/login" component={StaffLogin} />
       <Route path="/staff/dashboard" component={Dashboard} />
       <Route path="/staff/sessions/:id" component={SessionOverview} />
+      <Route path="/staff/sessions/:id/announcement" component={AnnouncementEditor} />
       <Route path="/staff/sessions/:id/forms/:templateId/fill" component={FormFill} />
       <Route path="/staff/builder" component={Builder} />
       <Route path="/staff/billing" component={Billing} />
       <Route path="/staff/admin/users" component={AdminUsers} />
       <Route path="/staff/catalog" component={CatalogAdmin} />
+      <Route path="/staff/announcements" component={AnnouncementsList} />
+      <Route path="/staff/announcements/:id" component={AnnouncementEditor} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -315,6 +315,17 @@ export default function SessionOverview() {
             <ChevronRight className="h-4 w-4 ml-2" />
           </Button>
         </Link>
+
+        <Link href={`/staff/sessions/${sessionId}/announcement`}>
+          <Button
+            variant="outline"
+            className="w-full mt-3 border-white/10 hover:bg-white/5"
+            data-testid="button-manage-announcement"
+          >
+            Manage Announcement
+            <ChevronRight className="h-4 w-4 ml-2" />
+          </Button>
+        </Link>
       </div>
 
       <Dialog open={sendModal.open} onOpenChange={(open) => setSendModal({ open, formInstance: open ? sendModal.formInstance : null })}>

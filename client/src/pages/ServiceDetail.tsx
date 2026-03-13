@@ -59,11 +59,20 @@ export default function ServiceDetail() {
 
             <div className="mt-16 pt-16 border-t border-white/5 flex flex-col items-center text-center">
               <h3 className="font-serif text-2xl mb-6">Interested in this service?</h3>
-              <Link href="/contact">
-                <Button size="lg" className="bg-primary text-primary-foreground min-w-[200px] uppercase tracking-widest text-xs" data-testid="button-consult">
-                  Schedule a Consultation
-                </Button>
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-4">
+                {service.id === "cremation-services" && (
+                  <Link href="/cremation">
+                    <Button size="lg" className="bg-primary text-primary-foreground min-w-[200px] uppercase tracking-widest text-xs" data-testid="button-begin-cremation">
+                      Begin Online Arrangement
+                    </Button>
+                  </Link>
+                )}
+                <Link href="/contact">
+                  <Button size="lg" variant={service.id === "cremation-services" ? "outline" : "default"} className={service.id === "cremation-services" ? "min-w-[200px] uppercase tracking-widest text-xs border-white/10 hover:bg-white/5" : "bg-primary text-primary-foreground min-w-[200px] uppercase tracking-widest text-xs"} data-testid="button-consult">
+                    Schedule a Consultation
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

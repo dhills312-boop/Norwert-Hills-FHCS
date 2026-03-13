@@ -38,6 +38,7 @@ interface CondolenceMessage {
 export default function ObituaryPage() {
   const [, params] = useRoute('/obituaries/:slug');
   const slug = params?.slug || '';
+  const isPreview = new URLSearchParams(window.location.search).has('preview');
   const [announcement, setAnnouncement] = useState<AnnouncementData | null>(null);
   const [condolences, setCondolences] = useState<CondolenceMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,13 +50,16 @@ export default function ObituaryPage() {
 
   useEffect(() => {
     if (!slug) return;
+    const obituaryEndpoint = isPreview
+      ? `/api/staff/announcements/preview/${slug}`
+      : `/api/public/obituaries/${slug}`;
     Promise.all([
-      fetch(`/api/public/obituaries/${slug}`).then(r => { if (!r.ok) throw new Error('Not found'); return r.json(); }),
+      fetch(obituaryEndpoint, { credentials: 'include' }).then(r => { if (!r.ok) throw new Error('Not found'); return r.json(); }),
       fetch(`/api/public/announcements/${slug}/condolences`).then(r => r.ok ? r.json() : []),
     ])
       .then(([data, msgs]) => { setAnnouncement(data); setCondolences(msgs); setLoading(false); })
       .catch(() => { setError(true); setLoading(false); });
-  }, [slug]);
+  }, [slug, isPreview]);
 
   const handleSubmitCondolence = async (e: React.FormEvent) => {
     e.preventDefault();

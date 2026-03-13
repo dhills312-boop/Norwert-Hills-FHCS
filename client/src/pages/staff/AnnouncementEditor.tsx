@@ -306,6 +306,14 @@ export default function AnnouncementEditor() {
             )}
           </div>
           <div className="flex gap-2">
+            {(dataToLoad || form.slug || (form.deceasedFirstName && form.deceasedLastName)) && (
+              <Button variant="outline" size="sm" className="border-white/10" onClick={() => {
+                const sl = form.slug || slugify(form.deceasedFirstName, form.deceasedLastName);
+                if (sl) window.open(`/announcements/${sl}?preview`, '_blank');
+              }} data-testid="button-preview-announcement">
+                <Eye className="h-4 w-4 mr-1" /> Preview
+              </Button>
+            )}
             {dataToLoad && (
               <Button variant="destructive" size="sm" onClick={() => { if (confirm('Delete this announcement?')) deleteMutation.mutate(); }} data-testid="button-delete-announcement">
                 <Trash2 className="h-4 w-4 mr-1" /> Delete

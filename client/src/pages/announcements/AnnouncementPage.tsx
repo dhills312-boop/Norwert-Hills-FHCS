@@ -225,6 +225,7 @@ function renderSongEmbed(url: string) {
 export default function AnnouncementPage() {
   const [, params] = useRoute('/announcements/:slug');
   const slug = params?.slug || '';
+  const isPreview = new URLSearchParams(window.location.search).has('preview');
   const [announcement, setAnnouncement] = useState<AnnouncementData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -232,14 +233,17 @@ export default function AnnouncementPage() {
 
   useEffect(() => {
     if (!slug) return;
-    fetch(`/api/public/announcements/${slug}`)
+    const endpoint = isPreview
+      ? `/api/staff/announcements/preview/${slug}`
+      : `/api/public/announcements/${slug}`;
+    fetch(endpoint, { credentials: 'include' })
       .then(r => {
         if (!r.ok) throw new Error('Not found');
         return r.json();
       })
       .then(data => { setAnnouncement(data); setLoading(false); })
       .catch(() => { setError(true); setLoading(false); });
-  }, [slug]);
+  }, [slug, isPreview]);
 
   if (loading) {
     return (
@@ -264,6 +268,7 @@ export default function AnnouncementPage() {
 
   const sd = announcement.serviceDetails || {};
   const portraitSrc = announcement.portraitImagePath || '/assets/announcements/charles-braud/portrait.png';
+  const showPreviewBanner = isPreview && !announcement.isPublished;
 
   const handleShare = (platform: string) => {
     const url = encodeURIComponent(window.location.href);
@@ -337,7 +342,12 @@ export default function AnnouncementPage() {
       <StarField />
       <div className="fixed inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 20%, rgba(9,7,12,0.7) 70%, #09070c 100%)', zIndex: 2 }} />
 
-      <div className="relative mx-auto" style={{ maxWidth: '780px', zIndex: 3 }}>
+      {showPreviewBanner && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-3 py-2 px-4" style={{ backgroundColor: 'rgba(201,169,110,0.95)', color: '#09070c' }}>
+          <span style={{ fontFamily: 'Cinzel, serif', fontSize: '10px', letterSpacing: '0.2em', fontWeight: 600, textTransform: 'uppercase' as const }}>STAFF PREVIEW — NOT YET PUBLISHED</span>
+        </div>
+      )}
+      <div className="relative mx-auto" style={{ maxWidth: '780px', zIndex: 3, paddingTop: showPreviewBanner ? '36px' : '0' }}>
         <div className="relative h-[680px] overflow-hidden">
           <div className="absolute top-8 left-1/2 transform -translate-x-1/2 text-center">
             <div className="w-[80px] h-[80px] mx-auto flex items-center justify-center mb-2" style={{ backgroundColor: 'transparent' }}>

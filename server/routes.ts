@@ -670,6 +670,16 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/staff/announcements/preview/:slug", requireAuth, async (req, res) => {
+    try {
+      const item = await storage.getAnnouncementBySlug(req.params.slug);
+      if (!item) return res.status(404).json({ message: "Announcement not found" });
+      res.json(item);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch announcement" });
+    }
+  });
+
   app.get("/api/public/announcements/:slug", async (req, res) => {
     try {
       const item = await storage.getAnnouncementBySlug(req.params.slug);

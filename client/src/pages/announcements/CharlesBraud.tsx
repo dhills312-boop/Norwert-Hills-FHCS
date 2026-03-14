@@ -94,8 +94,8 @@ export default function Announcement() {
   const handleAddToCalendar = () => {
     const event = {
       title: 'Funeral Service - Charles Braud',
-      description: 'Funeral service at Norwert Hills Funeral & Cremation Services',
-      location: '1601 W. Thomas St., Hammond, LA 70401',
+      description: 'Providence Baptist Church',
+      location: '240 Pine St., LaPlaace, LA 70401',
       startDate: '2026-03-13T10:00:00',
       endDate: '2026-03-13T11:00:00'
     };

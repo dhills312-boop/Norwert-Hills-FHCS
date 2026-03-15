@@ -5,8 +5,11 @@ import { db } from "./db";
 import { arrangements, activityLogs } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth, requireDirector, hashPassword } from "./auth";
-import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema } from "@shared/schema";
+import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertAnnouncementSchema, insertCondolenceMessageSchema } from "@shared/schema";
 import { z } from "zod";
+import path from "path";
+import fs from "fs";
+import multer from "multer";
 
 const updateArrangementSchema = insertArrangementSchema.partial();
 
@@ -329,6 +332,215 @@ export async function registerRoutes(
       res.json({ message: "Items deleted" });
     } catch {
       res.status(500).json({ message: "Failed to delete items" });
+    }
+  });
+
+  // --- Announcement CRUD routes ---
+  const uploadsDir = path.resolve("client/public/assets/announcements");
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: (_req, _file, cb) => {
+        const slug = _req.params.slug || 'temp';
+        const dir = path.join(uploadsDir, slug);
+        fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+      },
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname) || '.png';
+        cb(null, `portrait${ext}`);
+      },
+    }),
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      cb(null, allowed.includes(file.mimetype));
+    },
+  });
+
+  app.post("/api/announcements/upload/:slug", requireAuth, upload.single('portrait'), (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "No valid image file provided" });
+    const publicPath = `/assets/announcements/${req.params.slug}/${req.file.filename}`;
+    res.json({ path: publicPath });
+  });
+
+  app.get("/api/announcements", requireAuth, async (_req, res) => {
+    try {
+      const items = await storage.getAnnouncements();
+      res.json(items);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch announcements" });
+    }
+  });
+
+  app.get("/api/announcements/:id", requireAuth, async (req, res) => {
+    try {
+      const item = await storage.getAnnouncement(req.params.id);
+      if (!item) return res.status(404).json({ message: "Announcement not found" });
+      res.json(item);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch announcement" });
+    }
+  });
+
+  app.get("/api/announcements/by-arrangement/:arrangementId", requireAuth, async (req, res) => {
+    try {
+      const item = await storage.getAnnouncementByArrangementId(req.params.arrangementId);
+      if (!item) return res.status(404).json({ message: "Not found" });
+      res.json(item);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch announcement" });
+    }
+  });
+
+  app.post("/api/announcements", requireAuth, async (req, res) => {
+    try {
+      const data = insertAnnouncementSchema.parse(req.body);
+      const existing = await storage.getAnnouncementBySlug(data.slug);
+      if (existing) return res.status(400).json({ message: "An announcement with that slug already exists" });
+      const item = await storage.createAnnouncement(data);
+      res.status(201).json(item);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to create announcement" });
+    }
+  });
+
+  const updateAnnouncementSchema = insertAnnouncementSchema.partial();
+
+  app.patch("/api/announcements/:id", requireAuth, async (req, res) => {
+    try {
+      const data = updateAnnouncementSchema.parse(req.body);
+      if (data.slug) {
+        const existing = await storage.getAnnouncementBySlug(data.slug);
+        if (existing && existing.id !== req.params.id) {
+          return res.status(400).json({ message: "An announcement with that slug already exists" });
+        }
+      }
+      const item = await storage.updateAnnouncement(req.params.id, data);
+      if (!item) return res.status(404).json({ message: "Announcement not found" });
+      res.json(item);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to update announcement" });
+    }
+  });
+
+  app.delete("/api/announcements/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteAnnouncement(req.params.id);
+      res.json({ message: "Deleted" });
+    } catch {
+      res.status(500).json({ message: "Failed to delete announcement" });
+    }
+  });
+
+  app.get("/api/staff/announcements/preview/:slug", requireAuth, async (req, res) => {
+    try {
+      const item = await storage.getAnnouncementBySlug(req.params.slug);
+      if (!item) return res.status(404).json({ message: "Announcement not found" });
+      res.json(item);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch announcement" });
+    }
+  });
+
+  app.get("/api/public/announcements/:slug", async (req, res) => {
+    try {
+      const item = await storage.getAnnouncementBySlug(req.params.slug);
+      if (!item || !item.isPublished) return res.status(404).json({ message: "Announcement not found" });
+      res.json(item);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch announcement" });
+    }
+  });
+
+  app.get("/api/public/obituaries/:slug", async (req, res) => {
+    try {
+      const item = await storage.getAnnouncementBySlug(req.params.slug);
+      if (!item || !item.isPublished) return res.status(404).json({ message: "Obituary not found" });
+      res.json(item);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch obituary" });
+    }
+  });
+
+  app.get("/api/public/announcements/:slug/condolences", async (req, res) => {
+    try {
+      const announcement = await storage.getAnnouncementBySlug(req.params.slug);
+      if (!announcement || !announcement.isPublished) return res.status(404).json({ message: "Announcement not found" });
+      const messages = await storage.getCondolenceMessages(announcement.id);
+      res.json(messages);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch condolence messages" });
+    }
+  });
+
+  app.post("/api/public/announcements/:slug/condolences", async (req, res) => {
+    try {
+      const announcement = await storage.getAnnouncementBySlug(req.params.slug);
+      if (!announcement || !announcement.isPublished) return res.status(404).json({ message: "Announcement not found" });
+      const { visitorName, message: msg } = req.body;
+      if (!visitorName || typeof visitorName !== 'string' || visitorName.trim().length < 1 || visitorName.trim().length > 200) {
+        return res.status(400).json({ message: "Name must be between 1 and 200 characters" });
+      }
+      if (!msg || typeof msg !== 'string' || msg.trim().length < 1 || msg.trim().length > 2000) {
+        return res.status(400).json({ message: "Message must be between 1 and 2000 characters" });
+      }
+      const data = insertCondolenceMessageSchema.parse({
+        visitorName: visitorName.trim(),
+        message: msg.trim(),
+        announcementId: announcement.id,
+      });
+      const item = await storage.createCondolenceMessage(data);
+      res.status(201).json(item);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to create condolence message" });
+    }
+  });
+
+  app.get("/api/announcements/:id/condolences", requireAuth, async (req, res) => {
+    try {
+      const messages = await storage.getCondolenceMessages(req.params.id);
+      res.json(messages);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch condolence messages" });
+    }
+  });
+
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const baseUrl = "https://norwert-hills-funeral-cremation.replit.app";
+      const published = await storage.getAnnouncements();
+      const publishedAnnouncements = published.filter(a => a.isPublished);
+
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      const staticPages = [
+        { loc: "/", priority: "1.0", changefreq: "weekly" },
+        { loc: "/services", priority: "0.9", changefreq: "monthly" },
+        { loc: "/about", priority: "0.8", changefreq: "monthly" },
+        { loc: "/resources", priority: "0.7", changefreq: "monthly" },
+        { loc: "/contact", priority: "0.8", changefreq: "monthly" },
+      ];
+      for (const page of staticPages) {
+        xml += `  <url><loc>${baseUrl}${page.loc}</loc><changefreq>${page.changefreq}</changefreq><priority>${page.priority}</priority></url>\n`;
+      }
+      for (const a of publishedAnnouncements) {
+        xml += `  <url><loc>${baseUrl}/announcements/${a.slug}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>\n`;
+        if (a.fullObituary) {
+          xml += `  <url><loc>${baseUrl}/obituaries/${a.slug}</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>\n`;
+        }
+      }
+      xml += `</urlset>`;
+      res.type("application/xml").send(xml);
+    } catch {
+      res.status(500).send("Failed to generate sitemap");
     }
   });
 

@@ -2,12 +2,15 @@ import { eq, desc, and, gte } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, auditLogs, contactSubmissions, arrangements, arrangementItems, activityLogs,
+  announcements, condolenceMessages,
   type User, type InsertUser,
   type AuditLog,
   type Contact, type InsertContact,
   type Arrangement, type InsertArrangement,
   type ArrangementItem, type InsertArrangementItem,
   type ActivityLog, type InsertActivityLog,
+  type Announcement, type InsertAnnouncement,
+  type CondolenceMessage, type InsertCondolenceMessage,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -37,6 +40,18 @@ export interface IStorage {
 
   createActivityLog(data: InsertActivityLog): Promise<ActivityLog>;
   getActivityLogs(arrangementId?: string, since?: Date): Promise<ActivityLog[]>;
+
+  getAnnouncements(): Promise<Announcement[]>;
+  getAnnouncement(id: string): Promise<Announcement | undefined>;
+  getAnnouncementBySlug(slug: string): Promise<Announcement | undefined>;
+  getAnnouncementByArrangementId(arrangementId: string): Promise<Announcement | undefined>;
+  createAnnouncement(data: InsertAnnouncement): Promise<Announcement>;
+  updateAnnouncement(id: string, data: Partial<InsertAnnouncement>): Promise<Announcement | undefined>;
+  deleteAnnouncement(id: string): Promise<void>;
+
+  getCondolenceMessages(announcementId: string): Promise<CondolenceMessage[]>;
+  createCondolenceMessage(data: InsertCondolenceMessage): Promise<CondolenceMessage>;
+  deleteCondolenceMessage(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -142,6 +157,52 @@ export class DatabaseStorage implements IStorage {
       return db.select().from(activityLogs).where(and(...conditions)).orderBy(desc(activityLogs.createdAt));
     }
     return db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt));
+  }
+  async getAnnouncements(): Promise<Announcement[]> {
+    return db.select().from(announcements).orderBy(desc(announcements.createdAt));
+  }
+
+  async getAnnouncement(id: string): Promise<Announcement | undefined> {
+    const [a] = await db.select().from(announcements).where(eq(announcements.id, id));
+    return a;
+  }
+
+  async getAnnouncementBySlug(slug: string): Promise<Announcement | undefined> {
+    const [a] = await db.select().from(announcements).where(eq(announcements.slug, slug));
+    return a;
+  }
+
+  async getAnnouncementByArrangementId(arrangementId: string): Promise<Announcement | undefined> {
+    const [a] = await db.select().from(announcements).where(eq(announcements.arrangementId, arrangementId));
+    return a;
+  }
+
+  async createAnnouncement(data: InsertAnnouncement): Promise<Announcement> {
+    const [a] = await db.insert(announcements).values(data).returning();
+    return a;
+  }
+
+  async updateAnnouncement(id: string, data: Partial<InsertAnnouncement>): Promise<Announcement | undefined> {
+    const [a] = await db.update(announcements).set(data).where(eq(announcements.id, id)).returning();
+    return a;
+  }
+
+  async deleteAnnouncement(id: string): Promise<void> {
+    await db.delete(condolenceMessages).where(eq(condolenceMessages.announcementId, id));
+    await db.delete(announcements).where(eq(announcements.id, id));
+  }
+
+  async getCondolenceMessages(announcementId: string): Promise<CondolenceMessage[]> {
+    return db.select().from(condolenceMessages).where(eq(condolenceMessages.announcementId, announcementId)).orderBy(desc(condolenceMessages.createdAt));
+  }
+
+  async createCondolenceMessage(data: InsertCondolenceMessage): Promise<CondolenceMessage> {
+    const [msg] = await db.insert(condolenceMessages).values(data).returning();
+    return msg;
+  }
+
+  async deleteCondolenceMessage(id: string): Promise<void> {
+    await db.delete(condolenceMessages).where(eq(condolenceMessages.id, id));
   }
 }
 

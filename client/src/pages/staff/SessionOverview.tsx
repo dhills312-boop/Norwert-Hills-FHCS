@@ -414,11 +414,34 @@ export default function SessionOverview() {
     onError: () => toast({ title: "Error", description: "Failed to update checklist.", variant: "destructive" }),
   });
 
-  const handleCopyLink = (fi: FormInstanceEnriched) => {
+  const handleCopyLink = async (fi: FormInstanceEnriched) => {
     const url = buildJotformUrl(fi, arrangement!);
     if (!url) return toast({ title: "No link", description: "Form URL not configured yet.", variant: "destructive" });
     const isPlaceholder = fi.template?.jotformId?.startsWith("PLACEHOLDER") || fi.template?.jotformId?.includes("NOT_CONFIGURED");
-    navigator.clipboard.writeText(url);
+
+    // Reliable clipboard copy with textarea fallback for restricted environments
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(url);
+      copied = true;
+    } catch {
+      try {
+        const el = document.createElement("textarea");
+        el.value = url;
+        el.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0;";
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        copied = document.execCommand("copy");
+        document.body.removeChild(el);
+      } catch {
+        copied = false;
+      }
+    }
+
+    if (!copied) {
+      return toast({ title: "Could not copy", description: "Please copy this link manually: " + url, variant: "destructive" });
+    }
     if (isPlaceholder) {
       toast({ title: "Link copied (form not active)", description: "Add the real Form ID in Form Templates settings before sending.", variant: "destructive" });
     } else {

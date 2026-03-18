@@ -622,9 +622,9 @@ export async function registerRoutes(
 
   // PandaDoc automated send: create doc from template → poll until draft → send to recipient
   app.post("/api/form-instances/:id/pandadoc-send", requireAuth, async (req, res) => {
-    const PANDADOC_API_KEY = process.env.PANDADOC_API_KEY;
+    const PANDADOC_API_KEY = process.env.PANDA_API_KEY_SECRET;
     if (!PANDADOC_API_KEY) {
-      return res.status(503).json({ message: "PandaDoc API key not configured. Add PANDADOC_API_KEY to Secrets." });
+      return res.status(503).json({ message: "PandaDoc API key not configured. Add PANDA_API_KEY_SECRET to Secrets." });
     }
 
     const { recipientName, recipientEmail } = req.body;

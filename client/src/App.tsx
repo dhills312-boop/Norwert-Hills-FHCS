@@ -18,7 +18,26 @@ import Dashboard from "@/pages/staff/Dashboard";
 import Builder from "@/pages/staff/Builder";
 import Billing from "@/pages/staff/Billing";
 import AdminUsers from "@/pages/staff/AdminUsers";
-import Announcement from "@/pages/announcements/CharlesBraud";
+import CatalogAdmin from "@/pages/staff/CatalogAdmin";
+import SessionOverview from "@/pages/staff/SessionOverview";
+import FormFill from "@/pages/staff/FormFill";
+import CharlesBraudAnnouncement from "@/pages/announcements/CharlesBraud";
+import AnnouncementPage from "@/pages/announcements/AnnouncementPage";
+import ObituaryPage from "@/pages/announcements/ObituaryPage";
+import AnnouncementsList from "@/pages/staff/AnnouncementsList";
+import AnnouncementEditor from "@/pages/staff/AnnouncementEditor";
+import Cremation from "@/pages/Cremation";
+import CremationOrders from "@/pages/staff/CremationOrders";
+import CremationCaseDetail from "@/pages/staff/CremationCaseDetail";
+import FormTemplates from "@/pages/staff/FormTemplates";
+
+function ScrollToTop() {
+  const [location] = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+  return null;
+}
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -34,6 +53,7 @@ function Router() {
     <ScrollToTop />
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/cremation" component={Cremation} />
       <Route path="/services" component={Services} />
       <Route path="/services/:id" component={ServiceDetail} />
       <Route path="/about" component={About} />
@@ -41,12 +61,23 @@ function Router() {
       <Route path="/resources/faq" component={ResourcesFAQ} />
       <Route path="/resources/article/:id" component={ArticleDetail} />
       <Route path="/contact" component={Contact} />
-      <Route path="/announcements/charles-braud" component={Announcement} />
+      <Route path="/announcements/charles-braud" component={CharlesBraudAnnouncement} />
+      <Route path="/announcements/:slug" component={AnnouncementPage} />
+      <Route path="/obituaries/:slug" component={ObituaryPage} />
       <Route path="/staff/login" component={StaffLogin} />
       <Route path="/staff/dashboard" component={Dashboard} />
+      <Route path="/staff/sessions/:id" component={SessionOverview} />
+      <Route path="/staff/sessions/:id/announcement" component={AnnouncementEditor} />
+      <Route path="/staff/sessions/:id/forms/:templateId/fill" component={FormFill} />
       <Route path="/staff/builder" component={Builder} />
       <Route path="/staff/billing" component={Billing} />
       <Route path="/staff/admin/users" component={AdminUsers} />
+      <Route path="/staff/catalog" component={CatalogAdmin} />
+      <Route path="/staff/announcements" component={AnnouncementsList} />
+      <Route path="/staff/announcements/:id" component={AnnouncementEditor} />
+      <Route path="/staff/cremation" component={CremationOrders} />
+      <Route path="/staff/cremation/:id" component={CremationCaseDetail} />
+      <Route path="/staff/settings/forms" component={FormTemplates} />
       <Route component={NotFound} />
     </Switch>
     </>

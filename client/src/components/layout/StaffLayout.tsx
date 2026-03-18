@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, FileText, Settings, LogOut, User, Receipt, Users, Shield } from "lucide-react";
+import { LayoutGrid, FileText, Settings, LogOut, User, Receipt, Users, Shield, Package, Megaphone, Flame, FormInput } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -12,7 +12,13 @@ export function StaffLayout({ children }: { children: React.ReactNode }) {
     { href: "/staff/dashboard", label: "Sessions", icon: LayoutGrid },
     { href: "/staff/builder", label: "Package Builder", icon: FileText },
     { href: "/staff/billing", label: "Billing & Statement", icon: Receipt },
-    ...(isDirector ? [{ href: "/staff/admin/users", label: "User Management", icon: Users }] : []),
+    { href: "/staff/announcements", label: "Announcements", icon: Megaphone },
+    { href: "/staff/cremation", label: "Cremation", icon: Flame },
+    ...(isDirector ? [
+      { href: "/staff/catalog", label: "Service Catalog", icon: Package },
+      { href: "/staff/admin/users", label: "User Management", icon: Users },
+      { href: "/staff/settings/forms", label: "Form Templates", icon: FormInput },
+    ] : []),
   ];
 
   const handleLogout = async () => {
@@ -37,7 +43,7 @@ export function StaffLayout({ children }: { children: React.ReactNode }) {
               href={item.href}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-md transition-all whitespace-nowrap",
-                location === item.href 
+                (location === item.href || location.startsWith(item.href + "/"))
                   ? "bg-primary/10 text-primary border border-primary/20" 
                   : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
               )}

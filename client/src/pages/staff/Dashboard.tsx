@@ -36,12 +36,13 @@ interface ActivityLogEntry {
 
 export default function Dashboard() {
   const { toast } = useToast();
-  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, logout, isDirector } = useAuth();
   const [, setLocation] = useLocation();
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [newFamily, setNewFamily] = useState({ familyName: "", email: "", phone: "", scheduledTime: "" });
   const [demoMode, setDemoMode] = useState(false);
   const [logRange, setLogRange] = useState<"24h" | "2wk" | "1mo">("24h");
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
 
   const { data: arrangements = [], isLoading } = useQuery<Arrangement[]>({
     queryKey: ["/api/arrangements"],
@@ -71,6 +72,22 @@ export default function Dashboard() {
       setNewDialogOpen(false);
       setNewFamily({ familyName: "", email: "", phone: "", scheduledTime: "" });
       toast({ title: "Arrangement Created", description: "New client session has been created." });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/arrangements/${id}`);
+      return res.json();
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/arrangements"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity-logs"] });
+      setDeleteConfirm(null);
+      toast({ title: "Session Deleted", description: "The arrangement has been permanently removed." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not delete session. Please try again.", variant: "destructive" });
     },
   });
 
@@ -226,34 +243,42 @@ export default function Dashboard() {
                          <AlertCircle className="h-5 w-5 text-primary" />
                        )}
                        <div className="flex flex-col">
-                         <span className="text-xs uppercase tracking-wider text-muted-foreground">Next Step</span>
-                         <span className="text-sm font-medium">{session.nextStep}</span>
+                         <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                           {session.status === 'Completed' ? 'Status' : 'Next Step'}
+                         </span>
+                         <span className="text-sm font-medium">
+                           {session.status === 'Completed' ? 'Arrangement Selections Confirmed' : session.nextStep}
+                         </span>
                        </div>
                     </div>
-                    <Link href={`/staff/builder?arrangement=${session.id}`}>
+                    <Link href={session.status === 'Completed' ? `/staff/sessions/${session.id}` : `/staff/builder?arrangement=${session.id}`}>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0" data-testid={`button-open-${session.id}`}>
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     </Link>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-white/10 hover:bg-white/5 text-xs"
-                      onClick={() => handleSendLink('email', session.familyName)}
-                      data-testid={`button-email-${session.id}`}
-                    >
-                      <Mail className="mr-2 h-3 w-3" /> Email Forms
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-white/10 hover:bg-white/5 text-xs"
-                      onClick={() => handleSendLink('sms', session.familyName)}
-                      data-testid={`button-sms-${session.id}`}
-                    >
-                      <MessageSquare className="mr-2 h-3 w-3" /> SMS Link
-                    </Button>
+                  <div className="flex gap-2">
+                    <Link href={`/staff/sessions/${session.id}`} className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        className="w-full border-white/10 hover:bg-white/5 text-xs"
+                        data-testid={`button-view-session-${session.id}`}
+                      >
+                        <FileEdit className="mr-2 h-3 w-3" /> View Session
+                      </Button>
+                    </Link>
+                    {isDirector && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-900/30 hover:bg-red-900/20 text-red-400/70 hover:text-red-400 h-9 px-2.5"
+                        onClick={() => setDeleteConfirm({ id: session.id, name: session.familyName })}
+                        data-testid={`button-delete-${session.id}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -342,6 +367,37 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl text-red-400">Delete Session</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This will permanently delete <span className="text-foreground font-medium">{deleteConfirm?.name}</span> and all related records including forms, documents, and checklist data.
+            </p>
+            <p className="text-xs text-red-400/80 bg-red-950/20 border border-red-900/20 rounded-lg px-3 py-2">
+              This action cannot be undone.
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="border-white/10" onClick={() => setDeleteConfirm(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-900 hover:bg-red-800 text-white"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteConfirm && deleteMutation.mutate(deleteConfirm.id)}
+              data-testid="button-confirm-delete"
+            >
+              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete Permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </StaffLayout>
   );
 }

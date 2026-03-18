@@ -4,8 +4,17 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ArrowRight, Phone } from "lucide-react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Home() {
+  const { data: publicForms } = useQuery<{ cremationIntake: string | null; consultationIntake: string | null }>({
+    queryKey: ["/api/public/forms"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const consultationHref = publicForms?.consultationIntake ?? "/contact";
+  const consultationExternal = !!publicForms?.consultationIntake;
+
   return (
     <PublicLayout>
       {/* Hero Section */}
@@ -132,11 +141,19 @@ export default function Home() {
                 <Phone className="mr-2 h-4 w-4" /> (985) 318-7574
               </Button>
             </a>
-            <Link href="/contact">
-              <Button size="lg" variant="outline" className="border-white/10 hover:bg-white/5 min-w-[200px]" data-testid="button-consult">
-                Schedule a Consultation
-              </Button>
-            </Link>
+            {consultationExternal ? (
+              <a href={consultationHref} target="_blank" rel="noreferrer">
+                <Button size="lg" variant="outline" className="border-white/10 hover:bg-white/5 min-w-[200px]" data-testid="button-consult">
+                  Schedule a Consultation
+                </Button>
+              </a>
+            ) : (
+              <Link href={consultationHref}>
+                <Button size="lg" variant="outline" className="border-white/10 hover:bg-white/5 min-w-[200px]" data-testid="button-consult">
+                  Schedule a Consultation
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </section>

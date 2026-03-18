@@ -1,0 +1,112 @@
+“Update the Staff Portal so that forms (Vital Statistics + Authorization) are the FIRST step of every new client session, and the session landing page becomes a ‘Forms & Documents’ hub with three actions: Print/Download, Send to client (Email/SMS), and Fill out on tablet (open on device or generate Jotform link).
+A) Session flow changes (critical)
+For any new ClientSession, set nextStepKey = ‘forms’ and status = ‘in_progress’ (or ‘new’ until forms sent).
+
+
+Add a ‘Forms’ panel at the top of the session overview page (landing page when a scheduled session is opened). This panel must appear before Package Builder/Billing links and clearly indicate ‘Step 1 of X: Required Forms’.
+
+
+B) Add Form Templates (minimum set)
+Create two required FormTemplate entries (config-driven):
+Vital Statistics (required for all service types)
+
+
+Authorization (Authorization to Embalm and/or Cremation Authorization—make this flexible by serviceType)
+
+ Add fields: id, name, jotformFormId (placeholder), requiredForServiceTypes[], sortOrder, and optional ‘hasPrintablePdf’ + ‘pdfPath’ for printable versions.
+
+
+C) Per-session form instances + status
+For each session, create FormInstances for required templates with status:
+not_sent | sent | completed | error
+
+ Track lastSentAt and jotformPrefillUrl (string) and jotformSubmissionId (optional).
+
+ UI must show clear status chips and timestamps.
+
+
+D) Session landing page actions (must-have UI)
+On the Session Overview page, for each required form, show these actions:
+Download/Print
+
+
+Button: ‘Download PDF’ (if pdfPath exists) and ‘Print’ (prints that PDF or a clean print view).
+
+
+If no PDF asset exists yet, show ‘Printable version coming soon’ (do not link to dead URL).
+
+
+Send to client (Email/SMS)
+
+
+Button opens a modal ‘Send form link’
+
+
+Choose channel: Email or SMS
+
+
+Destination field (email/phone)
+
+
+On send: generate a Jotform prefill link (or placeholder URL if Jotform not wired yet) that includes hidden fields:
+
+ sessionId, familyDisplayName, serviceType, assignedStaffName
+
+
+Save FormInstance.status = sent and lastSentAt
+
+
+Add CommEvent audit log entry (type=send_form_link, channel=email|sms, destination masked)
+
+
+Fill out on tablet
+
+
+Button: ‘Fill on this device’
+
+
+Opens an in-app form viewer or opens the Jotform prefill link in a new tab (preferred for now).
+
+
+Also provide ‘Copy link’ action for staff.
+
+
+E) Make forms gating explicit
+Add a progress banner: ‘Forms required before package configuration’ with an override toggle for Director only.
+
+
+The Package Builder button should be disabled (or secondary) until required forms are sent or completed (you decide default; recommend: allow builder after ‘sent’ but show warning until ‘completed’).
+
+
+F) UI/UX requirements
+Tablet-first layout with large tap targets
+
+
+Calm, ceremonial aesthetic; clear hierarchy
+
+
+Family-safe mode: in family view, hide staff-only fields like destination entry and audit log; show only a clean “Forms status” summary if needed.
+
+
+G) Placeholder behavior if Jotform is not connected
+Still generate a deterministic placeholder URL format like:
+
+ /staff/sessions/:id/forms/:templateId/fill
+
+ or a dummy external link
+
+
+Make the UI production-ready: when Jotform IDs are added later, it should work without redesign.
+
+
+Deliverables:
+Session Overview page with Step 1 Forms hub (download/print, send, fill-on-tablet)
+
+
+FormTemplate config + FormInstance per session
+
+
+Send modal + CommEvent logging
+
+
+Clear status indicators and gating behavior for next steps.”

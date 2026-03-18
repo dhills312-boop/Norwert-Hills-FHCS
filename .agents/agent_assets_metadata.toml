@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "FU4pWBK2_mNwgi3lYNa9g"
+uri = "file://HANDOFF_CHECKLIST.md"
+type = "text"
+title = "NHFCS Handoff Checklist"

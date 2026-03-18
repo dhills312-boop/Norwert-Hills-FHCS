@@ -48,3 +48,7 @@ mockupState = "FULLSTACK"
 ADMIN_EMAIL = "support@thenhfcs.com"
 ADMIN_NAME = "IT_DANIEL"
 ADMIN_PASSWORD = "BeverlyJean1!"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 120000

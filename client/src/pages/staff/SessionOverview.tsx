@@ -105,11 +105,11 @@ function buildJotformUrl(fi: FormInstanceEnriched, arrangement: Arrangement): st
   // Prefer template-level base URL, then a real Jotform ID, then fall back to stored instance URL.
   // Always return something so Copy Link is available even for placeholder forms.
   if (baseUrl) return `${baseUrl}?${params}`;
-  if (jotformId && !jotformId.startsWith("PLACEHOLDER")) return `https://form.jotform.com/${jotformId}?${params}`;
+  if (jotformId && !jotformId.startsWith("PLACEHOLDER")) return `https://jotform.com/${jotformId}?${params}`;
 
   // Placeholder: return a URL with the placeholder ID so staff can at least see the structure.
   // Copy Link will warn the user; Open on Tablet is suppressed for placeholder URLs.
-  return `https://form.jotform.com/${jotformId || "NOT_CONFIGURED"}?${params}`;
+  return `https://jotform.com/${jotformId || "NOT_CONFIGURED"}?${params}`;
 }
 
 function FormItemCard({

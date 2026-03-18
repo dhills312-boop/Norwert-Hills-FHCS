@@ -34,7 +34,7 @@ function buildJotformUrl(
     assigned_staff: params.staffName,
   }).toString();
   if (jotformBaseUrl) return `${jotformBaseUrl}?${qs}`;
-  return `https://form.jotform.com/${jotformId}?${qs}`;
+  return `https://jotform.com/${jotformId}?${qs}`;
 }
 
 function maskDestination(dest: string, channel: string): string {
@@ -901,7 +901,7 @@ export async function registerRoutes(
       const resolveUrl = (t: typeof cremation) => {
         if (!t) return null;
         if (t.jotformUrl) return t.jotformUrl;
-        if (t.jotformId && !t.jotformId.startsWith("PLACEHOLDER")) return `https://form.jotform.com/${t.jotformId}`;
+        if (t.jotformId && !t.jotformId.startsWith("PLACEHOLDER")) return `https://jotform.com/${t.jotformId}`;
         return null;
       };
 

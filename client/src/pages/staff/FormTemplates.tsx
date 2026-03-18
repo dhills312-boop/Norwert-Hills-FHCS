@@ -61,8 +61,8 @@ function JotformTemplateCard({ tmpl }: { tmpl: FormTemplate }) {
     onError: () => toast({ title: "Error", description: "Failed to save.", variant: "destructive" }),
   });
 
-  const resolvedBase = formUrl.trim() || (formId.trim() && !isPlaceholder(formId) ? `https://form.jotform.com/${formId.trim()}` : null);
-  const sampleUrl = `${resolvedBase ?? "https://form.jotform.com/YOUR_FORM_ID"}?case_token=NHXXXXXX&session_id=UUID&family_display_name=Family+Name&service_type=burial&assigned_staff=Staff+Name`;
+  const resolvedBase = formUrl.trim() || (formId.trim() && !isPlaceholder(formId) ? `https://jotform.com/${formId.trim()}` : null);
+  const sampleUrl = `${resolvedBase ?? "https://jotform.com/YOUR_FORM_ID"}?case_token=NHXXXXXX&session_id=UUID&family_display_name=Family+Name&service_type=burial&assigned_staff=Staff+Name`;
 
   return (
     <Card className="bg-card border-white/5">
@@ -124,7 +124,7 @@ function JotformTemplateCard({ tmpl }: { tmpl: FormTemplate }) {
             <Input
               value={formUrl}
               onChange={e => setFormUrl(e.target.value)}
-              placeholder="https://form.jotform.com/250471234567890"
+              placeholder="https://jotform.com/250471234567890"
               className="font-mono text-sm"
               data-testid={`input-jotform-url-${tmpl.id}`}
             />
@@ -165,7 +165,7 @@ function JotformTemplateCard({ tmpl }: { tmpl: FormTemplate }) {
             </Button>
             {!isPlaceholder(tmpl.jotformId) && (
               <a
-                href={`https://form.jotform.com/${tmpl.jotformId}`}
+                href={`https://jotform.com/${tmpl.jotformId}`}
                 target="_blank"
                 rel="noreferrer"
                 className="ml-auto"

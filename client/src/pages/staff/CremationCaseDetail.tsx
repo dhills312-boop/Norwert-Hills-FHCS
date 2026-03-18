@@ -65,7 +65,7 @@ const fulfillmentActions: { eventType: CremationEventType; label: string; icon: 
 ];
 
 function generateJotFormPrefillUrl(orderToken: string, serviceType: string, formName: string): string {
-  const baseUrl = "https://form.jotform.com/TEMPLATE";
+  const baseUrl = "https://jotform.com/TEMPLATE";
   const params = new URLSearchParams({
     order_token: orderToken,
     service_type: serviceType || "cremation",

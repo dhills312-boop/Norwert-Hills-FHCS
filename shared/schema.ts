@@ -150,8 +150,14 @@ export type ArrangementItem = typeof arrangementItems.$inferSelect;
 export const formTemplates = pgTable("form_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  type: text("type").notNull().default("jotform"),
+  category: text("category").notNull().default("intake"),
   jotformId: text("jotform_id"),
+  jotformUrl: text("jotform_url"),
   pdfPath: text("pdf_path"),
+  pandadocTemplateId: text("pandadoc_template_id"),
+  pandadocRecipientRole: text("pandadoc_recipient_role").default("Authorizing Agent"),
+  authWorkflowGroup: text("auth_workflow_group"),
   requiredForServiceTypes: text("required_for_service_types").array().notNull().default(sql`'{}'::text[]`),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
@@ -167,7 +173,23 @@ export const formInstances = pgTable("form_instances", {
   sentTo: text("sent_to"),
   sentAt: timestamp("sent_at"),
   completedAt: timestamp("completed_at"),
+  pandadocDocumentId: text("pandadoc_document_id"),
+  externalLink: text("external_link"),
+  recipientName: text("recipient_name"),
+  recipientEmail: text("recipient_email"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const sessionDocChecklist = pgTable("session_doc_checklist", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  arrangementId: varchar("arrangement_id").notNull().unique(),
+  documentReceived: boolean("document_received").notNull().default(false),
+  filedToCase: boolean("filed_to_case").notNull().default(false),
+  certificateSubmitted: boolean("certificate_submitted").notNull().default(false),
+  certificateApproved: boolean("certificate_approved").notNull().default(false),
+  ssnPurged: boolean("ssn_purged").notNull().default(false),
+  notes: text("notes"),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const commEvents = pgTable("comm_events", {
@@ -192,6 +214,10 @@ export type FormInstance = typeof formInstances.$inferSelect;
 export const insertCommEventSchema = createInsertSchema(commEvents).omit({ id: true, createdAt: true });
 export type InsertCommEvent = z.infer<typeof insertCommEventSchema>;
 export type CommEvent = typeof commEvents.$inferSelect;
+
+export const insertSessionDocChecklistSchema = createInsertSchema(sessionDocChecklist).omit({ id: true, updatedAt: true });
+export type InsertSessionDocChecklist = z.infer<typeof insertSessionDocChecklistSchema>;
+export type SessionDocChecklist = typeof sessionDocChecklist.$inferSelect;
 
 export interface ServiceDetails {
   viewingDate?: string;

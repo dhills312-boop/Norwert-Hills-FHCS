@@ -3,7 +3,7 @@ import { db } from "./db";
 import {
   users, auditLogs, contactSubmissions, arrangements, arrangementItems, activityLogs,
   formTemplates, formInstances, commEvents, serviceCatalog, announcements, condolenceMessages,
-  cremationOrders, cremationEvents, cremationDocuments, waitlistSignups,
+  cremationOrders, cremationEvents, cremationDocuments, waitlistSignups, sessionDocChecklist,
   type User, type InsertUser,
   type AuditLog,
   type Contact, type InsertContact,
@@ -20,6 +20,7 @@ import {
   type CremationEvent, type InsertCremationEvent,
   type CremationDocument, type InsertCremationDocument,
   type WaitlistSignup, type InsertWaitlistSignup,
+  type SessionDocChecklist, type InsertSessionDocChecklist,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -57,7 +58,7 @@ export interface IStorage {
   getFormInstances(arrangementId: string): Promise<FormInstance[]>;
   getFormInstance(id: string): Promise<FormInstance | undefined>;
   createFormInstance(data: InsertFormInstance): Promise<FormInstance>;
-  updateFormInstance(id: string, data: Partial<Pick<FormInstance, "status" | "sentVia" | "sentTo" | "sentAt" | "completedAt" | "formUrl">>): Promise<FormInstance | undefined>;
+  updateFormInstance(id: string, data: Partial<Pick<FormInstance, "status" | "sentVia" | "sentTo" | "sentAt" | "completedAt" | "formUrl" | "pandadocDocumentId" | "externalLink" | "recipientName" | "recipientEmail">>): Promise<FormInstance | undefined>;
 
   getCommEvents(arrangementId: string): Promise<CommEvent[]>;
   createCommEvent(data: InsertCommEvent): Promise<CommEvent>;
@@ -94,6 +95,9 @@ export interface IStorage {
 
   createWaitlistSignup(data: InsertWaitlistSignup): Promise<WaitlistSignup>;
   listWaitlistSignups(): Promise<WaitlistSignup[]>;
+
+  getSessionDocChecklist(arrangementId: string): Promise<SessionDocChecklist | undefined>;
+  upsertSessionDocChecklist(arrangementId: string, data: Partial<Omit<InsertSessionDocChecklist, "arrangementId">>): Promise<SessionDocChecklist>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -229,7 +233,7 @@ export class DatabaseStorage implements IStorage {
     return fi;
   }
 
-  async updateFormInstance(id: string, data: Partial<Pick<FormInstance, "status" | "sentVia" | "sentTo" | "sentAt" | "completedAt" | "formUrl">>): Promise<FormInstance | undefined> {
+  async updateFormInstance(id: string, data: Partial<Pick<FormInstance, "status" | "sentVia" | "sentTo" | "sentAt" | "completedAt" | "formUrl" | "pandadocDocumentId" | "externalLink" | "recipientName" | "recipientEmail">>): Promise<FormInstance | undefined> {
     const [fi] = await db.update(formInstances).set(data).where(eq(formInstances.id, id)).returning();
     return fi;
   }
@@ -371,6 +375,24 @@ export class DatabaseStorage implements IStorage {
 
   async listWaitlistSignups(): Promise<WaitlistSignup[]> {
     return db.select().from(waitlistSignups).orderBy(desc(waitlistSignups.createdAt));
+  }
+
+  async getSessionDocChecklist(arrangementId: string): Promise<SessionDocChecklist | undefined> {
+    const [row] = await db.select().from(sessionDocChecklist).where(eq(sessionDocChecklist.arrangementId, arrangementId));
+    return row;
+  }
+
+  async upsertSessionDocChecklist(arrangementId: string, data: Partial<Omit<InsertSessionDocChecklist, "arrangementId">>): Promise<SessionDocChecklist> {
+    const existing = await this.getSessionDocChecklist(arrangementId);
+    if (existing) {
+      const [row] = await db.update(sessionDocChecklist)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(sessionDocChecklist.arrangementId, arrangementId))
+        .returning();
+      return row;
+    }
+    const [row] = await db.insert(sessionDocChecklist).values({ arrangementId, ...data }).returning();
+    return row;
   }
 }
 

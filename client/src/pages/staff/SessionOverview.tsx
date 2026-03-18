@@ -7,22 +7,31 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useRoute, useLocation, Link } from "wouter";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
-  ArrowLeft, FileText, Send, Tablet, Copy, Download, Printer,
-  CheckCircle2, Clock, AlertTriangle, XCircle, Loader2, ShieldCheck, ChevronRight
+  ArrowLeft, FileText, Send, Tablet, Copy, CheckCircle2, Clock, AlertTriangle,
+  XCircle, Loader2, ShieldCheck, ChevronRight, ExternalLink, ClipboardCheck,
+  FileCheck, FolderOpen, Pen, ToggleLeft, ToggleRight, Landmark, ScrollText
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 
 interface FormTemplate {
   id: string;
   name: string;
+  type: string;
+  category: string;
   jotformId: string | null;
+  jotformUrl: string | null;
   pdfPath: string | null;
+  pandadocTemplateId: string | null;
+  pandadocRecipientRole: string | null;
+  authWorkflowGroup: string | null;
   requiredForServiceTypes: string[];
   sortOrder: number;
 }
@@ -37,6 +46,10 @@ interface FormInstanceEnriched {
   sentTo: string | null;
   sentAt: string | null;
   completedAt: string | null;
+  pandadocDocumentId: string | null;
+  externalLink: string | null;
+  recipientName: string | null;
+  recipientEmail: string | null;
   createdAt: string;
   template: FormTemplate | null;
 }
@@ -50,15 +63,238 @@ interface Arrangement {
   nextStep: string;
   scheduledTime: string | null;
   selections: Record<string, string> | null;
+  notes: string | null;
   createdAt: string;
 }
 
-const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; label: string }> = {
-  not_sent: { icon: Clock, color: "text-muted-foreground", label: "Not Sent" },
-  sent: { icon: Send, color: "text-amber-400", label: "Sent" },
-  completed: { icon: CheckCircle2, color: "text-green-400", label: "Completed" },
-  error: { icon: XCircle, color: "text-red-400", label: "Error" },
+interface SessionDocChecklist {
+  id?: string;
+  arrangementId?: string;
+  documentReceived: boolean;
+  filedToCase: boolean;
+  certificateSubmitted: boolean;
+  certificateApproved: boolean;
+  ssnPurged: boolean;
+  notes: string | null;
+}
+
+const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; label: string; bg: string }> = {
+  not_sent: { icon: Clock, color: "text-muted-foreground", label: "Not Sent", bg: "bg-muted/20" },
+  sent: { icon: Send, color: "text-amber-400", label: "Sent", bg: "bg-amber-950/20" },
+  completed: { icon: CheckCircle2, color: "text-green-400", label: "Completed", bg: "bg-green-950/20" },
+  error: { icon: XCircle, color: "text-red-400", label: "Error", bg: "bg-red-950/20" },
 };
+
+function buildJotformUrl(fi: FormInstanceEnriched, arrangement: Arrangement): string | null {
+  const tmpl = fi.template;
+  if (!tmpl) return null;
+  const jotformId = tmpl.jotformId;
+  const baseUrl = tmpl.jotformUrl;
+
+  if (fi.formUrl && !fi.formUrl.startsWith("/staff")) return fi.formUrl;
+  if (fi.externalLink) return fi.externalLink;
+
+  const serviceType = arrangement.selections?.["service-type"] || "";
+  const params = new URLSearchParams({
+    sessionId: arrangement.id,
+    familyName: arrangement.familyName,
+    serviceType,
+  });
+
+  if (baseUrl) return `${baseUrl}?${params}`;
+  if (jotformId && !jotformId.startsWith("PLACEHOLDER")) return `https://form.jotform.com/${jotformId}?${params}`;
+
+  return fi.formUrl || null;
+}
+
+function FormItemCard({
+  fi,
+  arrangement,
+  onSend,
+  onOpenTablet,
+  onCopyLink,
+  onMarkComplete,
+  onOpenDocument,
+  onSendPandaDoc,
+}: {
+  fi: FormInstanceEnriched;
+  arrangement: Arrangement;
+  onSend: () => void;
+  onOpenTablet: () => void;
+  onCopyLink: () => void;
+  onMarkComplete: () => void;
+  onOpenDocument: () => void;
+  onSendPandaDoc: () => void;
+}) {
+  const tmpl = fi.template;
+  const sc = statusConfig[fi.status] || statusConfig.not_sent;
+  const StatusIcon = sc.icon;
+  const isJotform = tmpl?.type === "jotform";
+  const isPandaDoc = tmpl?.type === "pandadoc";
+  const jotformUrl = isJotform ? buildJotformUrl(fi, arrangement) : null;
+  const pandadocLink = fi.externalLink;
+  const isRequired = tmpl?.requiredForServiceTypes?.includes("all") || tmpl?.requiredForServiceTypes?.length === 0 || true;
+
+  return (
+    <div
+      className={`rounded-xl border border-white/5 p-4 ${sc.bg}`}
+      data-testid={`form-instance-${fi.id}`}
+    >
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <StatusIcon className={`h-4 w-4 flex-shrink-0 ${sc.color}`} />
+          <div className="min-w-0">
+            <p className="font-medium text-sm text-foreground leading-tight" data-testid={`form-name-${fi.id}`}>
+              {tmpl?.name || "Unknown Form"}
+            </p>
+            {fi.sentAt && (
+              <p className="text-xs text-muted-foreground mt-0.5" data-testid={`form-sent-info-${fi.id}`}>
+                Sent {fi.sentVia ? `via ${fi.sentVia}` : ""} · {new Date(fi.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+              </p>
+            )}
+            {fi.completedAt && (
+              <p className="text-xs text-green-400/80 mt-0.5">
+                Completed {new Date(fi.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              </p>
+            )}
+            {isPandaDoc && fi.recipientName && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Recipient: {fi.recipientName}
+              </p>
+            )}
+          </div>
+        </div>
+        <Badge
+          variant="outline"
+          className={`text-xs flex-shrink-0 ${sc.color} border-current`}
+          data-testid={`form-status-${fi.id}`}
+        >
+          {sc.label}
+        </Badge>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {isJotform && (
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 text-xs border-white/10 hover:bg-white/5 flex-1 sm:flex-none"
+              onClick={onSend}
+              data-testid={`button-send-${fi.id}`}
+            >
+              <Send className="h-3 w-3 mr-1.5" /> Send Link
+            </Button>
+            {jotformUrl && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 text-xs border-white/10 hover:bg-white/5"
+                  onClick={onOpenTablet}
+                  data-testid={`button-tablet-${fi.id}`}
+                >
+                  <Tablet className="h-3 w-3 mr-1.5" /> Open on Tablet
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 text-xs border-white/10 hover:bg-white/5"
+                  onClick={onCopyLink}
+                  data-testid={`button-copy-${fi.id}`}
+                >
+                  <Copy className="h-3 w-3 mr-1.5" /> Copy Link
+                </Button>
+              </>
+            )}
+          </>
+        )}
+
+        {isPandaDoc && (
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 text-xs border-white/10 hover:bg-white/5 flex-1 sm:flex-none"
+              onClick={onSendPandaDoc}
+              data-testid={`button-send-pandadoc-${fi.id}`}
+            >
+              <Pen className="h-3 w-3 mr-1.5" /> Send for Signature
+            </Button>
+            {pandadocLink && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 text-xs border-white/10 hover:bg-white/5"
+                onClick={onOpenDocument}
+                data-testid={`button-open-doc-${fi.id}`}
+              >
+                <ExternalLink className="h-3 w-3 mr-1.5" /> Open Document
+              </Button>
+            )}
+          </>
+        )}
+
+        <Button
+          size="sm"
+          variant={fi.status === "completed" ? "default" : "outline"}
+          className={`h-9 text-xs ${fi.status === "completed" ? "bg-green-900 text-green-100 border-green-800" : "border-white/10 hover:bg-white/5"}`}
+          onClick={onMarkComplete}
+          data-testid={`button-complete-${fi.id}`}
+        >
+          <CheckCircle2 className="h-3 w-3 mr-1.5" />
+          {fi.status === "completed" ? "Completed" : "Mark Complete"}
+        </Button>
+      </div>
+
+      {isPandaDoc && tmpl?.pandadocTemplateId && (
+        <p className="text-xs text-muted-foreground/50 mt-2 font-mono">
+          Template: {tmpl.pandadocTemplateId}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ChecklistToggle({
+  label,
+  description,
+  checked,
+  onToggle,
+  sensitive,
+  testId,
+}: {
+  label: string;
+  description?: string;
+  checked: boolean;
+  onToggle: () => void;
+  sensitive?: boolean;
+  testId: string;
+}) {
+  return (
+    <button
+      className={`w-full flex items-center justify-between gap-4 p-4 rounded-xl border transition-colors text-left ${
+        checked
+          ? sensitive ? "border-amber-800/40 bg-amber-950/20" : "border-green-800/30 bg-green-950/15"
+          : "border-white/5 bg-background/20 hover:bg-white/3"
+      }`}
+      onClick={onToggle}
+      data-testid={testId}
+    >
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm font-medium ${checked ? (sensitive ? "text-amber-200" : "text-green-300") : "text-foreground"}`}>
+          {label}
+        </p>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        )}
+      </div>
+      {checked
+        ? <ToggleRight className={`h-6 w-6 flex-shrink-0 ${sensitive ? "text-amber-400" : "text-green-400"}`} />
+        : <ToggleLeft className="h-6 w-6 flex-shrink-0 text-muted-foreground" />}
+    </button>
+  );
+}
 
 export default function SessionOverview() {
   const [, params] = useRoute("/staff/sessions/:id");
@@ -67,14 +303,14 @@ export default function SessionOverview() {
   const { toast } = useToast();
   const sessionId = params?.id || "";
 
-  const [sendModal, setSendModal] = useState<{ open: boolean; formInstance: FormInstanceEnriched | null }>({ open: false, formInstance: null });
+  const [sendModal, setSendModal] = useState<{ open: boolean; fi: FormInstanceEnriched | null }>({ open: false, fi: null });
+  const [pandadocModal, setPandadocModal] = useState<{ open: boolean; fi: FormInstanceEnriched | null }>({ open: false, fi: null });
   const [sendChannel, setSendChannel] = useState<"email" | "sms">("email");
   const [sendDestination, setSendDestination] = useState("");
+  const [pandadocRecipientName, setPandadocRecipientName] = useState("");
+  const [pandadocRecipientEmail, setPandadocRecipientEmail] = useState("");
+  const [pandadocDocId, setPandadocDocId] = useState("");
   const [directorOverride, setDirectorOverride] = useState(false);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) setLocation("/staff/login");
-  }, [authLoading, isAuthenticated, setLocation]);
 
   const { data: arrangement, isLoading: arrLoading } = useQuery<Arrangement>({
     queryKey: [`/api/arrangements/${sessionId}`],
@@ -86,12 +322,29 @@ export default function SessionOverview() {
     enabled: isAuthenticated && !!sessionId,
   });
 
+  const { data: checklist } = useQuery<SessionDocChecklist | null>({
+    queryKey: [`/api/arrangements/${sessionId}/checklist`],
+    enabled: isAuthenticated && !!sessionId,
+  });
+
+  const defaultChecklist: SessionDocChecklist = {
+    documentReceived: false,
+    filedToCase: false,
+    certificateSubmitted: false,
+    certificateApproved: false,
+    ssnPurged: false,
+    notes: null,
+    ...(checklist || {}),
+  };
+
   const sendMutation = useMutation({
     mutationFn: async ({ fi, channel, destination }: { fi: FormInstanceEnriched; channel: string; destination: string }) => {
+      const url = buildJotformUrl(fi, arrangement!);
       await apiRequest("PATCH", `/api/form-instances/${fi.id}`, {
         status: "sent",
         sentVia: channel,
         sentTo: destination,
+        externalLink: url,
       });
       await apiRequest("POST", `/api/arrangements/${sessionId}/comm-events`, {
         channel,
@@ -102,16 +355,95 @@ export default function SessionOverview() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/arrangements/${sessionId}/forms`] });
-      setSendModal({ open: false, formInstance: null });
+      setSendModal({ open: false, fi: null });
       setSendDestination("");
-      toast({ title: "Form link sent", description: "The form link has been sent successfully." });
+      toast({ title: "Form link sent", description: "The form link has been sent." });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to send form link.", variant: "destructive" });
-    },
+    onError: () => toast({ title: "Error", description: "Failed to send form link.", variant: "destructive" }),
   });
 
-  if (authLoading || arrLoading || formsLoading) {
+  const pandadocSendMutation = useMutation({
+    mutationFn: async ({ fi, name, email, docId }: { fi: FormInstanceEnriched; name: string; email: string; docId: string }) => {
+      const link = docId ? `https://app.pandadoc.com/documents/${docId}` : undefined;
+      await apiRequest("PATCH", `/api/form-instances/${fi.id}`, {
+        status: docId ? "sent" : fi.status,
+        recipientName: name,
+        recipientEmail: email,
+        pandadocDocumentId: docId || undefined,
+        externalLink: link,
+        sentVia: "pandadoc",
+        sentTo: email,
+        ...(docId ? { sentAt: new Date().toISOString() } : {}),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/arrangements/${sessionId}/forms`] });
+      setPandadocModal({ open: false, fi: null });
+      setPandadocRecipientName("");
+      setPandadocRecipientEmail("");
+      setPandadocDocId("");
+      toast({ title: "Authorization saved", description: "Recipient and document ID recorded." });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to save authorization.", variant: "destructive" }),
+  });
+
+  const markCompleteMutation = useMutation({
+    mutationFn: async (fi: FormInstanceEnriched) => {
+      const newStatus = fi.status === "completed" ? "not_sent" : "completed";
+      await apiRequest("PATCH", `/api/form-instances/${fi.id}`, { status: newStatus });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/arrangements/${sessionId}/forms`] });
+      toast({ title: "Status updated" });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to update status.", variant: "destructive" }),
+  });
+
+  const checklistMutation = useMutation({
+    mutationFn: async (data: Partial<SessionDocChecklist>) => {
+      await apiRequest("PATCH", `/api/arrangements/${sessionId}/checklist`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/arrangements/${sessionId}/checklist`] });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to update checklist.", variant: "destructive" }),
+  });
+
+  const handleCopyLink = (fi: FormInstanceEnriched) => {
+    const url = buildJotformUrl(fi, arrangement!);
+    if (!url) return toast({ title: "No link", description: "Form URL not configured yet.", variant: "destructive" });
+    navigator.clipboard.writeText(url);
+    toast({ title: "Link copied", description: "Form link copied to clipboard." });
+  };
+
+  const handleOpenTablet = (fi: FormInstanceEnriched) => {
+    const url = buildJotformUrl(fi, arrangement!);
+    if (!url) return toast({ title: "No link", description: "Form URL not configured yet.", variant: "destructive" });
+    window.open(url, "_blank");
+  };
+
+  const toggleChecklist = (field: keyof SessionDocChecklist) => {
+    if (field === "notes") return;
+    const current = Boolean(defaultChecklist[field]);
+    checklistMutation.mutate({ [field]: !current });
+  };
+
+  if (authLoading) {
+    return (
+      <StaffLayout>
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </StaffLayout>
+    );
+  }
+
+  if (!isAuthenticated) {
+    setLocation("/staff/login");
+    return null;
+  }
+
+  if (arrLoading || formsLoading) {
     return (
       <StaffLayout>
         <div className="flex justify-center py-20">
@@ -134,235 +466,351 @@ export default function SessionOverview() {
     );
   }
 
-  const allSentOrCompleted = formInstances.length > 0 && formInstances.every(fi => fi.status === "sent" || fi.status === "completed");
-  const allCompleted = formInstances.length > 0 && formInstances.every(fi => fi.status === "completed");
-  const canProceed = allSentOrCompleted || directorOverride;
+  const serviceType = arrangement.selections?.["service-type"] || "";
+  const isCremation = serviceType.toLowerCase().includes("cremation");
 
-  const handleCopyLink = (url: string) => {
-    const fullUrl = url.startsWith("http") ? url : `${window.location.origin}${url}`;
-    navigator.clipboard.writeText(fullUrl);
-    toast({ title: "Link copied", description: "Form link copied to clipboard." });
-  };
+  const intakeForms = formInstances.filter(fi => fi.template?.category === "intake" || (!fi.template?.category && fi.template?.type === "jotform"));
+  const authForms = formInstances.filter(fi => fi.template?.category === "authorization" || fi.template?.type === "pandadoc");
 
-  const handleDownload = async (templateId: string) => {
-    try {
-      const res = await fetch(`/api/form-templates/${templateId}/download`, { credentials: "include" });
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "form.pdf";
-        a.click();
-        URL.revokeObjectURL(url);
-      } else {
-        toast({ title: "Not Available", description: "PDF not available for this form.", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to download form.", variant: "destructive" });
-    }
-  };
+  const requiredAuthKeys = isCremation
+    ? ["Authorization for Removal and Transfer", "Cremation Authorization", "Terms & Conditions"]
+    : ["Authorization for Removal and Transfer", "Authorization to Embalm", "Terms & Conditions"];
+
+  const isRequiredAuth = (fi: FormInstanceEnriched) =>
+    requiredAuthKeys.some(k => fi.template?.name?.includes(k.split(" ")[0]));
+
+  const allIntakeComplete = intakeForms.length === 0 || intakeForms.every(fi => fi.status === "sent" || fi.status === "completed");
+  const allAuthComplete = authForms.length === 0 || authForms.filter(isRequiredAuth).every(fi => fi.status === "completed");
+  const canProceedToBuilder = (allIntakeComplete && allAuthComplete) || directorOverride;
+
+  const progressSteps = [
+    { key: "new", label: "New" },
+    { key: "forms_sent", label: "Forms Sent" },
+    { key: "forms_completed", label: "Forms Done" },
+    { key: "pending_signature", label: "Pending Sig." },
+    { key: "ready_for_service", label: "Ready" },
+    { key: "completed", label: "Complete" },
+  ];
+
+  const currentStepIndex = allAuthComplete ? 4
+    : allIntakeComplete ? 3
+    : formInstances.some(fi => fi.status === "sent") ? 1
+    : 0;
 
   return (
     <StaffLayout>
-      <div className="p-4 md:p-8 max-w-2xl mx-auto">
+      <div className="p-4 md:p-8 max-w-3xl mx-auto pb-20">
+
         <div className="flex items-center gap-3 mb-6">
           <Link href="/staff/dashboard">
             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" data-testid="button-back">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <div>
-            <h1 className="font-serif text-2xl md:text-3xl text-foreground" data-testid="text-session-title">{arrangement.familyName}</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-serif text-2xl md:text-3xl text-foreground truncate" data-testid="text-session-title">
+              {arrangement.familyName}
+            </h1>
             <p className="text-muted-foreground text-sm">
-              Session · {arrangement.scheduledTime || "Not scheduled"} · {arrangement.status}
+              {arrangement.scheduledTime || "Not scheduled"} · {serviceType || "Service type TBD"}
             </p>
           </div>
+          <Badge
+            variant="outline"
+            className="text-xs border-primary/30 text-primary flex-shrink-0"
+            data-testid="text-session-status"
+          >
+            {arrangement.status}
+          </Badge>
         </div>
 
-        <Card className="border-white/5 bg-card mb-6">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="h-5 w-5 text-primary" />
-              <h2 className="font-serif text-lg" data-testid="text-forms-title">Required Forms</h2>
-              {allCompleted && (
-                <Badge className="bg-green-900 text-green-100 border-none ml-auto">All Complete</Badge>
+        <div className="flex items-center gap-0 mb-8 overflow-x-auto pb-1" data-testid="workflow-progress">
+          {progressSteps.map((step, i) => (
+            <div key={step.key} className="flex items-center flex-shrink-0">
+              <div className={`flex flex-col items-center`}>
+                <div className={`h-2.5 w-2.5 rounded-full border-2 ${
+                  i <= currentStepIndex ? "bg-primary border-primary" : "bg-transparent border-white/20"
+                }`} />
+                <span className={`text-[10px] mt-1 whitespace-nowrap ${
+                  i <= currentStepIndex ? "text-primary" : "text-muted-foreground/50"
+                }`}>{step.label}</span>
+              </div>
+              {i < progressSteps.length - 1 && (
+                <div className={`h-0.5 w-8 mx-0.5 mb-3 flex-shrink-0 ${
+                  i < currentStepIndex ? "bg-primary" : "bg-white/10"
+                }`} />
               )}
             </div>
+          ))}
+        </div>
 
-            {!canProceed && formInstances.length > 0 && (
-              <div className="flex items-start gap-3 bg-amber-950/30 border border-amber-800/30 rounded-lg p-3 mb-4" data-testid="banner-forms-required">
-                <AlertTriangle className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-amber-200 font-medium">Forms must be sent before proceeding</p>
-                  <p className="text-xs text-amber-200/70 mt-0.5">All required forms must be sent to the client before accessing the Package Builder.</p>
-                </div>
+        <div className="space-y-6">
+
+          <Card className="border-white/5 bg-card" data-testid="section-intake">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2.5 mb-1">
+                <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                <h2 className="font-serif text-lg">Intake & Information</h2>
+                {allIntakeComplete && intakeForms.length > 0 && (
+                  <Badge className="bg-green-900 text-green-100 border-none ml-auto text-xs">All Sent</Badge>
+                )}
               </div>
-            )}
+              <p className="text-xs text-muted-foreground mb-4">Jotform intake forms to be completed by or with the family</p>
 
-            <div className="space-y-3">
-              {formInstances.map((fi) => {
-                const sc = statusConfig[fi.status] || statusConfig.not_sent;
-                const StatusIcon = sc.icon;
-                return (
-                  <div
-                    key={fi.id}
-                    className="bg-background/30 rounded-lg p-4 border border-white/5"
-                    data-testid={`form-instance-${fi.id}`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <StatusIcon className={`h-4 w-4 ${sc.color}`} />
-                        <span className="font-medium text-sm" data-testid={`form-name-${fi.id}`}>{fi.template?.name || "Unknown Form"}</span>
+              {intakeForms.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">No intake forms configured for this session.</p>
+              ) : (
+                <div className="space-y-3">
+                  {intakeForms.map(fi => (
+                    <FormItemCard
+                      key={fi.id}
+                      fi={fi}
+                      arrangement={arrangement}
+                      onSend={() => {
+                        setSendModal({ open: true, fi });
+                        setSendChannel(arrangement.email ? "email" : "sms");
+                        setSendDestination(arrangement.email || arrangement.phone || "");
+                      }}
+                      onOpenTablet={() => handleOpenTablet(fi)}
+                      onCopyLink={() => handleCopyLink(fi)}
+                      onMarkComplete={() => markCompleteMutation.mutate(fi)}
+                      onOpenDocument={() => {
+                        if (fi.externalLink) window.open(fi.externalLink, "_blank");
+                      }}
+                      onSendPandaDoc={() => {
+                        setPandadocModal({ open: true, fi });
+                        setPandadocRecipientName(arrangement.familyName);
+                        setPandadocRecipientEmail(arrangement.email || "");
+                        setPandadocDocId(fi.pandadocDocumentId || "");
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/5 bg-card" data-testid="section-authorizations">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2.5 mb-1">
+                <ScrollText className="h-5 w-5 text-primary flex-shrink-0" />
+                <h2 className="font-serif text-lg">Legal Authorizations</h2>
+                {allAuthComplete && authForms.length > 0 && (
+                  <Badge className="bg-green-900 text-green-100 border-none ml-auto text-xs">All Signed</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mb-1">PandaDoc documents requiring family signature</p>
+
+              {isCremation && (
+                <div className="flex items-center gap-2 mb-4 mt-2 text-xs text-amber-300/80 bg-amber-950/20 border border-amber-800/20 rounded-lg px-3 py-2">
+                  <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>Cremation case — Authorization for Removal &amp; Cremation Authorization required</span>
+                </div>
+              )}
+              {!isCremation && serviceType && (
+                <div className="flex items-center gap-2 mb-4 mt-2 text-xs text-sky-300/80 bg-sky-950/20 border border-sky-800/20 rounded-lg px-3 py-2">
+                  <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>Authorization for Removal &amp; Authorization to Embalm required for this service type</span>
+                </div>
+              )}
+
+              {authForms.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">No authorization documents configured for this session.</p>
+              ) : (
+                <div className="space-y-3">
+                  {authForms.map(fi => {
+                    const required = isRequiredAuth(fi);
+                    return (
+                      <div key={fi.id} className="relative">
+                        {required && fi.status !== "completed" && (
+                          <span className="absolute -top-1.5 left-3 text-[10px] text-amber-400 font-medium z-10">Required</span>
+                        )}
+                        <FormItemCard
+                          fi={fi}
+                          arrangement={arrangement}
+                          onSend={() => {
+                            setSendModal({ open: true, fi });
+                            setSendChannel("email");
+                            setSendDestination(arrangement.email || "");
+                          }}
+                          onOpenTablet={() => {
+                            if (fi.externalLink) window.open(fi.externalLink, "_blank");
+                          }}
+                          onCopyLink={() => handleCopyLink(fi)}
+                          onMarkComplete={() => markCompleteMutation.mutate(fi)}
+                          onOpenDocument={() => {
+                            if (fi.externalLink) window.open(fi.externalLink, "_blank");
+                          }}
+                          onSendPandaDoc={() => {
+                            setPandadocModal({ open: true, fi });
+                            setPandadocRecipientName(fi.recipientName || arrangement.familyName);
+                            setPandadocRecipientEmail(fi.recipientEmail || arrangement.email || "");
+                            setPandadocDocId(fi.pandadocDocumentId || "");
+                          }}
+                        />
                       </div>
-                      <Badge variant="outline" className={`text-xs ${sc.color} border-current`} data-testid={`form-status-${fi.id}`}>
-                        {sc.label}
-                      </Badge>
-                    </div>
-
-                    {fi.sentAt && (
-                      <p className="text-xs text-muted-foreground mb-2" data-testid={`form-sent-info-${fi.id}`}>
-                        Sent via {fi.sentVia} to {fi.sentTo} · {new Date(fi.sentAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                      </p>
-                    )}
-
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs border-white/10 hover:bg-white/5"
-                        onClick={() => {
-                          setSendModal({ open: true, formInstance: fi });
-                          setSendChannel(arrangement.email ? "email" : "sms");
-                          setSendDestination(arrangement.email || arrangement.phone || "");
-                        }}
-                        data-testid={`button-send-${fi.id}`}
-                      >
-                        <Send className="h-3 w-3 mr-1.5" /> Send
-                      </Button>
-                      {fi.formUrl && (
-                        <Link href={fi.formUrl.startsWith("/") ? fi.formUrl : "#"}>
-                          <Button size="sm" variant="outline" className="text-xs border-white/10 hover:bg-white/5" data-testid={`button-tablet-${fi.id}`}>
-                            <Tablet className="h-3 w-3 mr-1.5" /> Fill on Tablet
-                          </Button>
-                        </Link>
-                      )}
-                      {fi.formUrl && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs border-white/10 hover:bg-white/5"
-                          onClick={() => handleCopyLink(fi.formUrl!)}
-                          data-testid={`button-copy-${fi.id}`}
-                        >
-                          <Copy className="h-3 w-3 mr-1.5" /> Copy Link
-                        </Button>
-                      )}
-                      {fi.template?.pdfPath && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs border-white/10 hover:bg-white/5"
-                          onClick={() => handleDownload(fi.templateId)}
-                          data-testid={`button-download-${fi.id}`}
-                        >
-                          <Download className="h-3 w-3 mr-1.5" /> Download
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs border-white/10 hover:bg-white/5"
-                        onClick={() => window.print()}
-                        data-testid={`button-print-${fi.id}`}
-                      >
-                        <Printer className="h-3 w-3 mr-1.5" /> Print
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {user?.role === "director" && !allSentOrCompleted && (
-              <div className="mt-4 flex items-center gap-3 p-3 border border-white/5 rounded-lg bg-background/20" data-testid="director-override-section">
-                <ShieldCheck className="h-5 w-5 text-primary flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Director Override</p>
-                  <p className="text-xs text-muted-foreground">Skip form requirements to proceed</p>
+                    );
+                  })}
                 </div>
-                <Button
-                  size="sm"
-                  variant={directorOverride ? "default" : "outline"}
-                  className={directorOverride ? "bg-primary text-primary-foreground" : "border-white/10"}
-                  onClick={() => setDirectorOverride(!directorOverride)}
-                  data-testid="button-director-override"
-                >
-                  {directorOverride ? "Enabled" : "Override"}
-                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/5 bg-card" data-testid="section-documents">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2.5 mb-1">
+                <FolderOpen className="h-5 w-5 text-primary flex-shrink-0" />
+                <h2 className="font-serif text-lg">Documents & Filing</h2>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground mb-4">Track document receipt, filing, and certificate workflow status</p>
 
-        <Link href={canProceed ? `/staff/builder?arrangement=${sessionId}` : "#"}>
-          <Button
-            className={`w-full ${canProceed ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground cursor-not-allowed"}`}
-            disabled={!canProceed}
-            data-testid="button-package-builder"
-          >
-            Package Builder
-            <ChevronRight className="h-4 w-4 ml-2" />
-          </Button>
-        </Link>
+              <div className="space-y-2" data-testid="checklist-items">
+                <ChecklistToggle
+                  label="Jotform PDFs Received"
+                  description="Completed form PDFs received from staging folder"
+                  checked={defaultChecklist.documentReceived}
+                  onToggle={() => toggleChecklist("documentReceived")}
+                  testId="toggle-document-received"
+                />
+                <ChecklistToggle
+                  label="Filed to Case"
+                  description="All documents filed to the case folder"
+                  checked={defaultChecklist.filedToCase}
+                  onToggle={() => toggleChecklist("filedToCase")}
+                  testId="toggle-filed-to-case"
+                />
+                <ChecklistToggle
+                  label="Death Certificate Submitted"
+                  description="Application submitted to vital records"
+                  checked={defaultChecklist.certificateSubmitted}
+                  onToggle={() => toggleChecklist("certificateSubmitted")}
+                  testId="toggle-certificate-submitted"
+                />
+                <ChecklistToggle
+                  label="Death Certificate Approved"
+                  description="Certificate returned and approved"
+                  checked={defaultChecklist.certificateApproved}
+                  onToggle={() => toggleChecklist("certificateApproved")}
+                  testId="toggle-certificate-approved"
+                />
 
-        <Link href={`/staff/sessions/${sessionId}/announcement`}>
-          <Button
-            variant="outline"
-            className="w-full mt-3 border-white/10 hover:bg-white/5"
-            data-testid="button-manage-announcement"
-          >
-            Manage Announcement
-            <ChevronRight className="h-4 w-4 ml-2" />
-          </Button>
-        </Link>
+                <Separator className="my-3 bg-white/5" />
+                <p className="text-xs font-medium text-amber-400/80 uppercase tracking-wide px-1">SSN Handling</p>
+                <ChecklistToggle
+                  label="SSN Purged"
+                  description="Social Security Number securely purged after death certificate filing"
+                  checked={defaultChecklist.ssnPurged}
+                  onToggle={() => toggleChecklist("ssnPurged")}
+                  sensitive
+                  testId="toggle-ssn-purged"
+                />
+              </div>
+
+              <div className="mt-4">
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Document Notes</Label>
+                <Textarea
+                  className="bg-background/30 border-white/10 text-sm resize-none min-h-[80px]"
+                  placeholder="Any notes about document status, missing items, special handling..."
+                  value={defaultChecklist.notes || ""}
+                  onChange={(e) => {
+                    clearTimeout((window as any).__notesTimer);
+                    (window as any).__notesTimer = setTimeout(() => {
+                      checklistMutation.mutate({ notes: e.target.value });
+                    }, 800);
+                  }}
+                  data-testid="input-document-notes"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {user?.role === "director" && !canProceedToBuilder && (
+            <Card className="border-white/5 bg-card" data-testid="director-override-section">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="h-5 w-5 text-primary flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Director Override</p>
+                    <p className="text-xs text-muted-foreground">Skip form requirements to access Package Builder</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={directorOverride ? "default" : "outline"}
+                    className={directorOverride ? "bg-primary text-primary-foreground" : "border-white/10"}
+                    onClick={() => setDirectorOverride(!directorOverride)}
+                    data-testid="button-director-override"
+                  >
+                    {directorOverride ? "Enabled" : "Override"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <div className="mt-6 space-y-3">
+          <Link href={canProceedToBuilder ? `/staff/builder?arrangement=${sessionId}` : "#"}>
+            <Button
+              className={`w-full h-12 text-base ${canProceedToBuilder ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground cursor-not-allowed"}`}
+              disabled={!canProceedToBuilder}
+              data-testid="button-package-builder"
+            >
+              <Landmark className="h-4 w-4 mr-2" />
+              Package Builder
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </Link>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Link href={`/staff/sessions/${sessionId}/announcement`}>
+              <Button
+                variant="outline"
+                className="w-full h-11 border-white/10 hover:bg-white/5 text-sm"
+                data-testid="button-manage-announcement"
+              >
+                <FileCheck className="h-4 w-4 mr-2" />
+                Announcement
+              </Button>
+            </Link>
+            <Link href={`/staff/cremation`}>
+              <Button
+                variant="outline"
+                className="w-full h-11 border-white/10 hover:bg-white/5 text-sm"
+                data-testid="button-cremation"
+              >
+                <ClipboardCheck className="h-4 w-4 mr-2" />
+                Cremation
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
 
-      <Dialog open={sendModal.open} onOpenChange={(open) => setSendModal({ open, formInstance: open ? sendModal.formInstance : null })}>
-        <DialogContent>
+      <Dialog open={sendModal.open} onOpenChange={(open) => setSendModal({ open, fi: open ? sendModal.fi : null })}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl">Send Form Link</DialogTitle>
           </DialogHeader>
-          {sendModal.formInstance && (
+          {sendModal.fi && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Send <span className="text-foreground font-medium">{sendModal.formInstance.template?.name}</span> to the {arrangement.familyName}
+                Send <span className="text-foreground font-medium">{sendModal.fi.template?.name}</span> to the {arrangement.familyName}
               </p>
               <div className="flex gap-2">
                 <Button
                   size="sm"
                   variant={sendChannel === "email" ? "default" : "outline"}
                   className={sendChannel === "email" ? "bg-primary text-primary-foreground" : "border-white/10"}
-                  onClick={() => {
-                    setSendChannel("email");
-                    setSendDestination(arrangement.email || "");
-                  }}
+                  onClick={() => { setSendChannel("email"); setSendDestination(arrangement.email || ""); }}
                   data-testid="button-channel-email"
-                >
-                  Email
-                </Button>
+                >Email</Button>
                 <Button
                   size="sm"
                   variant={sendChannel === "sms" ? "default" : "outline"}
                   className={sendChannel === "sms" ? "bg-primary text-primary-foreground" : "border-white/10"}
-                  onClick={() => {
-                    setSendChannel("sms");
-                    setSendDestination(arrangement.phone || "");
-                  }}
+                  onClick={() => { setSendChannel("sms"); setSendDestination(arrangement.phone || ""); }}
                   data-testid="button-channel-sms"
-                >
-                  SMS
-                </Button>
+                >SMS</Button>
               </div>
               <div className="space-y-2">
                 <Label>{sendChannel === "email" ? "Email Address" : "Phone Number"}</Label>
@@ -373,23 +821,89 @@ export default function SessionOverview() {
                   data-testid="input-send-destination"
                 />
               </div>
+              {sendModal.fi.template?.jotformId?.startsWith("PLACEHOLDER") && (
+                <div className="text-xs text-amber-300/80 bg-amber-950/20 border border-amber-800/20 rounded-lg px-3 py-2">
+                  Form ID not yet configured. Link will be recorded but form is not active.
+                </div>
+              )}
               <DialogFooter>
                 <Button
                   className="bg-primary text-primary-foreground"
                   disabled={!sendDestination.trim() || sendMutation.isPending}
-                  onClick={() => {
-                    if (sendModal.formInstance) {
-                      sendMutation.mutate({
-                        fi: sendModal.formInstance,
-                        channel: sendChannel,
-                        destination: sendDestination.trim(),
-                      });
-                    }
-                  }}
+                  onClick={() => sendMutation.mutate({ fi: sendModal.fi!, channel: sendChannel, destination: sendDestination.trim() })}
                   data-testid="button-confirm-send"
                 >
                   {sendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                   Send Link
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pandadocModal.open} onOpenChange={(open) => setPandadocModal({ open, fi: open ? pandadocModal.fi : null })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl">Send for Signature</DialogTitle>
+          </DialogHeader>
+          {pandadocModal.fi && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Configure PandaDoc recipient for <span className="text-foreground font-medium">{pandadocModal.fi.template?.name}</span>
+              </p>
+              {pandadocModal.fi.template?.pandadocTemplateId && (
+                <div className="text-xs font-mono text-muted-foreground bg-background/30 border border-white/5 rounded px-3 py-2">
+                  Template ID: {pandadocModal.fi.template.pandadocTemplateId}
+                </div>
+              )}
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Authorizing Agent Name</Label>
+                  <Input
+                    value={pandadocRecipientName}
+                    onChange={(e) => setPandadocRecipientName(e.target.value)}
+                    placeholder="Full name of authorizing family member"
+                    data-testid="input-recipient-name"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Email Address</Label>
+                  <Input
+                    type="email"
+                    value={pandadocRecipientEmail}
+                    onChange={(e) => setPandadocRecipientEmail(e.target.value)}
+                    placeholder="email@example.com"
+                    data-testid="input-recipient-email"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">PandaDoc Document ID <span className="text-muted-foreground">(optional — paste after sending)</span></Label>
+                  <Input
+                    value={pandadocDocId}
+                    onChange={(e) => setPandadocDocId(e.target.value)}
+                    placeholder="Document ID from PandaDoc"
+                    data-testid="input-pandadoc-doc-id"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Send the document directly in PandaDoc using the template above. Return here to record the document ID and update status.
+              </p>
+              <DialogFooter>
+                <Button
+                  className="bg-primary text-primary-foreground"
+                  disabled={!pandadocRecipientName.trim() || !pandadocRecipientEmail.trim() || pandadocSendMutation.isPending}
+                  onClick={() => pandadocSendMutation.mutate({
+                    fi: pandadocModal.fi!,
+                    name: pandadocRecipientName.trim(),
+                    email: pandadocRecipientEmail.trim(),
+                    docId: pandadocDocId.trim(),
+                  })}
+                  data-testid="button-confirm-pandadoc"
+                >
+                  {pandadocSendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Pen className="h-4 w-4 mr-2" />}
+                  Save &amp; Record
                 </Button>
               </DialogFooter>
             </div>

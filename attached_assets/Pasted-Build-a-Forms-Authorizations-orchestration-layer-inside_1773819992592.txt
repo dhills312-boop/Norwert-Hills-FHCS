@@ -1,0 +1,101 @@
+Build a “Forms & Authorizations” orchestration layer inside the Staff Portal Client Session view so staff can manage all required Jotform forms, PandaDoc documents, and document workflow steps from one place.
+
+Create a dedicated section called “Forms & Authorizations” inside each client session.
+
+Group items into three categories:
+	1.	Intake & Information (Jotform)
+
+	•	Vital Statistics Information
+	•	Social Security Number Request for Death Certificate Filing
+	•	Funeral Service Details Agreement
+	•	Preplanning / Intake
+
+	2.	Legal Authorizations (PandaDoc)
+
+	•	Authorization for Removal and Transfer
+	•	Cremation Authorization
+	•	Authorization to Embalm
+	•	Terms & Conditions
+
+Important workflow note:
+Authorization for Removal and Transfer is its own PandaDoc document, but it is sent as part of the same PandaDoc authorization workflow as the related authorization documents. Do not treat it as a separate completely unrelated workflow; treat it as a required legal document inside the broader authorization bundle/process.
+	3.	Documents & Filing
+
+	•	Jotform-generated PDFs
+	•	Signed authorization PDFs
+	•	Death certificate workflow status
+	•	SSN handling status
+
+For every form/document item, show:
+	•	status: not_sent / sent / completed / error
+	•	actions:
+	•	Send
+	•	Open on Tablet
+	•	Copy Link (for Jotform where appropriate)
+	•	Mark Complete (manual fallback)
+	•	a place to store provider identifiers and links:
+	•	Jotform form URL / prefill URL
+	•	PandaDoc template ID / document ID
+
+Implement frontend data structures and session state so each session tracks forms/documents like:
+	•	key
+	•	type (jotform / pandadoc / drive)
+	•	status
+	•	lastSentAt
+	•	completedAt
+	•	externalId
+	•	link
+
+Jotform behavior:
+	•	Add configuration/settings support for the existing Jotform form URLs or IDs
+	•	Generate/send prefills using the hidden/internal workflow conventions already in use:
+	•	case_token or session_token
+	•	family_display_name
+	•	service_type
+	•	assigned_staff
+	•	Track send actions in the session timeline / audit log
+	•	Add manual completion toggles for now if webhooks are not yet connected
+
+PandaDoc behavior:
+	•	Add configuration/settings support for PandaDoc template IDs and recipient role names
+	•	Support sending documents to the authorizing agent/family contact using the selected contact name and email from the session
+	•	Store PandaDoc document IDs and update session authorization statuses
+	•	Add manual completion toggles for now if webhooks/API status are not yet connected
+
+Drive/document workflow behavior:
+	•	Add a Documents area in the session reflecting that Jotform-generated PDFs and signed docs are stored in Drive using a staging-folder workflow, not dynamic per-case folder routing directly from Jotform
+	•	Include checklist/status fields such as:
+	•	document_received
+	•	filed_to_case
+	•	certificate_submitted
+	•	certificate_approved
+	•	ssn_purged
+	•	Keep restricted SSN handling conceptually separate from normal docs in the UI
+
+Required document logic:
+	•	Cremation cases require:
+	•	Authorization for Removal and Transfer
+	•	Cremation Authorization
+	•	Embalming / viewing cases require:
+	•	Authorization for Removal and Transfer
+	•	Authorization to Embalm
+	•	Terms & Conditions should be required where applicable
+	•	Display required vs optional documents clearly
+
+Session workflow progression:
+	•	new
+	•	in_progress
+	•	forms_sent
+	•	forms_completed
+	•	pending_signature
+	•	ready_for_service
+	•	completed
+
+UI requirements:
+	•	calm, tablet-friendly case-management dashboard
+	•	large tap targets
+	•	clear grouped sections
+	•	avoid technical/developer-looking UI
+	•	preserve Norwert Hills visual tone
+
+This update should focus on making the staff portal the operational control center for the full document lifecycle, even if some external provider actions are represented initially through configuration and manual status updates rather than full live API/webhook automation.

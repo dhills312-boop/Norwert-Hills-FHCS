@@ -398,8 +398,32 @@ export async function registerRoutes(
 
   app.get("/api/arrangements/:id/forms", requireAuth, async (req, res) => {
     try {
-      const instances = await storage.getFormInstances(req.params.id);
+      const arr = await storage.getArrangement(req.params.id);
+      if (!arr) return res.status(404).json({ message: "Arrangement not found" });
+
+      let instances = await storage.getFormInstances(req.params.id);
       const templates = await storage.getFormTemplates();
+      const existingTemplateIds = new Set(instances.map(fi => fi.templateId));
+
+      const serviceType = (arr.selections as Record<string, string> | null)?.["service-type"] || "";
+      for (const tmpl of templates) {
+        if (existingTemplateIds.has(tmpl.id)) continue;
+        const reqTypes = tmpl.requiredForServiceTypes;
+        const isApplicable = reqTypes.length === 0 || reqTypes.includes("all") || !serviceType || reqTypes.includes(serviceType);
+        if (!isApplicable) continue;
+
+        let formUrl: string | null = null;
+        if (tmpl.type === "jotform") {
+          const jid = tmpl.jotformId;
+          if (jid && !jid.startsWith("PLACEHOLDER")) {
+            const params = new URLSearchParams({ sessionId: arr.id, familyName: arr.familyName, serviceType });
+            formUrl = tmpl.jotformUrl ? `${tmpl.jotformUrl}?${params}` : `https://form.jotform.com/${jid}?${params}`;
+          }
+        }
+        await storage.createFormInstance({ arrangementId: arr.id, templateId: tmpl.id, status: "not_sent", formUrl });
+      }
+
+      instances = await storage.getFormInstances(req.params.id);
       const templateMap = Object.fromEntries(templates.map(t => [t.id, t]));
       const enriched = instances.map(fi => ({
         ...fi,
@@ -418,6 +442,10 @@ export async function registerRoutes(
     status: formStatusEnum.optional(),
     sentVia: formChannelEnum.optional(),
     sentTo: z.string().optional(),
+    pandadocDocumentId: z.string().optional(),
+    externalLink: z.string().optional(),
+    recipientName: z.string().optional(),
+    recipientEmail: z.string().optional(),
   });
 
   app.patch("/api/form-instances/:id", requireAuth, async (req, res) => {
@@ -426,12 +454,16 @@ export async function registerRoutes(
       const existing = await storage.getFormInstance(req.params.id);
       if (!existing) return res.status(404).json({ message: "Form instance not found" });
 
-      const updates: Partial<Pick<FormInstance, "status" | "sentVia" | "sentTo" | "sentAt" | "completedAt">> = {};
+      const updates: Partial<Pick<FormInstance, "status" | "sentVia" | "sentTo" | "sentAt" | "completedAt" | "pandadocDocumentId" | "externalLink" | "recipientName" | "recipientEmail">> = {};
       if (parsed.status) updates.status = parsed.status;
       if (parsed.sentVia) updates.sentVia = parsed.sentVia;
       if (parsed.sentTo) updates.sentTo = parsed.sentTo;
       if (parsed.status === "sent") updates.sentAt = new Date();
       if (parsed.status === "completed") updates.completedAt = new Date();
+      if (parsed.pandadocDocumentId !== undefined) updates.pandadocDocumentId = parsed.pandadocDocumentId;
+      if (parsed.externalLink !== undefined) updates.externalLink = parsed.externalLink;
+      if (parsed.recipientName !== undefined) updates.recipientName = parsed.recipientName;
+      if (parsed.recipientEmail !== undefined) updates.recipientEmail = parsed.recipientEmail;
       const fi = await storage.updateFormInstance(req.params.id, updates);
       if (!fi) return res.status(404).json({ message: "Form instance not found" });
       res.json(fi);
@@ -440,6 +472,36 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Validation error", errors: err.errors });
       }
       res.status(500).json({ message: "Failed to update form instance" });
+    }
+  });
+
+  app.get("/api/arrangements/:id/checklist", requireAuth, async (req, res) => {
+    try {
+      const checklist = await storage.getSessionDocChecklist(req.params.id);
+      res.json(checklist || null);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch checklist" });
+    }
+  });
+
+  app.patch("/api/arrangements/:id/checklist", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        documentReceived: z.boolean().optional(),
+        filedToCase: z.boolean().optional(),
+        certificateSubmitted: z.boolean().optional(),
+        certificateApproved: z.boolean().optional(),
+        ssnPurged: z.boolean().optional(),
+        notes: z.string().optional(),
+      });
+      const data = schema.parse(req.body);
+      const checklist = await storage.upsertSessionDocChecklist(req.params.id, data);
+      res.json(checklist);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to update checklist" });
     }
   });
 

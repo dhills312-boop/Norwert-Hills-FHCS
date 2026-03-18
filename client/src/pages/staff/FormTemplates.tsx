@@ -61,11 +61,8 @@ function JotformTemplateCard({ tmpl }: { tmpl: FormTemplate }) {
     onError: () => toast({ title: "Error", description: "Failed to save.", variant: "destructive" }),
   });
 
-  const sampleUrl = formUrl
-    ? `${formUrl}?case_token=NHXXXXXXXX&session_id=...`
-    : formId && !isPlaceholder(formId)
-    ? `https://form.jotform.com/${formId}?case_token=NHXXXXXXXX&session_id=...`
-    : null;
+  const resolvedBase = formUrl.trim() || (formId.trim() && !isPlaceholder(formId) ? `https://form.jotform.com/${formId.trim()}` : null);
+  const sampleUrl = `${resolvedBase ?? "https://form.jotform.com/YOUR_FORM_ID"}?case_token=NHXXXXXX&session_id=UUID&family_display_name=Family+Name&service_type=burial&assigned_staff=Staff+Name`;
 
   return (
     <Card className="bg-card border-white/5">
@@ -133,21 +130,21 @@ function JotformTemplateCard({ tmpl }: { tmpl: FormTemplate }) {
             />
           </div>
 
-          {sampleUrl && (
-            <div className="bg-background/30 border border-white/5 rounded-lg p-3">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Sample link (what the family receives)</p>
-                <button
-                  className="text-muted-foreground hover:text-primary"
-                  onClick={() => { navigator.clipboard.writeText(sampleUrl); toast({ title: "Copied" }); }}
-                  data-testid={`button-copy-sample-${tmpl.id}`}
-                >
-                  <Copy className="h-3 w-3" />
-                </button>
-              </div>
-              <p className="text-xs font-mono text-muted-foreground break-all">{sampleUrl}</p>
+          <div className="bg-background/30 border border-white/5 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                {resolvedBase ? "Sample link (what the family receives)" : "URL structure (add your Form ID above to fill this in)"}
+              </p>
+              <button
+                className="text-muted-foreground hover:text-primary"
+                onClick={() => { navigator.clipboard.writeText(sampleUrl); toast({ title: "Copied" }); }}
+                data-testid={`button-copy-sample-${tmpl.id}`}
+              >
+                <Copy className="h-3 w-3" />
+              </button>
             </div>
-          )}
+            <p className="text-xs font-mono text-muted-foreground break-all">{sampleUrl}</p>
+          </div>
 
           <div className="flex gap-2 pt-1">
             <Button

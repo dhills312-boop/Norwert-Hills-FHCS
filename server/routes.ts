@@ -890,6 +890,30 @@ export async function registerRoutes(
     }
   });
 
+  // Public endpoint — returns configured Jotform URLs for the two public-facing forms.
+  // Used by the website's Cremation page and Schedule a Consultation buttons.
+  app.get("/api/public/forms", async (_req, res) => {
+    try {
+      const templates = await storage.getFormTemplates();
+      const cremation = templates.find(t => t.category === "public" && t.name?.toLowerCase().includes("cremation"));
+      const consultation = templates.find(t => t.category === "public" && t.name?.toLowerCase().includes("consultation"));
+
+      const resolveUrl = (t: typeof cremation) => {
+        if (!t) return null;
+        if (t.jotformUrl) return t.jotformUrl;
+        if (t.jotformId && !t.jotformId.startsWith("PLACEHOLDER")) return `https://form.jotform.com/${t.jotformId}`;
+        return null;
+      };
+
+      res.json({
+        cremationIntake: resolveUrl(cremation),
+        consultationIntake: resolveUrl(consultation),
+      });
+    } catch {
+      res.status(500).json({ message: "Failed to fetch public forms" });
+    }
+  });
+
   app.get("/api/public/announcements/:slug", async (req, res) => {
     try {
       const item = await storage.getAnnouncementBySlug(req.params.slug);

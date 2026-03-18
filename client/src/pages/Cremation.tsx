@@ -1,11 +1,11 @@
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { motion } from "framer-motion";
-import { MapPin, Loader2, CheckCircle, AlertCircle, Mail, ArrowRight, ArrowLeft } from "lucide-react";
+import { MapPin, Loader2, CheckCircle, AlertCircle, Mail, ArrowRight, ArrowLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -50,6 +50,11 @@ export default function Cremation() {
     stateOfDeath: "",
   });
   const { toast } = useToast();
+
+  const { data: publicForms } = useQuery<{ cremationIntake: string | null; consultationIntake: string | null }>({
+    queryKey: ["/api/public/forms"],
+    staleTime: 5 * 60 * 1000,
+  });
 
   function parseErrorMessage(err: Error, fallback: string): string {
     try {
@@ -385,13 +390,44 @@ export default function Cremation() {
                 <CheckCircle className="h-16 w-16 text-primary mx-auto mb-6" />
                 <h2 className="font-serif text-3xl mb-4" data-testid="text-confirmation-title">Request Received</h2>
                 <p className="text-muted-foreground font-light max-w-lg mx-auto mb-8 leading-relaxed">
-                  Thank you for trusting Norwert Hills with your family's care. Your cremation arrangement request has been received and a member of our team will be in touch shortly.
+                  Thank you for trusting Norwert Hills with your family's care. Your cremation arrangement request has been received.
                 </p>
 
                 <div className="bg-background/50 border border-white/5 rounded-sm p-6 max-w-md mx-auto mb-8">
                   <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Your Reference Number</p>
                   <p className="font-mono text-2xl text-primary tracking-wider" data-testid="text-order-token">{orderResult.orderToken}</p>
                 </div>
+
+                {/* Jotform redirect — pre-fills all submitted data */}
+                {publicForms?.cremationIntake && (() => {
+                  const params = new URLSearchParams({
+                    contact_name: orderResult.contactName,
+                    contact_email: orderResult.contactEmail,
+                    contact_phone: orderResult.contactPhone,
+                    decedent_name: orderResult.decedentName,
+                    state_of_death: orderResult.stateOfDeath,
+                    order_token: orderResult.orderToken,
+                  });
+                  return (
+                    <div className="max-w-md mx-auto mb-8">
+                      <a
+                        href={`${publicForms.cremationIntake}?${params}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        data-testid="link-continue-to-form"
+                      >
+                        <Button
+                          size="lg"
+                          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 uppercase text-xs tracking-[0.2em] py-6"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Continue to Full Intake Form
+                        </Button>
+                      </a>
+                      <p className="text-xs text-muted-foreground mt-2">Your information will be pre-filled in the next form.</p>
+                    </div>
+                  );
+                })()}
 
                 <div className="bg-background/30 border border-white/5 rounded-sm p-6 max-w-md mx-auto mb-8 text-left space-y-3">
                   <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3 text-center">Summary</p>
@@ -414,7 +450,9 @@ export default function Cremation() {
                   <ul className="text-sm text-muted-foreground space-y-2 text-left font-light">
                     <li className="flex gap-3">
                       <span className="text-primary font-medium shrink-0">1.</span>
-                      A member of our team will contact you to confirm the details.
+                      {publicForms?.cremationIntake
+                        ? "Complete the full intake form above — your information is already pre-filled."
+                        : "A member of our team will contact you to begin the full intake process."}
                     </li>
                     <li className="flex gap-3">
                       <span className="text-primary font-medium shrink-0">2.</span>

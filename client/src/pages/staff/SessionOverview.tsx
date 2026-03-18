@@ -89,11 +89,8 @@ const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; l
 function buildJotformUrl(fi: FormInstanceEnriched, arrangement: Arrangement): string | null {
   const tmpl = fi.template;
   if (!tmpl) return null;
-  const jotformId = tmpl.jotformId;
+  const jotformId = tmpl.jotformId || "";
   const baseUrl = tmpl.jotformUrl;
-
-  if (fi.formUrl && !fi.formUrl.startsWith("/staff")) return fi.formUrl;
-  if (fi.externalLink) return fi.externalLink;
 
   const serviceType = arrangement.selections?.["service-type"] || "";
   const caseToken = arrangement.caseToken || arrangement.id;
@@ -105,10 +102,14 @@ function buildJotformUrl(fi: FormInstanceEnriched, arrangement: Arrangement): st
     service_type: serviceType,
   });
 
+  // Prefer template-level base URL, then a real Jotform ID, then fall back to stored instance URL.
+  // Always return something so Copy Link is available even for placeholder forms.
   if (baseUrl) return `${baseUrl}?${params}`;
   if (jotformId && !jotformId.startsWith("PLACEHOLDER")) return `https://form.jotform.com/${jotformId}?${params}`;
 
-  return fi.formUrl || null;
+  // Placeholder: return a URL with the placeholder ID so staff can at least see the structure.
+  // Copy Link will warn the user; Open on Tablet is suppressed for placeholder URLs.
+  return `https://form.jotform.com/${jotformId || "NOT_CONFIGURED"}?${params}`;
 }
 
 function FormItemCard({
@@ -189,28 +190,28 @@ function FormItemCard({
             >
               <Send className="h-3 w-3 mr-1.5" /> Send Link
             </Button>
-            {jotformUrl && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-9 text-xs border-white/10 hover:bg-white/5"
-                  onClick={onOpenTablet}
-                  data-testid={`button-tablet-${fi.id}`}
-                >
-                  <Tablet className="h-3 w-3 mr-1.5" /> Open on Tablet
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-9 text-xs border-white/10 hover:bg-white/5"
-                  onClick={onCopyLink}
-                  data-testid={`button-copy-${fi.id}`}
-                >
-                  <Copy className="h-3 w-3 mr-1.5" /> Copy Link
-                </Button>
-              </>
+            {/* Open on Tablet only for real (non-placeholder) form IDs */}
+            {jotformUrl && tmpl?.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER") && !tmpl?.jotformId.includes("NOT_CONFIGURED") && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 text-xs border-white/10 hover:bg-white/5"
+                onClick={onOpenTablet}
+                data-testid={`button-tablet-${fi.id}`}
+              >
+                <Tablet className="h-3 w-3 mr-1.5" /> Open on Tablet
+              </Button>
             )}
+            {/* Copy Link always shown for Jotform forms */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 text-xs border-white/10 hover:bg-white/5"
+              onClick={onCopyLink}
+              data-testid={`button-copy-${fi.id}`}
+            >
+              <Copy className="h-3 w-3 mr-1.5" /> Copy Link
+            </Button>
           </>
         )}
 
@@ -416,8 +417,13 @@ export default function SessionOverview() {
   const handleCopyLink = (fi: FormInstanceEnriched) => {
     const url = buildJotformUrl(fi, arrangement!);
     if (!url) return toast({ title: "No link", description: "Form URL not configured yet.", variant: "destructive" });
+    const isPlaceholder = fi.template?.jotformId?.startsWith("PLACEHOLDER") || fi.template?.jotformId?.includes("NOT_CONFIGURED");
     navigator.clipboard.writeText(url);
-    toast({ title: "Link copied", description: "Form link copied to clipboard." });
+    if (isPlaceholder) {
+      toast({ title: "Link copied (form not active)", description: "Add the real Form ID in Form Templates settings before sending.", variant: "destructive" });
+    } else {
+      toast({ title: "Link copied", description: "Form link copied to clipboard." });
+    }
   };
 
   const handleOpenTablet = (fi: FormInstanceEnriched) => {

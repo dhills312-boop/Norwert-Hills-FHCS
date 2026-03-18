@@ -55,6 +55,7 @@ export interface IStorage {
   getFormTemplates(): Promise<FormTemplate[]>;
   getFormTemplate(id: string): Promise<FormTemplate | undefined>;
   createFormTemplate(data: InsertFormTemplate): Promise<FormTemplate>;
+  updateFormTemplate(id: string, data: Partial<Pick<FormTemplate, "name" | "jotformId" | "jotformUrl" | "pandadocTemplateId">>): Promise<FormTemplate | undefined>;
 
   getFormInstances(arrangementId: string): Promise<FormInstance[]>;
   getFormInstance(id: string): Promise<FormInstance | undefined>;
@@ -223,6 +224,11 @@ export class DatabaseStorage implements IStorage {
 
   async createFormTemplate(data: InsertFormTemplate): Promise<FormTemplate> {
     const [t] = await db.insert(formTemplates).values(data).returning();
+    return t;
+  }
+
+  async updateFormTemplate(id: string, data: Partial<Pick<FormTemplate, "name" | "jotformId" | "jotformUrl" | "pandadocTemplateId">>): Promise<FormTemplate | undefined> {
+    const [t] = await db.update(formTemplates).set(data).where(eq(formTemplates.id, id)).returning();
     return t;
   }
 

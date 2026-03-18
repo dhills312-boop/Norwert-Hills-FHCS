@@ -29,6 +29,7 @@ import AnnouncementEditor from "@/pages/staff/AnnouncementEditor";
 import Cremation from "@/pages/Cremation";
 import CremationOrders from "@/pages/staff/CremationOrders";
 import CremationCaseDetail from "@/pages/staff/CremationCaseDetail";
+import FormTemplates from "@/pages/staff/FormTemplates";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -68,6 +69,7 @@ function Router() {
       <Route path="/staff/announcements/:id" component={AnnouncementEditor} />
       <Route path="/staff/cremation" component={CremationOrders} />
       <Route path="/staff/cremation/:id" component={CremationCaseDetail} />
+      <Route path="/staff/settings/forms" component={FormTemplates} />
       <Route component={NotFound} />
     </Switch>
     </>

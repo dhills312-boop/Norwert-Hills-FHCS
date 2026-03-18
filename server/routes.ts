@@ -194,6 +194,31 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/form-templates", requireDirector, async (_req, res) => {
+    try {
+      const templates = await storage.getFormTemplates();
+      res.json(templates);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch form templates" });
+    }
+  });
+
+  app.patch("/api/admin/form-templates/:id", requireDirector, async (req, res) => {
+    try {
+      const { jotformId, jotformUrl, pandadocTemplateId, name } = req.body;
+      const updated = await storage.updateFormTemplate(req.params.id, {
+        ...(name !== undefined && { name: String(name) }),
+        ...(jotformId !== undefined && { jotformId: String(jotformId) }),
+        ...(jotformUrl !== undefined && { jotformUrl: jotformUrl ? String(jotformUrl) : null }),
+        ...(pandadocTemplateId !== undefined && { pandadocTemplateId: pandadocTemplateId ? String(pandadocTemplateId) : null }),
+      });
+      if (!updated) return res.status(404).json({ message: "Template not found" });
+      res.json(updated);
+    } catch {
+      res.status(500).json({ message: "Failed to update form template" });
+    }
+  });
+
   app.get("/api/admin/users", requireDirector, async (_req, res) => {
     try {
       const allUsers = await storage.getAllUsers();

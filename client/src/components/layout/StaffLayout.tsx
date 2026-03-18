@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, FileText, Settings, LogOut, User, Receipt, Users, Shield, Package, Megaphone, Flame } from "lucide-react";
+import { LayoutGrid, FileText, Settings, LogOut, User, Receipt, Users, Shield, Package, Megaphone, Flame, FormInput } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -17,6 +17,7 @@ export function StaffLayout({ children }: { children: React.ReactNode }) {
     ...(isDirector ? [
       { href: "/staff/catalog", label: "Service Catalog", icon: Package },
       { href: "/staff/admin/users", label: "User Management", icon: Users },
+      { href: "/staff/settings/forms", label: "Form Templates", icon: FormInput },
     ] : []),
   ];
 

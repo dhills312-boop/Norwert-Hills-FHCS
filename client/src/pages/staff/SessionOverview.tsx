@@ -97,7 +97,6 @@ function buildJotformUrl(fi: FormInstanceEnriched, arrangement: Arrangement): st
 
   const params = new URLSearchParams({
     case_token: caseToken,
-    session_id: arrangement.id,
     family_display_name: arrangement.familyName,
     service_type: serviceType,
   });

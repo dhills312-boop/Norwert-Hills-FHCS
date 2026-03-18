@@ -24,10 +24,9 @@ function generateCaseToken(): string {
 function buildJotformUrl(
   jotformId: string,
   jotformBaseUrl: string | null,
-  params: { id: string; familyName: string; serviceType: string; staffName: string; caseToken: string }
+  params: { familyName: string; serviceType: string; staffName: string; caseToken: string }
 ): string {
   const qs = new URLSearchParams({
-    session_id: params.id,
     case_token: params.caseToken,
     family_display_name: params.familyName,
     service_type: params.serviceType,
@@ -92,7 +91,7 @@ export async function registerRoutes(
   // Jotform submission webhook
   // Configure in Jotform: Settings → Integrations → Webhooks → POST to this URL
   // Jotform sends form fields as a flat object under req.body; hidden fields
-  // (case_token, session_id) arrive at the top level.
+  // case_token arrives at the top level.
   app.post("/api/webhooks/jotform", async (req, res) => {
     try {
       const body = req.body || {};
@@ -367,7 +366,7 @@ export async function registerRoutes(
           if (!isApplicable) continue;
           let formUrl: string | null = null;
           if (tmpl.type === "jotform" && tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")) {
-            formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { sessionId: arr.id, familyName: arr.familyName, serviceType, staffName, caseToken });
+            formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { familyName: arr.familyName, serviceType, staffName, caseToken });
           }
           await storage.createFormInstance({ arrangementId: arr.id, templateId: tmpl.id, status: "not_sent", formUrl });
         }
@@ -395,7 +394,7 @@ export async function registerRoutes(
           if (!isApplicable) continue;
           let formUrl: string | null = null;
           if (tmpl.type === "jotform" && tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")) {
-            formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { sessionId: arr.id, familyName: arr.familyName, serviceType, staffName, caseToken });
+            formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { familyName: arr.familyName, serviceType, staffName, caseToken });
           }
           await tx.insert(formInstances).values({ arrangementId: arr.id, templateId: tmpl.id, status: "not_sent", formUrl });
         }
@@ -564,7 +563,7 @@ export async function registerRoutes(
 
         let formUrl: string | null = null;
         if (tmpl.type === "jotform" && tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")) {
-          formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { sessionId: arr.id, familyName: arr.familyName, serviceType, staffName: "", caseToken });
+          formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { familyName: arr.familyName, serviceType, staffName: "", caseToken });
         }
         await storage.createFormInstance({ arrangementId: arr.id, templateId: tmpl.id, status: "not_sent", formUrl });
       }
@@ -677,7 +676,7 @@ export async function registerRoutes(
           const caseToken = arr.caseToken || arr.id;
           let formUrl: string | null = null;
           if (tmpl.type === "jotform" && tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")) {
-            formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { sessionId: arr.id, familyName: arr.familyName, serviceType, staffName: req.user!.name || "", caseToken });
+            formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { familyName: arr.familyName, serviceType, staffName: req.user!.name || "", caseToken });
           }
 
           const instances = await storage.getFormInstances(req.params.id);

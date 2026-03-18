@@ -62,7 +62,7 @@ function JotformTemplateCard({ tmpl }: { tmpl: FormTemplate }) {
   });
 
   const resolvedBase = formUrl.trim() || (formId.trim() && !isPlaceholder(formId) ? `https://jotform.com/${formId.trim()}` : null);
-  const sampleUrl = `${resolvedBase ?? "https://jotform.com/YOUR_FORM_ID"}?case_token=NHXXXXXX&session_id=UUID&family_display_name=Family+Name&service_type=burial&assigned_staff=Staff+Name`;
+  const sampleUrl = `${resolvedBase ?? "https://jotform.com/YOUR_FORM_ID"}?case_token=NHXXXXXX&family_display_name=Family+Name&service_type=burial&assigned_staff=Staff+Name`;
 
   return (
     <Card className="bg-card border-white/5">
@@ -101,7 +101,7 @@ function JotformTemplateCard({ tmpl }: { tmpl: FormTemplate }) {
             <ol className="list-decimal ml-4 space-y-1 text-blue-300/70">
               <li>In Jotform, create a new form for this category.</li>
               <li>Add a <strong>Hidden Field</strong> named <code className="bg-white/5 px-1 rounded">case_token</code> and set its source to <strong>URL Parameter</strong> → parameter name <code className="bg-white/5 px-1 rounded">case_token</code>.</li>
-              <li>Do the same for <code className="bg-white/5 px-1 rounded">session_id</code>, <code className="bg-white/5 px-1 rounded">family_display_name</code>, <code className="bg-white/5 px-1 rounded">service_type</code>, and <code className="bg-white/5 px-1 rounded">assigned_staff</code>.</li>
+              <li>Do the same for <code className="bg-white/5 px-1 rounded">family_display_name</code>, <code className="bg-white/5 px-1 rounded">service_type</code>, and <code className="bg-white/5 px-1 rounded">assigned_staff</code>.</li>
               <li>Copy the form ID or full URL and paste it below.</li>
               <li>Configure the Jotform webhook to POST to <code className="bg-white/5 px-1 rounded">/api/webhooks/jotform</code>.</li>
             </ol>

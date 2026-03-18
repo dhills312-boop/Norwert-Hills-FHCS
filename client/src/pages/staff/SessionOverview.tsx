@@ -64,6 +64,7 @@ interface Arrangement {
   scheduledTime: string | null;
   selections: Record<string, string> | null;
   notes: string | null;
+  caseToken: string | null;
   createdAt: string;
 }
 
@@ -95,10 +96,13 @@ function buildJotformUrl(fi: FormInstanceEnriched, arrangement: Arrangement): st
   if (fi.externalLink) return fi.externalLink;
 
   const serviceType = arrangement.selections?.["service-type"] || "";
+  const caseToken = arrangement.caseToken || arrangement.id;
+
   const params = new URLSearchParams({
-    sessionId: arrangement.id,
-    familyName: arrangement.familyName,
-    serviceType,
+    case_token: caseToken,
+    session_id: arrangement.id,
+    family_display_name: arrangement.familyName,
+    service_type: serviceType,
   });
 
   if (baseUrl) return `${baseUrl}?${params}`;
@@ -501,9 +505,9 @@ export default function SessionOverview() {
     <StaffLayout>
       <div className="p-4 md:p-8 max-w-3xl mx-auto pb-20">
 
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-start gap-3 mb-5">
           <Link href="/staff/dashboard">
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" data-testid="button-back">
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground mt-0.5" data-testid="button-back">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
@@ -511,13 +515,30 @@ export default function SessionOverview() {
             <h1 className="font-serif text-2xl md:text-3xl text-foreground truncate" data-testid="text-session-title">
               {arrangement.familyName}
             </h1>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-sm mb-2">
               {arrangement.scheduledTime || "Not scheduled"} · {serviceType || "Service type TBD"}
             </p>
+            {arrangement.caseToken && (
+              <button
+                className="inline-flex items-center gap-2 bg-background/40 border border-white/10 rounded-lg px-3 py-1.5 hover:bg-white/5 transition-colors group"
+                onClick={() => {
+                  navigator.clipboard.writeText(arrangement.caseToken!);
+                  toast({ title: "Case token copied", description: arrangement.caseToken! });
+                }}
+                data-testid="button-copy-case-token"
+                title="Click to copy case token"
+              >
+                <span className="text-[11px] text-muted-foreground uppercase tracking-widest">Case Token</span>
+                <span className="font-mono text-sm font-semibold text-primary tracking-wider" data-testid="text-case-token">
+                  {arrangement.caseToken}
+                </span>
+                <Copy className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+              </button>
+            )}
           </div>
           <Badge
             variant="outline"
-            className="text-xs border-primary/30 text-primary flex-shrink-0"
+            className="text-xs border-primary/30 text-primary flex-shrink-0 mt-1"
             data-testid="text-session-status"
           >
             {arrangement.status}
@@ -821,6 +842,17 @@ export default function SessionOverview() {
                   data-testid="input-send-destination"
                 />
               </div>
+              {arrangement.caseToken && (
+                <div className="flex items-center justify-between gap-2 bg-background/30 border border-white/5 rounded-lg px-3 py-2">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest mb-0.5">Included in link</p>
+                    <p className="text-xs font-mono">
+                      <span className="text-muted-foreground">case_token=</span>
+                      <span className="text-primary font-semibold">{arrangement.caseToken}</span>
+                    </p>
+                  </div>
+                </div>
+              )}
               {sendModal.fi.template?.jotformId?.startsWith("PLACEHOLDER") && (
                 <div className="text-xs text-amber-300/80 bg-amber-950/20 border border-amber-800/20 rounded-lg px-3 py-2">
                   Form ID not yet configured. Link will be recorded but form is not active.
@@ -852,11 +884,28 @@ export default function SessionOverview() {
               <p className="text-sm text-muted-foreground">
                 Configure PandaDoc recipient for <span className="text-foreground font-medium">{pandadocModal.fi.template?.name}</span>
               </p>
-              {pandadocModal.fi.template?.pandadocTemplateId && (
-                <div className="text-xs font-mono text-muted-foreground bg-background/30 border border-white/5 rounded px-3 py-2">
-                  Template ID: {pandadocModal.fi.template.pandadocTemplateId}
-                </div>
-              )}
+              <div className="grid grid-cols-2 gap-2">
+                {pandadocModal.fi.template?.pandadocTemplateId && (
+                  <div className="text-xs font-mono text-muted-foreground bg-background/30 border border-white/5 rounded px-3 py-2">
+                    <span className="text-muted-foreground/60 block mb-0.5">Template ID</span>
+                    {pandadocModal.fi.template.pandadocTemplateId}
+                  </div>
+                )}
+                {arrangement.caseToken && (
+                  <button
+                    className="text-xs font-mono text-left bg-background/30 border border-primary/20 rounded px-3 py-2 hover:bg-primary/5 transition-colors group"
+                    onClick={() => {
+                      navigator.clipboard.writeText(arrangement.caseToken!);
+                      toast({ title: "Case token copied" });
+                    }}
+                    data-testid="button-copy-token-pandadoc"
+                  >
+                    <span className="text-muted-foreground/60 block mb-0.5">Merge Field: case_token</span>
+                    <span className="text-primary font-semibold">{arrangement.caseToken}</span>
+                    <Copy className="h-2.5 w-2.5 inline ml-1.5 text-muted-foreground group-hover:text-primary" />
+                  </button>
+                )}
+              </div>
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-sm">Authorizing Agent Name</Label>

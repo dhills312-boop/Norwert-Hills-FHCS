@@ -40,6 +40,7 @@ export interface IStorage {
 
   getArrangements(): Promise<Arrangement[]>;
   getArrangement(id: string): Promise<Arrangement | undefined>;
+  getArrangementByToken(token: string): Promise<Arrangement | undefined>;
   createArrangement(data: InsertArrangement): Promise<Arrangement>;
   updateArrangement(id: string, data: Partial<InsertArrangement>): Promise<Arrangement | undefined>;
   deleteArrangement(id: string): Promise<void>;
@@ -158,6 +159,11 @@ export class DatabaseStorage implements IStorage {
 
   async getArrangement(id: string): Promise<Arrangement | undefined> {
     const [arr] = await db.select().from(arrangements).where(eq(arrangements.id, id));
+    return arr;
+  }
+
+  async getArrangementByToken(token: string): Promise<Arrangement | undefined> {
+    const [arr] = await db.select().from(arrangements).where(eq(arrangements.caseToken, token));
     return arr;
   }
 

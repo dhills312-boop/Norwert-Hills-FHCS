@@ -55,6 +55,7 @@ export const arrangements = pgTable("arrangements", {
   staffId: varchar("staff_id"),
   selections: jsonb("selections").$type<ArrangementSelections>().default({}),
   notes: text("notes"),
+  caseToken: text("case_token").unique(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

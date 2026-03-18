@@ -12,6 +12,31 @@ import fs from "fs";
 import multer from "multer";
 import { registerCremationRoutes } from "./cremation-routes";
 
+function generateCaseToken(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let token = "NH";
+  for (let i = 0; i < 8; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
+}
+
+function buildJotformUrl(
+  jotformId: string,
+  jotformBaseUrl: string | null,
+  params: { sessionId: string; familyName: string; serviceType: string; staffName: string; caseToken: string }
+): string {
+  const qs = new URLSearchParams({
+    case_token: params.caseToken,
+    session_id: params.sessionId,
+    family_display_name: params.familyName,
+    service_type: params.serviceType,
+    assigned_staff: params.staffName,
+  }).toString();
+  if (jotformBaseUrl) return `${jotformBaseUrl}?${qs}`;
+  return `https://form.jotform.com/${jotformId}?${qs}`;
+}
+
 function maskDestination(dest: string, channel: string): string {
   if (channel === "email") {
     const [local, domain] = dest.split("@");
@@ -45,6 +70,21 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Validation error", errors: err.errors });
       }
       res.status(500).json({ message: "Failed to submit contact form" });
+    }
+  });
+
+  app.get("/api/token/:token", async (req, res) => {
+    try {
+      const arr = await storage.getArrangementByToken(req.params.token);
+      if (!arr) return res.status(404).json({ message: "Not found" });
+      res.json({
+        caseToken: arr.caseToken,
+        familyName: arr.familyName,
+        serviceType: (arr.selections as Record<string, string> | null)?.["service-type"] || "",
+        sessionId: arr.id,
+      });
+    } catch {
+      res.status(500).json({ message: "Failed to fetch" });
     }
   });
 
@@ -203,26 +243,31 @@ export async function registerRoutes(
     try {
       const data = insertArrangementSchema.parse(req.body);
       const isDemo = req.query.demo === "true";
+      const caseToken = generateCaseToken();
+      const staffName = req.user?.name || "";
+
       if (isDemo) {
-        const arr = await storage.createArrangement({ ...data, nextStep: "Forms" });
+        const arr = await storage.createArrangement({ ...data, nextStep: "Forms", caseToken });
         const templates = await storage.getFormTemplates();
-        const serviceType = data.selections?.["service-type"] || "";
+        const serviceType = (data.selections?.["service-type"] as string) || "";
         for (const tmpl of templates) {
           const required = tmpl.requiredForServiceTypes;
-          const serviceUnknown = !serviceType;
-          const isRequired = required.includes("all") || required.length === 0 || serviceUnknown || required.includes(serviceType);
-          if (!isRequired) continue;
-          const formUrl = tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")
-            ? `https://form.jotform.com/${tmpl.jotformId}?sessionId=${arr.id}&familyName=${encodeURIComponent(arr.familyName)}&serviceType=${encodeURIComponent(serviceType)}&staffName=${encodeURIComponent(req.user?.name || "")}`
-            : `/staff/sessions/${arr.id}/forms/${tmpl.id}/fill`;
+          const isApplicable = required.includes("all") || required.length === 0 || !serviceType || required.includes(serviceType);
+          if (!isApplicable) continue;
+          let formUrl: string | null = null;
+          if (tmpl.type === "jotform" && tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")) {
+            formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { sessionId: arr.id, familyName: arr.familyName, serviceType, staffName, caseToken });
+          }
           await storage.createFormInstance({ arrangementId: arr.id, templateId: tmpl.id, status: "not_sent", formUrl });
         }
         return res.status(201).json(arr);
       }
+
       const result = await db.transaction(async (tx) => {
         const [arr] = await tx.insert(arrangements).values({
           ...data,
           nextStep: "Forms",
+          caseToken,
         }).returning();
         await tx.insert(activityLogs).values({
           arrangementId: arr.id,
@@ -232,24 +277,17 @@ export async function registerRoutes(
         });
 
         const templates = await storage.getFormTemplates();
-        const serviceType = data.selections?.["service-type"] || "";
+        const serviceType = (data.selections?.["service-type"] as string) || "";
         for (const tmpl of templates) {
           const required = tmpl.requiredForServiceTypes;
-          const serviceUnknown = !serviceType;
-          const isRequired = required.includes("all") || required.length === 0 || serviceUnknown || required.includes(serviceType);
-          if (!isRequired) continue;
-
-          const formUrl = tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")
-            ? `https://form.jotform.com/${tmpl.jotformId}?sessionId=${arr.id}&familyName=${encodeURIComponent(arr.familyName)}&serviceType=${encodeURIComponent(serviceType)}&staffName=${encodeURIComponent(req.user!.name || "")}`
-            : `/staff/sessions/${arr.id}/forms/${tmpl.id}/fill`;
-          await tx.insert(formInstances).values({
-            arrangementId: arr.id,
-            templateId: tmpl.id,
-            status: "not_sent",
-            formUrl,
-          });
+          const isApplicable = required.includes("all") || required.length === 0 || !serviceType || required.includes(serviceType);
+          if (!isApplicable) continue;
+          let formUrl: string | null = null;
+          if (tmpl.type === "jotform" && tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")) {
+            formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { sessionId: arr.id, familyName: arr.familyName, serviceType, staffName, caseToken });
+          }
+          await tx.insert(formInstances).values({ arrangementId: arr.id, templateId: tmpl.id, status: "not_sent", formUrl });
         }
-
         return arr;
       });
       res.status(201).json(result);
@@ -406,6 +444,7 @@ export async function registerRoutes(
       const existingTemplateIds = new Set(instances.map(fi => fi.templateId));
 
       const serviceType = (arr.selections as Record<string, string> | null)?.["service-type"] || "";
+      const caseToken = arr.caseToken || arr.id;
       for (const tmpl of templates) {
         if (existingTemplateIds.has(tmpl.id)) continue;
         const reqTypes = tmpl.requiredForServiceTypes;
@@ -413,12 +452,8 @@ export async function registerRoutes(
         if (!isApplicable) continue;
 
         let formUrl: string | null = null;
-        if (tmpl.type === "jotform") {
-          const jid = tmpl.jotformId;
-          if (jid && !jid.startsWith("PLACEHOLDER")) {
-            const params = new URLSearchParams({ sessionId: arr.id, familyName: arr.familyName, serviceType });
-            formUrl = tmpl.jotformUrl ? `${tmpl.jotformUrl}?${params}` : `https://form.jotform.com/${jid}?${params}`;
-          }
+        if (tmpl.type === "jotform" && tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")) {
+          formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { sessionId: arr.id, familyName: arr.familyName, serviceType, staffName: "", caseToken });
         }
         await storage.createFormInstance({ arrangementId: arr.id, templateId: tmpl.id, status: "not_sent", formUrl });
       }
@@ -528,13 +563,15 @@ export async function registerRoutes(
         const tmpl = await storage.getFormTemplate(data.templateId);
         if (arr && tmpl) {
           const serviceType = (arr.selections as Record<string, string> | null)?.["service-type"] || "";
-          const formUrl = tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")
-            ? `https://form.jotform.com/${tmpl.jotformId}?sessionId=${arr.id}&familyName=${encodeURIComponent(arr.familyName)}&serviceType=${encodeURIComponent(serviceType)}&staffName=${encodeURIComponent(req.user!.name || "")}`
-            : `/staff/sessions/${arr.id}/forms/${tmpl.id}/fill`;
+          const caseToken = arr.caseToken || arr.id;
+          let formUrl: string | null = null;
+          if (tmpl.type === "jotform" && tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")) {
+            formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { sessionId: arr.id, familyName: arr.familyName, serviceType, staffName: req.user!.name || "", caseToken });
+          }
 
           const instances = await storage.getFormInstances(req.params.id);
           const fi = instances.find(i => i.templateId === data.templateId);
-          if (fi) {
+          if (fi && formUrl) {
             await storage.updateFormInstance(fi.id, { formUrl });
           }
         }

@@ -68,7 +68,7 @@ function generateJotFormPrefillUrl(orderToken: string, serviceType: string, form
   const baseUrl = "https://form.jotform.com/TEMPLATE";
   const params = new URLSearchParams({
     order_token: orderToken,
-    serviceType: serviceType || "cremation",
+    service_type: serviceType || "cremation",
   });
   return `${baseUrl}?${params.toString()}`;
 }

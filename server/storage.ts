@@ -58,6 +58,7 @@ export interface IStorage {
 
   getFormInstances(arrangementId: string): Promise<FormInstance[]>;
   getFormInstance(id: string): Promise<FormInstance | undefined>;
+  getFormInstanceByPandadocDocId(docId: string): Promise<FormInstance | undefined>;
   createFormInstance(data: InsertFormInstance): Promise<FormInstance>;
   updateFormInstance(id: string, data: Partial<Pick<FormInstance, "status" | "sentVia" | "sentTo" | "sentAt" | "completedAt" | "formUrl" | "pandadocDocumentId" | "externalLink" | "recipientName" | "recipientEmail">>): Promise<FormInstance | undefined>;
 
@@ -231,6 +232,11 @@ export class DatabaseStorage implements IStorage {
 
   async getFormInstance(id: string): Promise<FormInstance | undefined> {
     const [fi] = await db.select().from(formInstances).where(eq(formInstances.id, id));
+    return fi;
+  }
+
+  async getFormInstanceByPandadocDocId(docId: string): Promise<FormInstance | undefined> {
+    const [fi] = await db.select().from(formInstances).where(eq(formInstances.pandadocDocumentId, docId));
     return fi;
   }
 

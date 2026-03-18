@@ -89,6 +89,91 @@ export async function registerRoutes(
     }
   });
 
+  // Jotform submission webhook
+  // Configure in Jotform: Settings → Integrations → Webhooks → POST to this URL
+  // Jotform sends form fields as a flat object under req.body; hidden fields
+  // (case_token, session_id) arrive at the top level.
+  app.post("/api/webhooks/jotform", async (req, res) => {
+    try {
+      const body = req.body || {};
+
+      // Jotform sends submission data as rawRequest (JSON string) or flat fields
+      let fields: Record<string, string> = {};
+      if (typeof body.rawRequest === "string") {
+        try { fields = JSON.parse(body.rawRequest); } catch { fields = body; }
+      } else {
+        fields = body;
+      }
+
+      const caseToken = String(fields["case_token"] || fields["q_case_token"] || "").trim();
+      const formId = String(body.formID || body.form_id || "").trim();
+      const submissionId = String(body.submissionID || body.submission_id || "").trim();
+
+      if (!caseToken) {
+        return res.status(400).json({ ok: false, message: "Missing case_token" });
+      }
+
+      const arr = await storage.getArrangementByToken(caseToken);
+      if (!arr) {
+        return res.status(404).json({ ok: false, message: "Arrangement not found for token" });
+      }
+
+      const instances = await storage.getFormInstances(arr.id);
+      const templates = await storage.getFormTemplates();
+
+      const match = instances.find(fi => {
+        const tpl = templates.find(t => t.id === fi.templateId);
+        return tpl?.jotformId === formId || tpl?.jotformId?.startsWith("PLACEHOLDER");
+      });
+
+      if (match) {
+        await storage.updateFormInstance(match.id, {
+          status: "completed",
+          completedAt: new Date(),
+          externalLink: submissionId ? `https://www.jotform.com/submission/${submissionId}` : match.externalLink,
+        });
+      }
+
+      res.json({ ok: true, matched: !!match });
+    } catch (err) {
+      console.error("Jotform webhook error:", err);
+      res.status(500).json({ ok: false, message: "Internal error" });
+    }
+  });
+
+  // PandaDoc document-signed webhook
+  // Configure in PandaDoc: Settings → Webhooks → Trigger: document.completed → POST to this URL
+  app.post("/api/webhooks/pandadoc", async (req, res) => {
+    try {
+      const event = req.body?.event || req.body?.type || "";
+      const docId = String(req.body?.data?.id || req.body?.id || "").trim();
+      const status = String(req.body?.data?.status || "").toLowerCase();
+
+      if (!docId) {
+        return res.status(400).json({ ok: false, message: "Missing document ID" });
+      }
+
+      const fi = await storage.getFormInstanceByPandadocDocId(docId);
+      if (!fi) {
+        // Not tracked in our system — acknowledge and move on
+        return res.json({ ok: true, matched: false });
+      }
+
+      const isCompleted = status.includes("completed") || status.includes("document.completed") || event.includes("completed");
+      if (isCompleted) {
+        await storage.updateFormInstance(fi.id, {
+          status: "completed",
+          completedAt: new Date(),
+        });
+      }
+
+      res.json({ ok: true, matched: true, updated: isCompleted });
+    } catch (err) {
+      console.error("PandaDoc webhook error:", err);
+      res.status(500).json({ ok: false, message: "Internal error" });
+    }
+  });
+
   app.get("/api/contacts", requireAuth, async (_req, res) => {
     try {
       const contacts = await storage.getContacts();

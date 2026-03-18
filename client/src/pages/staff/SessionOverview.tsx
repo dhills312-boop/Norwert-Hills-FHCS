@@ -313,7 +313,6 @@ export default function SessionOverview() {
   const [sendDestination, setSendDestination] = useState("");
   const [pandadocRecipientName, setPandadocRecipientName] = useState("");
   const [pandadocRecipientEmail, setPandadocRecipientEmail] = useState("");
-  const [pandadocDocId, setPandadocDocId] = useState("");
   const [directorOverride, setDirectorOverride] = useState(false);
 
   const { data: arrangement, isLoading: arrLoading } = useQuery<Arrangement>({
@@ -367,28 +366,24 @@ export default function SessionOverview() {
   });
 
   const pandadocSendMutation = useMutation({
-    mutationFn: async ({ fi, name, email, docId }: { fi: FormInstanceEnriched; name: string; email: string; docId: string }) => {
-      const link = docId ? `https://app.pandadoc.com/documents/${docId}` : undefined;
-      await apiRequest("PATCH", `/api/form-instances/${fi.id}`, {
-        status: docId ? "sent" : fi.status,
+    mutationFn: async ({ fi, name, email }: { fi: FormInstanceEnriched; name: string; email: string }) => {
+      return apiRequest("POST", `/api/form-instances/${fi.id}/pandadoc-send`, {
         recipientName: name,
         recipientEmail: email,
-        pandadocDocumentId: docId || undefined,
-        externalLink: link,
-        sentVia: "pandadoc",
-        sentTo: email,
-        ...(docId ? { sentAt: new Date().toISOString() } : {}),
       });
     },
-    onSuccess: () => {
+    onSuccess: (data: { ok: boolean; docId: string; status: string; message?: string }) => {
       queryClient.invalidateQueries({ queryKey: [`/api/arrangements/${sessionId}/forms`] });
       setPandadocModal({ open: false, fi: null });
       setPandadocRecipientName("");
       setPandadocRecipientEmail("");
-      setPandadocDocId("");
-      toast({ title: "Authorization saved", description: "Recipient and document ID recorded." });
+      if (data?.status === "creating") {
+        toast({ title: "Document created", description: data.message || "Document is still processing and will be sent shortly." });
+      } else {
+        toast({ title: "Document sent", description: "The authorization document has been sent for signature." });
+      }
     },
-    onError: () => toast({ title: "Error", description: "Failed to save authorization.", variant: "destructive" }),
+    onError: (err: Error) => toast({ title: "Failed to send", description: err.message || "Could not create or send the PandaDoc document.", variant: "destructive" }),
   });
 
   const markCompleteMutation = useMutation({
@@ -505,8 +500,8 @@ export default function SessionOverview() {
   const authForms = formInstances.filter(fi => fi.template?.category === "authorization" || fi.template?.type === "pandadoc");
 
   const requiredAuthKeys = isCremation
-    ? ["Authorization for Removal and Transfer", "Cremation Authorization", "Terms & Conditions"]
-    : ["Authorization for Removal and Transfer", "Authorization to Embalm", "Terms & Conditions"];
+    ? ["Cremation Authorization", "Terms & Conditions"]
+    : ["Authorization to Embalm", "Terms & Conditions"];
 
   const isRequiredAuth = (fi: FormInstanceEnriched) =>
     requiredAuthKeys.some(k => fi.template?.name?.includes(k.split(" ")[0]));
@@ -551,12 +546,12 @@ export default function SessionOverview() {
                 className="inline-flex items-center gap-2 bg-background/40 border border-white/10 rounded-lg px-3 py-1.5 hover:bg-white/5 transition-colors group"
                 onClick={() => {
                   navigator.clipboard.writeText(arrangement.caseToken!);
-                  toast({ title: "Case token copied", description: arrangement.caseToken! });
+                  toast({ title: "Case ID copied", description: arrangement.caseToken! });
                 }}
                 data-testid="button-copy-case-token"
-                title="Click to copy case token"
+                title="Click to copy Case ID"
               >
-                <span className="text-[11px] text-muted-foreground uppercase tracking-widest">Case Token</span>
+                <span className="text-[11px] text-muted-foreground uppercase tracking-widest">Case ID</span>
                 <span className="font-mono text-sm font-semibold text-primary tracking-wider" data-testid="text-case-token">
                   {arrangement.caseToken}
                 </span>
@@ -924,7 +919,7 @@ export default function SessionOverview() {
                     className="text-xs font-mono text-left bg-background/30 border border-primary/20 rounded px-3 py-2 hover:bg-primary/5 transition-colors group"
                     onClick={() => {
                       navigator.clipboard.writeText(arrangement.caseToken!);
-                      toast({ title: "Case token copied" });
+                      toast({ title: "Case ID copied" });
                     }}
                     data-testid="button-copy-token-pandadoc"
                   >
@@ -954,18 +949,9 @@ export default function SessionOverview() {
                     data-testid="input-recipient-email"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm">PandaDoc Document ID <span className="text-muted-foreground">(optional — paste after sending)</span></Label>
-                  <Input
-                    value={pandadocDocId}
-                    onChange={(e) => setPandadocDocId(e.target.value)}
-                    placeholder="Document ID from PandaDoc"
-                    data-testid="input-pandadoc-doc-id"
-                  />
-                </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Send the document directly in PandaDoc using the template above. Return here to record the document ID and update status.
+                The document will be created from the template above and sent directly to the recipient's email for signature. This may take up to 30 seconds.
               </p>
               <DialogFooter>
                 <Button
@@ -975,12 +961,10 @@ export default function SessionOverview() {
                     fi: pandadocModal.fi!,
                     name: pandadocRecipientName.trim(),
                     email: pandadocRecipientEmail.trim(),
-                    docId: pandadocDocId.trim(),
                   })}
                   data-testid="button-confirm-pandadoc"
                 >
-                  {pandadocSendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Pen className="h-4 w-4 mr-2" />}
-                  Save &amp; Record
+                  {pandadocSendMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Sending…</> : <><Pen className="h-4 w-4 mr-2" />Send for Signature</>}
                 </Button>
               </DialogFooter>
             </div>

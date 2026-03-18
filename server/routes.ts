@@ -620,6 +620,128 @@ export async function registerRoutes(
     }
   });
 
+  // PandaDoc automated send: create doc from template → poll until draft → send to recipient
+  app.post("/api/form-instances/:id/pandadoc-send", requireAuth, async (req, res) => {
+    const PANDADOC_API_KEY = process.env.PANDADOC_API_KEY;
+    if (!PANDADOC_API_KEY) {
+      return res.status(503).json({ message: "PandaDoc API key not configured. Add PANDADOC_API_KEY to Secrets." });
+    }
+
+    const { recipientName, recipientEmail } = req.body;
+    if (!recipientName?.trim() || !recipientEmail?.trim()) {
+      return res.status(400).json({ message: "recipientName and recipientEmail are required" });
+    }
+
+    try {
+      const fi = await storage.getFormInstance(req.params.id);
+      if (!fi) return res.status(404).json({ message: "Form instance not found" });
+
+      const templates = await storage.getFormTemplates();
+      const tmpl = templates.find(t => t.id === fi.templateId);
+      if (!tmpl?.pandadocTemplateId) return res.status(400).json({ message: "No PandaDoc template ID configured" });
+      if (tmpl.pandadocTemplateId.startsWith("PLACEHOLDER")) {
+        return res.status(400).json({ message: "PandaDoc template ID is still a placeholder. Configure it in Form Templates settings." });
+      }
+
+      const arr = await storage.getArrangement(fi.arrangementId);
+      if (!arr) return res.status(404).json({ message: "Arrangement not found" });
+
+      const caseToken = arr.caseToken || arr.id;
+      const nameParts = recipientName.trim().split(" ");
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(" ") || "-";
+
+      const pdHeaders = {
+        "Authorization": `API-Key ${PANDADOC_API_KEY}`,
+        "Content-Type": "application/json",
+      };
+
+      // 1. Fetch template details to get recipient roles defined in the template
+      let roleName = "Signer";
+      try {
+        const tmplResp = await fetch(`https://api.pandadoc.com/public/v1/templates/${tmpl.pandadocTemplateId}/details`, { headers: pdHeaders });
+        if (tmplResp.ok) {
+          const tmplData = await tmplResp.json() as { roles?: { name: string }[] };
+          if (tmplData.roles?.length) roleName = tmplData.roles[0].name;
+        }
+      } catch { /* use default role */ }
+
+      // 2. Create document from template
+      const createBody = {
+        name: `${tmpl.name} – ${arr.familyName}`,
+        template_uuid: tmpl.pandadocTemplateId,
+        recipients: [{ email: recipientEmail.trim(), first_name: firstName, last_name: lastName, role: roleName }],
+        tokens: [
+          { name: "case_token", value: caseToken },
+          { name: "family_name", value: arr.familyName },
+          { name: "recipient_name", value: recipientName.trim() },
+        ],
+        metadata: { case_token: caseToken, arrangement_id: arr.id, form_instance_id: fi.id },
+        tags: [caseToken],
+      };
+
+      const createResp = await fetch("https://api.pandadoc.com/public/v1/documents", {
+        method: "POST", headers: pdHeaders, body: JSON.stringify(createBody),
+      });
+
+      if (!createResp.ok) {
+        const errText = await createResp.text();
+        console.error("PandaDoc create error:", errText);
+        return res.status(502).json({ message: `PandaDoc document creation failed (${createResp.status})` });
+      }
+
+      const created = await createResp.json() as { id?: string; uuid?: string };
+      const docId = (created.id || created.uuid) as string;
+
+      // Save doc ID immediately so it's traceable even if polling times out
+      await storage.updateFormInstance(fi.id, {
+        pandadocDocumentId: docId,
+        recipientName: recipientName.trim(),
+        recipientEmail: recipientEmail.trim(),
+        sentVia: "pandadoc",
+        externalLink: `https://app.pandadoc.com/documents/${docId}`,
+      });
+
+      // 3. Poll until document.draft (up to ~24 s)
+      let isReady = false;
+      for (let i = 0; i < 12; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const pollResp = await fetch(`https://api.pandadoc.com/public/v1/documents/${docId}`, { headers: pdHeaders });
+          if (pollResp.ok) {
+            const pollData = await pollResp.json() as { status?: string };
+            if (pollData.status === "document.draft") { isReady = true; break; }
+          }
+        } catch { /* keep polling */ }
+      }
+
+      if (!isReady) {
+        // Return partial success — webhook will handle completion tracking
+        return res.json({ ok: true, docId, status: "creating", message: "Document is still processing. It will be sent once ready." });
+      }
+
+      // 4. Send the document
+      const sendResp = await fetch(`https://api.pandadoc.com/public/v1/documents/${docId}/send`, {
+        method: "POST", headers: pdHeaders,
+        body: JSON.stringify({ message: "Please review and sign the enclosed document at your earliest convenience.", silent: false }),
+      });
+
+      if (!sendResp.ok) {
+        const errText = await sendResp.text();
+        console.error("PandaDoc send error:", errText);
+        return res.status(502).json({ message: `PandaDoc send failed (${sendResp.status})` });
+      }
+
+      // 5. Mark form instance as sent
+      await storage.updateFormInstance(fi.id, { status: "sent", sentTo: recipientEmail.trim(), sentAt: new Date() });
+
+      res.json({ ok: true, docId, status: "sent" });
+    } catch (err) {
+      console.error("PandaDoc send route error:", err);
+      res.status(500).json({ message: "Failed to create/send PandaDoc document" });
+    }
+  });
+
   app.get("/api/arrangements/:id/checklist", requireAuth, async (req, res) => {
     try {
       const checklist = await storage.getSessionDocChecklist(req.params.id);

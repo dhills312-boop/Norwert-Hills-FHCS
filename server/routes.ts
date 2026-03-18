@@ -15,7 +15,7 @@ import { registerCremationRoutes } from "./cremation-routes";
 function generateCaseToken(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let token = "NH";
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 8; i++) {
     token += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return token;

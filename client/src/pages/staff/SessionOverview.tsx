@@ -625,7 +625,6 @@ export default function SessionOverview() {
                         setPandadocModal({ open: true, fi });
                         setPandadocRecipientName(arrangement.familyName);
                         setPandadocRecipientEmail(arrangement.email || "");
-                        setPandadocDocId(fi.pandadocDocumentId || "");
                       }}
                     />
                   ))}
@@ -689,7 +688,6 @@ export default function SessionOverview() {
                             setPandadocModal({ open: true, fi });
                             setPandadocRecipientName(fi.recipientName || arrangement.familyName);
                             setPandadocRecipientEmail(fi.recipientEmail || arrangement.email || "");
-                            setPandadocDocId(fi.pandadocDocumentId || "");
                           }}
                         />
                       </div>

@@ -13,7 +13,7 @@ import { z } from "zod";
 import crypto from "crypto";
 
 function generateOrderToken(): string {
-  return crypto.randomBytes(16).toString("base64url");
+  return crypto.randomBytes(9).toString("base64url").slice(0, 12).toUpperCase();
 }
 
 const checkServiceAreaSchema = z.object({

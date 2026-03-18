@@ -323,7 +323,7 @@ function ChecklistToggle({
 export default function SessionOverview() {
   const [, params] = useRoute("/staff/sessions/:id");
   const [, setLocation] = useLocation();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, isDirector } = useAuth();
   const { toast } = useToast();
   const sessionId = params?.id || "";
 
@@ -574,14 +574,22 @@ export default function SessionOverview() {
   const intakeForms = formInstances.filter(fi => fi.template?.category === "intake" || (!fi.template?.category && fi.template?.type === "jotform"));
   const authForms = formInstances.filter(fi => fi.template?.category === "authorization" || fi.template?.type === "pandadoc");
 
+  // Burial: only T&C required (auth to embalm is optional)
+  // Cremation: Cremation Auth + T&C required
   const requiredAuthKeys = isCremation
     ? ["Cremation Authorization", "Terms & Conditions"]
-    : ["Authorization to Embalm", "Terms & Conditions"];
+    : ["Terms & Conditions"];
 
   const isRequiredAuth = (fi: FormInstanceEnriched) =>
     requiredAuthKeys.some(k => fi.template?.name?.includes(k.split(" ")[0]));
 
-  const allIntakeComplete = intakeForms.length === 0 || intakeForms.every(fi => fi.status === "sent" || fi.status === "completed");
+  // SSN and Preplanning forms are optional — don't block progress
+  const requiredIntakeForms = intakeForms.filter(fi => {
+    const name = fi.template?.name || "";
+    return !name.includes("SSN") && !name.includes("Preplanning");
+  });
+
+  const allIntakeComplete = requiredIntakeForms.length === 0 || requiredIntakeForms.every(fi => fi.status === "sent" || fi.status === "completed");
   const allAuthComplete = authForms.length === 0 || authForms.filter(isRequiredAuth).every(fi => fi.status === "completed");
   const canProceedToBuilder = (allIntakeComplete && allAuthComplete) || directorOverride;
 
@@ -812,30 +820,47 @@ export default function SessionOverview() {
               {intakeForms.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No intake forms configured for this session.</p>
               ) : (
-                <div className="space-y-3">
-                  {intakeForms.map(fi => (
-                    <FormItemCard
-                      key={fi.id}
-                      fi={fi}
-                      arrangement={arrangement}
-                      onSend={() => {
-                        setSendModal({ open: true, fi });
-                        setSendChannel(arrangement.email ? "email" : "sms");
-                        setSendDestination(arrangement.email || arrangement.phone || "");
-                      }}
-                      onOpenTablet={() => handleOpenTablet(fi)}
-                      onCopyLink={() => handleCopyLink(fi)}
-                      onMarkComplete={() => markCompleteMutation.mutate(fi)}
-                      onOpenDocument={() => {
-                        if (fi.externalLink) window.open(fi.externalLink, "_blank");
-                      }}
-                      onSendPandaDoc={() => {
-                        setPandadocModal({ open: true, fi });
-                        setPandadocRecipientName(arrangement.familyName);
-                        setPandadocRecipientEmail(arrangement.email || "");
-                      }}
-                    />
-                  ))}
+                <div className="space-y-4">
+                  {intakeForms.map(fi => {
+                    const isSSN = fi.template?.name?.includes("SSN");
+                    const isPreplanning = fi.template?.name?.includes("Preplanning");
+                    const isOptional = isSSN || isPreplanning;
+                    const ssnLocked = isSSN && !isDirector;
+                    return (
+                      <div key={fi.id} className="relative">
+                        {isOptional && (
+                          <span className="absolute -top-2 left-3 text-[10px] text-muted-foreground/60 font-medium z-10 bg-card px-1">Optional</span>
+                        )}
+                        {ssnLocked && (
+                          <div className="absolute inset-0 z-20 rounded-xl bg-background/75 backdrop-blur-[2px] flex items-center justify-center">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1.5 bg-card border border-white/10 px-3 py-1.5 rounded-full">
+                              <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Director Access Required
+                            </span>
+                          </div>
+                        )}
+                        <FormItemCard
+                          fi={fi}
+                          arrangement={arrangement}
+                          onSend={() => {
+                            setSendModal({ open: true, fi });
+                            setSendChannel(arrangement.email ? "email" : "sms");
+                            setSendDestination(arrangement.email || arrangement.phone || "");
+                          }}
+                          onOpenTablet={() => handleOpenTablet(fi)}
+                          onCopyLink={() => handleCopyLink(fi)}
+                          onMarkComplete={() => markCompleteMutation.mutate(fi)}
+                          onOpenDocument={() => {
+                            if (fi.externalLink) window.open(fi.externalLink, "_blank");
+                          }}
+                          onSendPandaDoc={() => {
+                            setPandadocModal({ open: true, fi });
+                            setPandadocRecipientName(arrangement.familyName);
+                            setPandadocRecipientEmail(arrangement.email || "");
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -855,26 +880,29 @@ export default function SessionOverview() {
               {isCremation && (
                 <div className="flex items-center gap-2 mb-4 mt-2 text-xs text-amber-300/80 bg-amber-950/20 border border-amber-800/20 rounded-lg px-3 py-2">
                   <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span>Cremation case — Authorization for Removal &amp; Cremation Authorization required</span>
+                  <span>Cremation case — Cremation Authorization &amp; Terms and Conditions required to proceed</span>
                 </div>
               )}
               {!isCremation && serviceType && (
                 <div className="flex items-center gap-2 mb-4 mt-2 text-xs text-sky-300/80 bg-sky-950/20 border border-sky-800/20 rounded-lg px-3 py-2">
                   <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span>Authorization for Removal &amp; Authorization to Embalm required for this service type</span>
+                  <span>Terms &amp; Conditions required. Authorization to Embalm is optional for this service type.</span>
                 </div>
               )}
 
               {authForms.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No authorization documents configured for this session.</p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {authForms.map(fi => {
                     const required = isRequiredAuth(fi);
                     return (
                       <div key={fi.id} className="relative">
                         {required && fi.status !== "completed" && (
-                          <span className="absolute -top-1.5 left-3 text-[10px] text-amber-400 font-medium z-10">Required</span>
+                          <span className="absolute -top-2 left-3 text-[10px] text-amber-400 font-medium z-10 bg-card px-1">Required</span>
+                        )}
+                        {!required && (
+                          <span className="absolute -top-2 left-3 text-[10px] text-muted-foreground/60 font-medium z-10 bg-card px-1">Optional</span>
                         )}
                         <FormItemCard
                           fi={fi}

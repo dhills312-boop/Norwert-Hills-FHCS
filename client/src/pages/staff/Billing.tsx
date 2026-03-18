@@ -2,7 +2,7 @@ import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Printer, Download, Link as LinkIcon, Check, ShieldCheck, PenSquare, Share2, ArrowLeft, FileText, Loader2 } from "lucide-react";
+import { Printer, Download, Link as LinkIcon, Check, ShieldCheck, PenSquare, Share2, ArrowLeft, FileText, Loader2, ChevronRight, Clock, CheckCircle2 } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import type { ServiceCatalogItem, ArrangementSelections } from "@shared/schema";
 
 interface Arrangement {
@@ -177,6 +179,16 @@ export default function Billing() {
     enabled: !!arrangementId && isAuthenticated,
   });
 
+  const { data: allArrangements = [], isLoading: allArrsLoading } = useQuery<Arrangement[]>({
+    queryKey: ["/api/arrangements"],
+    queryFn: async () => {
+      const res = await fetch("/api/arrangements", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !arrangementId && isAuthenticated,
+  });
+
   const { data: catalogItems = [] } = useQuery<ServiceCatalogItem[]>({
     queryKey: ["/api/service-catalog"],
     queryFn: async () => {
@@ -235,17 +247,82 @@ export default function Billing() {
   if (!billData) {
     return (
       <StaffLayout>
-        <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-6">
-          <div className="bg-white/5 p-8 rounded-full">
-            <FileText className="h-16 w-16 text-primary opacity-50" />
+        <div className="p-4 md:p-8 max-w-2xl mx-auto">
+          <div className="flex items-center gap-4 mb-8">
+            <Link href="/staff/dashboard">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-white/10 text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="font-serif text-2xl md:text-3xl">Billing & Statements</h1>
+              <p className="text-muted-foreground text-sm">Select a session to view its package selections and invoice</p>
+            </div>
           </div>
-          <h2 className="font-serif text-3xl">Statement Generator</h2>
-          <p className="text-muted-foreground max-w-md">
-            {arrangementId
-              ? "Loading arrangement data..."
-              : "No active statement loaded. Open an arrangement from the dashboard to generate a statement."}
-          </p>
-          {arrangementId && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
+
+          {arrangementId ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : allArrsLoading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : allArrangements.length === 0 ? (
+            <div className="text-center py-20 space-y-4">
+              <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+              <p className="text-muted-foreground">No sessions found. Create an arrangement first.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {allArrangements.map((arr) => {
+                const sel = (arr.selections || {}) as ArrangementSelections;
+                const serviceType = sel["service-type"] || "";
+                const packageId = sel.packageId || "";
+                const packageLabel = packageId
+                  ? packageId.replace(/^pkg-/, "").replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+                  : "No package selected";
+                const itemCount = [
+                  ...(sel.addOnIds || []),
+                  ...(sel.merchandiseIds || []),
+                  ...(sel.floralIds || []),
+                  ...(sel.cashAdvanceIds || []),
+                ].length;
+                return (
+                  <Card key={arr.id} className="border-white/5 bg-card hover:border-primary/20 transition-colors" data-testid={`billing-card-${arr.id}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-serif text-lg truncate" data-testid={`billing-name-${arr.id}`}>{arr.familyName}</h3>
+                            <Badge variant="outline" className={cn(
+                              "text-[10px] flex-shrink-0",
+                              arr.status === "Completed" ? "border-green-500/30 text-green-400" :
+                              arr.status === "Pending Signature" ? "border-amber-500/30 text-amber-400" :
+                              "border-primary/30 text-primary"
+                            )}>
+                              {arr.status}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {serviceType && <span className="capitalize">{serviceType}</span>}
+                            {serviceType && packageLabel && <span className="text-white/10">·</span>}
+                            {packageLabel && <span>{packageLabel}</span>}
+                            {itemCount > 0 && <><span className="text-white/10">·</span><span>{itemCount} add-on{itemCount !== 1 ? "s" : ""}</span></>}
+                          </div>
+                        </div>
+                        <Link href={`/staff/billing?arrangement=${arr.id}`}>
+                          <Button size="sm" variant="outline" className="border-white/10 hover:bg-white/5 flex-shrink-0" data-testid={`billing-view-${arr.id}`}>
+                            View Statement <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       </StaffLayout>
     );

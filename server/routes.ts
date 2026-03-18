@@ -2,8 +2,8 @@ import type { Express } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { arrangements, activityLogs, formInstances } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { arrangements, activityLogs, formInstances, arrangementItems, commEvents, sessionDocChecklist, announcements, condolenceMessages } from "@shared/schema";
+import { eq, inArray } from "drizzle-orm";
 import { requireAuth, requireDirector, hashPassword } from "./auth";
 import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertCommEventSchema, insertServiceCatalogSchema, insertAnnouncementSchema, insertCondolenceMessageSchema, type FormInstance } from "@shared/schema";
 import { z } from "zod";
@@ -448,26 +448,28 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/arrangements/:id", requireAuth, async (req, res) => {
+  app.delete("/api/arrangements/:id", requireDirector, async (req, res) => {
     try {
       const arr = await storage.getArrangement(req.params.id);
-      const isDemo = req.query.demo === "true";
+      if (!arr) return res.status(404).json({ message: "Arrangement not found" });
 
-      if (isDemo) {
-        await storage.deleteArrangement(req.params.id);
-        return res.json({ message: "Deleted" });
+      const id = req.params.id;
+
+      // Delete all related records before the arrangement row
+      // condolenceMessages links through announcementId, not arrangementId
+      const linkedAnnouncements = await db.select({ id: announcements.id }).from(announcements).where(eq(announcements.arrangementId, id));
+      if (linkedAnnouncements.length > 0) {
+        await db.delete(condolenceMessages).where(inArray(condolenceMessages.announcementId, linkedAnnouncements.map(a => a.id)));
       }
+      await db.delete(announcements).where(eq(announcements.arrangementId, id));
+      await db.delete(sessionDocChecklist).where(eq(sessionDocChecklist.arrangementId, id));
+      await db.delete(commEvents).where(eq(commEvents.arrangementId, id));
+      await db.delete(formInstances).where(eq(formInstances.arrangementId, id));
+      await db.delete(arrangementItems).where(eq(arrangementItems.arrangementId, id));
+      await db.delete(activityLogs).where(eq(activityLogs.arrangementId, id));
+      await db.delete(arrangements).where(eq(arrangements.id, id));
 
-      await db.transaction(async (tx) => {
-        await tx.delete(arrangements).where(eq(arrangements.id, req.params.id));
-        await tx.insert(activityLogs).values({
-          arrangementId: req.params.id,
-          actorId: req.user!.id,
-          action: "deleted",
-          details: arr ? `Deleted arrangement for ${arr.familyName}` : "Deleted arrangement",
-        });
-      });
-      res.json({ message: "Deleted" });
+      res.json({ ok: true, familyName: arr.familyName });
     } catch {
       res.status(500).json({ message: "Failed to delete arrangement" });
     }

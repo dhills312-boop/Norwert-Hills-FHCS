@@ -24,11 +24,11 @@ function generateCaseToken(): string {
 function buildJotformUrl(
   jotformId: string,
   jotformBaseUrl: string | null,
-  params: { sessionId: string; familyName: string; serviceType: string; staffName: string; caseToken: string }
+  params: { id: string; familyName: string; serviceType: string; staffName: string; caseToken: string }
 ): string {
   const qs = new URLSearchParams({
+    session_id: params.id,
     case_token: params.caseToken,
-    session_id: params.sessionId,
     family_display_name: params.familyName,
     service_type: params.serviceType,
     assigned_staff: params.staffName,
@@ -76,12 +76,13 @@ export async function registerRoutes(
   app.get("/api/token/:token", async (req, res) => {
     try {
       const arr = await storage.getArrangementByToken(req.params.token);
-      if (!arr) return res.status(404).json({ message: "Not found" });
+      if (!arr) {
+        return res.status(404).json({ valid: false });
+      }
+
       res.json({
+        valid: true,
         caseToken: arr.caseToken,
-        familyName: arr.familyName,
-        serviceType: (arr.selections as Record<string, string> | null)?.["service-type"] || "",
-        sessionId: arr.id,
       });
     } catch {
       res.status(500).json({ message: "Failed to fetch" });
@@ -97,9 +98,9 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/contacts/:id/status", requireAuth, async (req, res) => {
+  app.patch("/api/contacts/:id", requireAuth, async (req, res) => {
     try {
-      const { status } = req.body;
+      const status = String(req.body.status);
       const contact = await storage.updateContactStatus(req.params.id, status);
       if (!contact) return res.status(404).json({ message: "Contact not found" });
       res.json(contact);

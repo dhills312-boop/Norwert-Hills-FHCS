@@ -29,7 +29,7 @@ A full-stack funeral home website for a Louisiana-based business with an editori
 - `server/seed.ts` — Bootstrap director account from ADMIN_EMAIL/ADMIN_PASSWORD env vars; syncs credentials on restart if env vars change
 
 ### Shared
-- `shared/schema.ts` — Drizzle tables: `users`, `auditLogs`, `activityLogs`, `contactSubmissions`, `arrangements`, `arrangementItems`, `serviceCatalog`, `announcements`, `condolenceMessages`, `cremationOrders`, `cremationEvents`, `cremationDocuments`, `waitlistSignups` + Zod schemas + password/email validators + `ArrangementSelections`, `ServiceDetails`, `MediaGallery` interfaces + cremation phase/event/actor type enums
+- `shared/schema.ts` — Drizzle tables: `users`, `auditLogs`, `activityLogs`, `contactSubmissions`, `arrangements`, `arrangementItems`, `serviceCatalog`, `announcements`, `condolenceMessages`, `cremationOrders`, `cremationEvents`, `cremationDocuments`, `waitlistSignups` + Zod schemas + password/email validators + `ArrangementSelections`, `ServiceDetails`, `MediaGallery` interfaces + cremation phase/event/actor type enums. `arrangements` table includes: `deceased_name`, `authorizing_agent_name`, `authorizing_agent_phone`, `authorizing_agent_email`, `authorizing_agent_address`, `relationship_to_deceased`, `assigned_staff_name` columns.
 
 ### Frontend
 - `client/src/App.tsx` — Router with all public + staff routes

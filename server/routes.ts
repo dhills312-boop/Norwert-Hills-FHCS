@@ -605,6 +605,7 @@ export async function registerRoutes(
       if (parsed.sentTo) updates.sentTo = parsed.sentTo;
       if (parsed.status === "sent") updates.sentAt = new Date();
       if (parsed.status === "completed") updates.completedAt = new Date();
+      if (parsed.status && parsed.status !== "completed") updates.completedAt = null;
       if (parsed.pandadocDocumentId !== undefined) updates.pandadocDocumentId = parsed.pandadocDocumentId;
       if (parsed.externalLink !== undefined) updates.externalLink = parsed.externalLink;
       if (parsed.recipientName !== undefined) updates.recipientName = parsed.recipientName;
@@ -675,6 +676,13 @@ export async function registerRoutes(
           { name: "case_token", value: caseToken },
           { name: "family_name", value: arr.familyName },
           { name: "recipient_name", value: recipientName.trim() },
+          { name: "deceased_name", value: (arr as any).deceasedName || "" },
+          { name: "authorizing_agent_name", value: (arr as any).authorizingAgentName || recipientName.trim() },
+          { name: "authorizing_agent_phone", value: (arr as any).authorizingAgentPhone || "" },
+          { name: "authorizing_agent_email", value: (arr as any).authorizingAgentEmail || recipientEmail.trim() },
+          { name: "authorizing_agent_address", value: (arr as any).authorizingAgentAddress || "" },
+          { name: "relationship_to_deceased", value: (arr as any).relationshipToDeceased || "" },
+          { name: "service_type", value: (arr as any).selections?.["service-type"] || "" },
         ],
         metadata: { case_token: caseToken, arrangement_id: arr.id, form_instance_id: fi.id },
         tags: [caseToken],

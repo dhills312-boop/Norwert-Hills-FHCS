@@ -151,7 +151,10 @@ export default function Builder() {
   };
 
   const handlePackageSelect = (pkgId: string) => {
-    saveSelections({ ...selections, packageId: pkgId, merchandiseIds: [], floralIds: [], addOnIds: [], cashAdvanceIds: [] });
+    const pkg = packages.find((p) => p.id === pkgId);
+    const cat = pkg?.category || "";
+    const derivedServiceType = cat === "burial" ? "burial" : cat === "cremation" ? "cremation" : cat === "direct-cremation" ? "cremation" : cat === "memorial" ? "memorial" : "";
+    saveSelections({ ...selections, packageId: pkgId, "service-type": derivedServiceType, merchandiseIds: [], floralIds: [], addOnIds: [], cashAdvanceIds: [] });
   };
 
   const handleMerchandiseToggle = (itemId: string) => {
@@ -247,8 +250,15 @@ export default function Builder() {
 
   const handleComplete = () => {
     if (arrangementId) {
-      saveMutation.mutate({ selections, status: "Pending Signature", nextStep: "Final Review" });
-      toast({ title: "Arrangement Saved", description: "Selections have been finalized." });
+      saveMutation.mutate(
+        { selections, status: "Pending Signature", nextStep: "Selections Confirmed" },
+        {
+          onSuccess: () => {
+            toast({ title: "Arrangement Saved", description: "Selections have been finalized." });
+            setLocation(`/staff/sessions/${arrangementId}`);
+          },
+        }
+      );
     }
   };
 

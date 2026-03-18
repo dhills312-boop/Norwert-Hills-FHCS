@@ -56,6 +56,13 @@ export const arrangements = pgTable("arrangements", {
   selections: jsonb("selections").$type<ArrangementSelections>().default({}),
   notes: text("notes"),
   caseToken: text("case_token").unique(),
+  deceasedName: text("deceased_name"),
+  authorizingAgentName: text("authorizing_agent_name"),
+  authorizingAgentPhone: text("authorizing_agent_phone"),
+  authorizingAgentEmail: text("authorizing_agent_email"),
+  authorizingAgentAddress: text("authorizing_agent_address"),
+  relationshipToDeceased: text("relationship_to_deceased"),
+  assignedStaffName: text("assigned_staff_name"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -120,6 +127,13 @@ export const insertArrangementSchema = createInsertSchema(arrangements).pick({
   scheduledTime: true,
   selections: true,
   notes: true,
+  deceasedName: true,
+  authorizingAgentName: true,
+  authorizingAgentPhone: true,
+  authorizingAgentEmail: true,
+  authorizingAgentAddress: true,
+  relationshipToDeceased: true,
+  assignedStaffName: true,
 });
 
 export const insertArrangementItemSchema = createInsertSchema(arrangementItems).pick({

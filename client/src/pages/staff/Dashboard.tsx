@@ -226,11 +226,15 @@ export default function Dashboard() {
                          <AlertCircle className="h-5 w-5 text-primary" />
                        )}
                        <div className="flex flex-col">
-                         <span className="text-xs uppercase tracking-wider text-muted-foreground">Next Step</span>
-                         <span className="text-sm font-medium">{session.nextStep}</span>
+                         <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                           {session.status === 'Completed' ? 'Status' : 'Next Step'}
+                         </span>
+                         <span className="text-sm font-medium">
+                           {session.status === 'Completed' ? 'Arrangement Selections Confirmed' : session.nextStep}
+                         </span>
                        </div>
                     </div>
-                    <Link href={`/staff/builder?arrangement=${session.id}`}>
+                    <Link href={session.status === 'Completed' ? `/staff/sessions/${session.id}` : `/staff/builder?arrangement=${session.id}`}>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0" data-testid={`button-open-${session.id}`}>
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </Button>

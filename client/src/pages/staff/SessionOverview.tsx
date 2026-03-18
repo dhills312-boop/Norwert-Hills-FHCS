@@ -11,7 +11,8 @@ import { useState } from "react";
 import {
   ArrowLeft, FileText, Send, Tablet, Copy, CheckCircle2, Clock, AlertTriangle,
   XCircle, Loader2, ShieldCheck, ChevronRight, ExternalLink, ClipboardCheck,
-  FileCheck, FolderOpen, Pen, ToggleLeft, ToggleRight, Landmark, ScrollText
+  FileCheck, FolderOpen, Pen, ToggleLeft, ToggleRight, Landmark, ScrollText,
+  UserCircle, ChevronDown, Save
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
@@ -66,6 +67,14 @@ interface Arrangement {
   notes: string | null;
   caseToken: string | null;
   createdAt: string;
+  deceasedName: string | null;
+  authorizingAgentName: string | null;
+  authorizingAgentPhone: string | null;
+  authorizingAgentEmail: string | null;
+  authorizingAgentAddress: string | null;
+  relationshipToDeceased: string | null;
+  assignedStaffName: string | null;
+  staffId: string | null;
 }
 
 interface SessionDocChecklist {
@@ -99,16 +108,27 @@ function buildJotformUrl(fi: FormInstanceEnriched, arrangement: Arrangement): st
     case_token: caseToken,
     family_display_name: arrangement.familyName,
     service_type: serviceType,
+    ...(arrangement.deceasedName ? { deceased_name: arrangement.deceasedName } : {}),
+    ...(arrangement.assignedStaffName ? { assigned_staff: arrangement.assignedStaffName } : {}),
   });
 
-  // Prefer template-level base URL, then a real Jotform ID, then fall back to stored instance URL.
-  // Always return something so Copy Link is available even for placeholder forms.
+  // A form is real if it has a jotformUrl OR a non-placeholder jotformId
   if (baseUrl) return `${baseUrl}?${params}`;
   if (jotformId && !jotformId.startsWith("PLACEHOLDER")) return `https://jotform.com/${jotformId}?${params}`;
 
   // Placeholder: return a URL with the placeholder ID so staff can at least see the structure.
   // Copy Link will warn the user; Open on Tablet is suppressed for placeholder URLs.
   return `https://jotform.com/${jotformId || "NOT_CONFIGURED"}?${params}`;
+}
+
+function isPlaceholderForm(fi: FormInstanceEnriched): boolean {
+  const tmpl = fi.template;
+  if (!tmpl) return true;
+  // If there's a real jotformUrl, it's not a placeholder regardless of jotformId
+  if (tmpl.jotformUrl) return false;
+  // If jotformId is set and not a placeholder marker, it's real
+  if (tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER") && !tmpl.jotformId.includes("NOT_CONFIGURED")) return false;
+  return true;
 }
 
 function FormItemCard({
@@ -225,7 +245,7 @@ function FormItemCard({
             >
               <Pen className="h-3 w-3 mr-1.5" /> Send for Signature
             </Button>
-            {pandadocLink && (
+            {(pandadocLink || fi.pandadocDocumentId) && (
               <Button
                 size="sm"
                 variant="outline"
@@ -314,6 +334,16 @@ export default function SessionOverview() {
   const [pandadocRecipientName, setPandadocRecipientName] = useState("");
   const [pandadocRecipientEmail, setPandadocRecipientEmail] = useState("");
   const [directorOverride, setDirectorOverride] = useState(false);
+  const [sessionInfoOpen, setSessionInfoOpen] = useState(false);
+  const [sessionInfoDraft, setSessionInfoDraft] = useState<{
+    deceasedName: string;
+    authorizingAgentName: string;
+    authorizingAgentPhone: string;
+    authorizingAgentEmail: string;
+    authorizingAgentAddress: string;
+    relationshipToDeceased: string;
+    assignedStaffName: string;
+  } | null>(null);
 
   const { data: arrangement, isLoading: arrLoading } = useQuery<Arrangement>({
     queryKey: [`/api/arrangements/${sessionId}`],
@@ -441,10 +471,22 @@ export default function SessionOverview() {
     onError: () => toast({ title: "Error", description: "Failed to update checklist.", variant: "destructive" }),
   });
 
+  const saveSessionInfoMutation = useMutation({
+    mutationFn: async (data: typeof sessionInfoDraft) => {
+      await apiRequest("PATCH", `/api/arrangements/${sessionId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/arrangements/${sessionId}`] });
+      setSessionInfoOpen(false);
+      toast({ title: "Session info saved" });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to save session info.", variant: "destructive" }),
+  });
+
   const handleCopyLink = async (fi: FormInstanceEnriched) => {
     const url = buildJotformUrl(fi, arrangement!);
     if (!url) return toast({ title: "No link", description: "Form URL not configured yet.", variant: "destructive" });
-    const isPlaceholder = fi.template?.jotformId?.startsWith("PLACEHOLDER") || fi.template?.jotformId?.includes("NOT_CONFIGURED");
+    const isPlaceholder = isPlaceholderForm(fi);
 
     // Reliable clipboard copy with textarea fallback for restricted environments
     let copied = false;
@@ -621,6 +663,139 @@ export default function SessionOverview() {
           ))}
         </div>
 
+        {/* Session Info — Authorizing Agent & Case Details */}
+        <div className="mb-4">
+          <button
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-white/8 bg-card hover:bg-white/3 transition-colors text-left"
+            onClick={() => {
+              if (!sessionInfoOpen && arrangement) {
+                setSessionInfoDraft({
+                  deceasedName: arrangement.deceasedName || "",
+                  authorizingAgentName: arrangement.authorizingAgentName || "",
+                  authorizingAgentPhone: arrangement.authorizingAgentPhone || "",
+                  authorizingAgentEmail: arrangement.authorizingAgentEmail || "",
+                  authorizingAgentAddress: arrangement.authorizingAgentAddress || "",
+                  relationshipToDeceased: arrangement.relationshipToDeceased || "",
+                  assignedStaffName: arrangement.assignedStaffName || "",
+                });
+              }
+              setSessionInfoOpen(!sessionInfoOpen);
+            }}
+            data-testid="button-session-info-toggle"
+          >
+            <div className="flex items-center gap-2.5">
+              <UserCircle className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Case & Authorizing Agent Info</span>
+              {arrangement?.authorizingAgentName && (
+                <span className="text-xs text-muted-foreground">— {arrangement.authorizingAgentName}</span>
+              )}
+              {!arrangement?.authorizingAgentName && (
+                <span className="text-xs text-amber-400/80">Not set</span>
+              )}
+            </div>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${sessionInfoOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          {sessionInfoOpen && sessionInfoDraft && (
+            <div className="mt-2 rounded-xl border border-white/8 bg-card p-4 space-y-4" data-testid="section-session-info">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2 space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Deceased Name</Label>
+                  <Input
+                    value={sessionInfoDraft.deceasedName}
+                    onChange={e => setSessionInfoDraft(d => d && ({ ...d, deceasedName: e.target.value }))}
+                    placeholder="Full name of deceased"
+                    className="h-9 text-sm bg-background/40 border-white/10"
+                    data-testid="input-deceased-name"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Authorizing Agent Name</Label>
+                  <Input
+                    value={sessionInfoDraft.authorizingAgentName}
+                    onChange={e => setSessionInfoDraft(d => d && ({ ...d, authorizingAgentName: e.target.value }))}
+                    placeholder="Full name"
+                    className="h-9 text-sm bg-background/40 border-white/10"
+                    data-testid="input-agent-name"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Relationship to Deceased</Label>
+                  <Input
+                    value={sessionInfoDraft.relationshipToDeceased}
+                    onChange={e => setSessionInfoDraft(d => d && ({ ...d, relationshipToDeceased: e.target.value }))}
+                    placeholder="e.g. Spouse, Child"
+                    className="h-9 text-sm bg-background/40 border-white/10"
+                    data-testid="input-relationship"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Phone</Label>
+                  <Input
+                    value={sessionInfoDraft.authorizingAgentPhone}
+                    onChange={e => setSessionInfoDraft(d => d && ({ ...d, authorizingAgentPhone: e.target.value }))}
+                    placeholder="555-123-4567"
+                    className="h-9 text-sm bg-background/40 border-white/10"
+                    data-testid="input-agent-phone"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Email</Label>
+                  <Input
+                    type="email"
+                    value={sessionInfoDraft.authorizingAgentEmail}
+                    onChange={e => setSessionInfoDraft(d => d && ({ ...d, authorizingAgentEmail: e.target.value }))}
+                    placeholder="email@example.com"
+                    className="h-9 text-sm bg-background/40 border-white/10"
+                    data-testid="input-agent-email"
+                  />
+                </div>
+                <div className="sm:col-span-2 space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Address</Label>
+                  <Input
+                    value={sessionInfoDraft.authorizingAgentAddress}
+                    onChange={e => setSessionInfoDraft(d => d && ({ ...d, authorizingAgentAddress: e.target.value }))}
+                    placeholder="Street, City, State, ZIP"
+                    className="h-9 text-sm bg-background/40 border-white/10"
+                    data-testid="input-agent-address"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Assigned Staff</Label>
+                  <Input
+                    value={sessionInfoDraft.assignedStaffName}
+                    onChange={e => setSessionInfoDraft(d => d && ({ ...d, assignedStaffName: e.target.value }))}
+                    placeholder="Staff member name"
+                    className="h-9 text-sm bg-background/40 border-white/10"
+                    data-testid="input-assigned-staff"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() => setSessionInfoOpen(false)}
+                  data-testid="button-session-info-cancel"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-primary text-primary-foreground"
+                  disabled={saveSessionInfoMutation.isPending}
+                  onClick={() => saveSessionInfoMutation.mutate(sessionInfoDraft)}
+                  data-testid="button-session-info-save"
+                >
+                  {saveSessionInfoMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+                  Save
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="space-y-6">
 
           <Card className="border-white/5 bg-card" data-testid="section-intake">
@@ -715,12 +890,16 @@ export default function SessionOverview() {
                           onCopyLink={() => handleCopyLink(fi)}
                           onMarkComplete={() => markCompleteMutation.mutate(fi)}
                           onOpenDocument={() => {
-                            if (fi.externalLink) window.open(fi.externalLink, "_blank");
+                            const url = fi.pandadocDocumentId
+                              ? `https://app.pandadoc.com/documents/${fi.pandadocDocumentId}`
+                              : fi.externalLink || null;
+                            if (url) window.open(url, "_blank");
+                            else toast({ title: "No document yet", description: "Send for signature first.", variant: "destructive" });
                           }}
                           onSendPandaDoc={() => {
                             setPandadocModal({ open: true, fi });
-                            setPandadocRecipientName(fi.recipientName || arrangement.familyName);
-                            setPandadocRecipientEmail(fi.recipientEmail || arrangement.email || "");
+                            setPandadocRecipientName(fi.recipientName || arrangement.authorizingAgentName || arrangement.familyName);
+                            setPandadocRecipientEmail(fi.recipientEmail || arrangement.authorizingAgentEmail || arrangement.email || "");
                           }}
                         />
                       </div>
@@ -907,7 +1086,7 @@ export default function SessionOverview() {
                   </div>
                 </div>
               )}
-              {sendModal.fi.template?.jotformId?.startsWith("PLACEHOLDER") && (
+              {sendModal.fi && isPlaceholderForm(sendModal.fi) && (
                 <div className="text-xs text-amber-300/80 bg-amber-950/20 border border-amber-800/20 rounded-lg px-3 py-2">
                   Form ID not yet configured. Link will be recorded but form is not active.
                 </div>

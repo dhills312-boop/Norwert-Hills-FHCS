@@ -727,8 +727,23 @@ export async function registerRoutes(
       });
 
       if (!sendResp.ok) {
-        const errText = await sendResp.text();
-        console.error("PandaDoc send error:", errText);
+        const sendErr = await sendResp.text();
+        console.error("PandaDoc send error:", sendErr);
+
+        // 403 = account-level restriction (e.g. trial plan can't send to external recipients).
+        // Document was still created — save the link so staff can open and send it from PandaDoc.
+        if (sendResp.status === 403) {
+          await storage.updateFormInstance(fi.id, {
+            status: "not_sent",
+            sentTo: recipientEmail.trim(),
+          });
+          return res.status(403).json({
+            message: "Document created in PandaDoc but could not be sent automatically — your PandaDoc plan may restrict sending to external recipients. Open the document in PandaDoc and send it manually.",
+            docId,
+            docUrl: `https://app.pandadoc.com/documents/${docId}`,
+          });
+        }
+
         return res.status(502).json({ message: `PandaDoc send failed (${sendResp.status})` });
       }
 

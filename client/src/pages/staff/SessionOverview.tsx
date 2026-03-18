@@ -367,10 +367,21 @@ export default function SessionOverview() {
 
   const pandadocSendMutation = useMutation({
     mutationFn: async ({ fi, name, email }: { fi: FormInstanceEnriched; name: string; email: string }) => {
-      return apiRequest("POST", `/api/form-instances/${fi.id}/pandadoc-send`, {
-        recipientName: name,
-        recipientEmail: email,
+      const res = await fetch(`/api/form-instances/${fi.id}/pandadoc-send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ recipientName: name, recipientEmail: email }),
       });
+      const json = await res.json();
+      if (!res.ok) {
+        const err: Error & { status?: number; docId?: string; docUrl?: string } = new Error(json.message || `Request failed (${res.status})`);
+        err.status = res.status;
+        err.docId = json.docId;
+        err.docUrl = json.docUrl;
+        throw err;
+      }
+      return json as { ok: boolean; docId: string; status: string; message?: string };
     },
     onSuccess: (data: { ok: boolean; docId: string; status: string; message?: string }) => {
       queryClient.invalidateQueries({ queryKey: [`/api/arrangements/${sessionId}/forms`] });
@@ -383,7 +394,29 @@ export default function SessionOverview() {
         toast({ title: "Document sent", description: "The authorization document has been sent for signature." });
       }
     },
-    onError: (err: Error) => toast({ title: "Failed to send", description: err.message || "Could not create or send the PandaDoc document.", variant: "destructive" }),
+    onError: (err: Error & { status?: number; docId?: string; docUrl?: string }) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/arrangements/${sessionId}/forms`] });
+      if (err.status === 403 && err.docUrl) {
+        setPandadocModal({ open: false, fi: null });
+        setPandadocRecipientName("");
+        setPandadocRecipientEmail("");
+        toast({
+          title: "Document created — manual send required",
+          description: (
+            <span>
+              Your PandaDoc plan restricts automated sending.{" "}
+              <a href={err.docUrl} target="_blank" rel="noreferrer" className="underline font-medium">
+                Open in PandaDoc
+              </a>{" "}
+              to send it manually.
+            </span>
+          ),
+          duration: 12000,
+        });
+      } else {
+        toast({ title: "Failed to send", description: err.message || "Could not create or send the PandaDoc document.", variant: "destructive" });
+      }
+    },
   });
 
   const markCompleteMutation = useMutation({

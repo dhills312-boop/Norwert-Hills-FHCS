@@ -39,14 +39,6 @@ function ScrollToTop() {
   return null;
 }
 
-function ScrollToTop() {
-  const [location] = useLocation();
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location]);
-  return null;
-}
-
 function Router() {
   return (
     <>

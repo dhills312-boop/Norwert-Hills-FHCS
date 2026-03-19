@@ -1,29 +1,111 @@
 import { db } from "./db";
-import { users, formTemplates, serviceCatalog } from "@shared/schema";
+import { users, formTemplates, serviceCatalog, arrangements } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "./auth";
 
+const DESIRED_FORM_TEMPLATES = [
+  {
+    name: "Vital Statistics",
+    type: "jotform",
+    category: "intake",
+    jotformId: "PLACEHOLDER_VITAL_STATS",
+    jotformUrl: "https://jotform.com/260296940913058",
+    pdfPath: "attached_assets/NHFCS_Vital_Statiscs_1773391441854.pdf",
+    pandadocRecipientRole: "Authorizing Agent",
+    requiredForServiceTypes: ["all"],
+    sortOrder: 1,
+  },
+  {
+    name: "SSN Request for Death Certificate",
+    type: "jotform",
+    category: "intake",
+    jotformId: "PLACEHOLDER_SSN_REQUEST",
+    jotformUrl: "https://jotform.com/260738127596063",
+    pandadocRecipientRole: "Authorizing Agent",
+    requiredForServiceTypes: ["all"],
+    sortOrder: 2,
+  },
+  {
+    name: "Funeral Service Details Agreement",
+    type: "jotform",
+    category: "intake",
+    jotformId: "PLACEHOLDER_SERVICE_DETAILS",
+    jotformUrl: "https://jotform.com/260757903739065",
+    pandadocRecipientRole: "Authorizing Agent",
+    requiredForServiceTypes: ["all"],
+    sortOrder: 3,
+  },
+  {
+    name: "Preplanning / Intake",
+    type: "jotform",
+    category: "intake",
+    jotformId: "PLACEHOLDER_PREPLANNING",
+    jotformUrl: "https://jotform.com/260738501676058",
+    pandadocRecipientRole: "Authorizing Agent",
+    requiredForServiceTypes: ["all"],
+    sortOrder: 4,
+  },
+  {
+    name: "Cremation Online Intake",
+    type: "jotform",
+    category: "public",
+    jotformId: "PLACEHOLDER_CREMATION_ONLINE",
+    jotformUrl: "https://jotform.com/260738596070060",
+    pandadocRecipientRole: "Authorizing Agent",
+    requiredForServiceTypes: [] as string[],
+    sortOrder: 10,
+  },
+  {
+    name: "Consultation Intake",
+    type: "jotform",
+    category: "public",
+    jotformId: "260738501676058",
+    pandadocRecipientRole: "Authorizing Agent",
+    requiredForServiceTypes: [] as string[],
+    sortOrder: 11,
+  },
+  {
+    name: "Cremation Authorization",
+    type: "pandadoc",
+    category: "authorization",
+    pandadocTemplateId: "sTpBTbHX3v3C47aihCyesf",
+    pandadocRecipientRole: "Authorizing Agent",
+    requiredForServiceTypes: ["cremation"],
+    sortOrder: 20,
+  },
+  {
+    name: "Authorization to Embalm",
+    type: "pandadoc",
+    category: "authorization",
+    pdfPath: "attached_assets/NHFCS_Authorization_to_Embalm.docx1_1773391441853.pdf",
+    pandadocTemplateId: "zNKUjjBmfEfCFbDUBe56FW",
+    pandadocRecipientRole: "Authorizing Agent",
+    requiredForServiceTypes: ["burial", "viewing"],
+    sortOrder: 22,
+  },
+  {
+    name: "Terms & Conditions",
+    type: "pandadoc",
+    category: "authorization",
+    pandadocTemplateId: "guQcBFprJbhi5m5UA9fHom",
+    pandadocRecipientRole: "Authorizing Agent",
+    requiredForServiceTypes: ["all"],
+    sortOrder: 30,
+  },
+];
+
 async function seedFormTemplates() {
   const existing = await db.select().from(formTemplates);
-  if (existing.length > 0) return;
+  const existingNames = new Set(existing.map((t) => t.name));
 
-  await db.insert(formTemplates).values([
-    {
-      name: "Vital Statistics",
-      jotformId: "PLACEHOLDER_VITAL_STATS",
-      pdfPath: "attached_assets/NHFCS_Vital_Statiscs_1773391441854.pdf",
-      requiredForServiceTypes: ["all"],
-      sortOrder: 1,
-    },
-    {
-      name: "Authorization for Embalming / Cremation",
-      jotformId: "PLACEHOLDER_AUTHORIZATION",
-      pdfPath: "attached_assets/NHFCS_Authorization_to_Embalm.docx1_1773391441853.pdf",
-      requiredForServiceTypes: ["embalm", "traditional", "cremation"],
-      sortOrder: 2,
-    },
-  ]);
-  console.log("Form templates seeded.");
+  const toInsert = DESIRED_FORM_TEMPLATES.filter((t) => !existingNames.has(t.name));
+
+  if (toInsert.length === 0) {
+    return;
+  }
+
+  await db.insert(formTemplates).values(toInsert);
+  console.log(`Form templates seeded: ${toInsert.map((t) => t.name).join(", ")}`);
 }
 
 async function seedServiceCatalog() {
@@ -91,10 +173,79 @@ async function seedServiceCatalog() {
   console.log("Service catalog seeded.");
 }
 
+async function seedExampleArrangements() {
+  const existing = await db.select().from(arrangements);
+  if (existing.length > 0) return;
+
+  await db.insert(arrangements).values([
+    {
+      familyName: "The Fontenot Family",
+      email: "michael.fontenot@outlook.com",
+      phone: "985-839-3301",
+      status: "Completed",
+      nextStep: "Selections Confirmed",
+      caseToken: "NHFNT2026",
+      deceasedName: "Annette P. Fontenot",
+      authorizingAgentName: "Michael T. Fontenot",
+      authorizingAgentPhone: "985-839-3301",
+      selections: {
+        packageId: "pkg-memorial-service",
+        "service-type": "memorial",
+        merchandiseIds: [],
+        floralIds: [],
+        addOnIds: [],
+        cashAdvanceIds: [],
+      },
+    },
+    {
+      familyName: "The Comeaux Family",
+      email: "denise.comeaux@yahoo.com",
+      phone: "985-661-4872",
+      status: "Pending Signature",
+      nextStep: "Selections Confirmed",
+      caseToken: "NHCMX2026",
+      deceasedName: "Louis R. Comeaux",
+      authorizingAgentName: "Denise M. Comeaux",
+      authorizingAgentPhone: "985-661-4872",
+      selections: {
+        packageId: "pkg-direct-cremation",
+        "service-type": "cremation",
+        merchandiseIds: [],
+        floralIds: [],
+        addOnIds: [],
+        cashAdvanceIds: [],
+      },
+    },
+    {
+      familyName: "The Thibodaux Family",
+      email: "robert.thibodaux@gmail.com",
+      phone: "985-748-2241",
+      status: "In Progress",
+      nextStep: "Forms",
+      caseToken: "NHTBDX2026",
+      deceasedName: "Margaret A. Thibodaux",
+      authorizingAgentName: "Robert J. Thibodaux",
+      authorizingAgentPhone: "985-748-2241",
+      selections: {
+        packageId: "pkg-traditional",
+        "service-type": "burial",
+        merchandiseIds: [],
+        floralIds: [],
+        addOnIds: [],
+        cashAdvanceIds: [],
+      },
+    },
+  ]);
+
+  console.log("Example arrangements seeded.");
+}
+
 export async function seedDatabase() {
   try {
     await seedFormTemplates();
     await seedServiceCatalog();
+    await seedExampleArrangements();
+
     const adminEmail = process.env.ADMIN_EMAIL;
     const adminPassword = process.env.ADMIN_PASSWORD;
     const adminName = process.env.ADMIN_NAME || "Director";

@@ -2,14 +2,55 @@ import type { Express } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { arrangements, activityLogs } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { arrangements, activityLogs, formInstances, arrangementItems, commEvents, sessionDocChecklist, announcements, condolenceMessages } from "@shared/schema";
+import { eq, inArray } from "drizzle-orm";
 import { requireAuth, requireDirector, hashPassword } from "./auth";
-import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertAnnouncementSchema, insertCondolenceMessageSchema } from "@shared/schema";
+import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertCommEventSchema, insertServiceCatalogSchema, insertAnnouncementSchema, insertCondolenceMessageSchema, type FormInstance } from "@shared/schema";
 import { z } from "zod";
 import path from "path";
 import fs from "fs";
 import multer from "multer";
+import { registerCremationRoutes } from "./cremation-routes";
+
+function generateCaseToken(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let token = "NH";
+  for (let i = 0; i < 8; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
+}
+
+function buildJotformUrl(
+  jotformId: string,
+  jotformBaseUrl: string | null,
+  params: { familyName: string; serviceType: string; staffName: string; caseToken: string }
+): string {
+  const qs = new URLSearchParams({
+    case_token: params.caseToken,
+    family_display_name: params.familyName,
+    service_type: params.serviceType,
+    assigned_staff: params.staffName,
+  }).toString();
+  if (jotformBaseUrl) return `${jotformBaseUrl}?${qs}`;
+  return `https://jotform.com/${jotformId}?${qs}`;
+}
+
+function maskDestination(dest: string, channel: string): string {
+  if (channel === "email") {
+    const [local, domain] = dest.split("@");
+    if (!local || !domain) return "***@***.***";
+    const maskedLocal = local.charAt(0) + "***";
+    const domainParts = domain.split(".");
+    const maskedDomain = domainParts[0].charAt(0) + "***." + (domainParts.slice(1).join(".") || "***");
+    return `${maskedLocal}@${maskedDomain}`;
+  }
+  const digits = dest.replace(/\D/g, "");
+  if (digits.length >= 4) {
+    return "***-***-" + digits.slice(-4);
+  }
+  return "***";
+}
 
 const updateArrangementSchema = insertArrangementSchema.partial();
 
@@ -31,6 +72,107 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/token/:token", async (req, res) => {
+    try {
+      const arr = await storage.getArrangementByToken(req.params.token);
+      if (!arr) {
+        return res.status(404).json({ valid: false });
+      }
+
+      res.json({
+        valid: true,
+        caseToken: arr.caseToken,
+      });
+    } catch {
+      res.status(500).json({ message: "Failed to fetch" });
+    }
+  });
+
+  // Jotform submission webhook
+  // Configure in Jotform: Settings → Integrations → Webhooks → POST to this URL
+  // Jotform sends form fields as a flat object under req.body; hidden fields
+  // case_token arrives at the top level.
+  app.post("/api/webhooks/jotform", async (req, res) => {
+    try {
+      const body = req.body || {};
+
+      // Jotform sends submission data as rawRequest (JSON string) or flat fields
+      let fields: Record<string, string> = {};
+      if (typeof body.rawRequest === "string") {
+        try { fields = JSON.parse(body.rawRequest); } catch { fields = body; }
+      } else {
+        fields = body;
+      }
+
+      const caseToken = String(fields["case_token"] || fields["q_case_token"] || "").trim();
+      const formId = String(body.formID || body.form_id || "").trim();
+      const submissionId = String(body.submissionID || body.submission_id || "").trim();
+
+      if (!caseToken) {
+        return res.status(400).json({ ok: false, message: "Missing case_token" });
+      }
+
+      const arr = await storage.getArrangementByToken(caseToken);
+      if (!arr) {
+        return res.status(404).json({ ok: false, message: "Arrangement not found for token" });
+      }
+
+      const instances = await storage.getFormInstances(arr.id);
+      const templates = await storage.getFormTemplates();
+
+      const match = instances.find(fi => {
+        const tpl = templates.find(t => t.id === fi.templateId);
+        return tpl?.jotformId === formId || tpl?.jotformId?.startsWith("PLACEHOLDER");
+      });
+
+      if (match) {
+        await storage.updateFormInstance(match.id, {
+          status: "completed",
+          completedAt: new Date(),
+          externalLink: submissionId ? `https://www.jotform.com/submission/${submissionId}` : match.externalLink,
+        });
+      }
+
+      res.json({ ok: true, matched: !!match });
+    } catch (err) {
+      console.error("Jotform webhook error:", err);
+      res.status(500).json({ ok: false, message: "Internal error" });
+    }
+  });
+
+  // PandaDoc document-signed webhook
+  // Configure in PandaDoc: Settings → Webhooks → Trigger: document.completed → POST to this URL
+  app.post("/api/webhooks/pandadoc", async (req, res) => {
+    try {
+      const event = req.body?.event || req.body?.type || "";
+      const docId = String(req.body?.data?.id || req.body?.id || "").trim();
+      const status = String(req.body?.data?.status || "").toLowerCase();
+
+      if (!docId) {
+        return res.status(400).json({ ok: false, message: "Missing document ID" });
+      }
+
+      const fi = await storage.getFormInstanceByPandadocDocId(docId);
+      if (!fi) {
+        // Not tracked in our system — acknowledge and move on
+        return res.json({ ok: true, matched: false });
+      }
+
+      const isCompleted = status.includes("completed") || status.includes("document.completed") || event.includes("completed");
+      if (isCompleted) {
+        await storage.updateFormInstance(fi.id, {
+          status: "completed",
+          completedAt: new Date(),
+        });
+      }
+
+      res.json({ ok: true, matched: true, updated: isCompleted });
+    } catch (err) {
+      console.error("PandaDoc webhook error:", err);
+      res.status(500).json({ ok: false, message: "Internal error" });
+    }
+  });
+
   app.get("/api/contacts", requireAuth, async (_req, res) => {
     try {
       const contacts = await storage.getContacts();
@@ -40,14 +182,39 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/contacts/:id/status", requireAuth, async (req, res) => {
+  app.patch("/api/contacts/:id", requireAuth, async (req, res) => {
     try {
-      const { status } = req.body;
+      const status = String(req.body.status);
       const contact = await storage.updateContactStatus(req.params.id, status);
       if (!contact) return res.status(404).json({ message: "Contact not found" });
       res.json(contact);
     } catch {
       res.status(500).json({ message: "Failed to update contact" });
+    }
+  });
+
+  app.get("/api/admin/form-templates", requireDirector, async (_req, res) => {
+    try {
+      const templates = await storage.getFormTemplates();
+      res.json(templates);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch form templates" });
+    }
+  });
+
+  app.patch("/api/admin/form-templates/:id", requireDirector, async (req, res) => {
+    try {
+      const { jotformId, jotformUrl, pandadocTemplateId, name } = req.body;
+      const updated = await storage.updateFormTemplate(req.params.id, {
+        ...(name !== undefined && { name: String(name) }),
+        ...(jotformId !== undefined && { jotformId: String(jotformId) }),
+        ...(jotformUrl !== undefined && { jotformUrl: jotformUrl ? String(jotformUrl) : null }),
+        ...(pandadocTemplateId !== undefined && { pandadocTemplateId: pandadocTemplateId ? String(pandadocTemplateId) : null }),
+      });
+      if (!updated) return res.status(404).json({ message: "Template not found" });
+      res.json(updated);
+    } catch {
+      res.status(500).json({ message: "Failed to update form template" });
     }
   });
 
@@ -186,18 +353,51 @@ export async function registerRoutes(
     try {
       const data = insertArrangementSchema.parse(req.body);
       const isDemo = req.query.demo === "true";
+      const caseToken = generateCaseToken();
+      const staffName = req.user?.name || "";
+
       if (isDemo) {
-        const arr = await storage.createArrangement(data);
+        const arr = await storage.createArrangement({ ...data, nextStep: "Forms", caseToken });
+        const templates = await storage.getFormTemplates();
+        const serviceType = (data.selections?.["service-type"] as string) || "";
+        for (const tmpl of templates) {
+          const required = tmpl.requiredForServiceTypes;
+          const isApplicable = required.includes("all") || required.length === 0 || !serviceType || required.includes(serviceType);
+          if (!isApplicable) continue;
+          let formUrl: string | null = null;
+          if (tmpl.type === "jotform" && tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")) {
+            formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { familyName: arr.familyName, serviceType, staffName, caseToken });
+          }
+          await storage.createFormInstance({ arrangementId: arr.id, templateId: tmpl.id, status: "not_sent", formUrl });
+        }
         return res.status(201).json(arr);
       }
+
       const result = await db.transaction(async (tx) => {
-        const [arr] = await tx.insert(arrangements).values(data).returning();
+        const [arr] = await tx.insert(arrangements).values({
+          ...data,
+          nextStep: "Forms",
+          caseToken,
+        }).returning();
         await tx.insert(activityLogs).values({
           arrangementId: arr.id,
           actorId: req.user!.id,
           action: "created",
           details: `Created arrangement for ${arr.familyName}`,
         });
+
+        const templates = await storage.getFormTemplates();
+        const serviceType = (data.selections?.["service-type"] as string) || "";
+        for (const tmpl of templates) {
+          const required = tmpl.requiredForServiceTypes;
+          const isApplicable = required.includes("all") || required.length === 0 || !serviceType || required.includes(serviceType);
+          if (!isApplicable) continue;
+          let formUrl: string | null = null;
+          if (tmpl.type === "jotform" && tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")) {
+            formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { familyName: arr.familyName, serviceType, staffName, caseToken });
+          }
+          await tx.insert(formInstances).values({ arrangementId: arr.id, templateId: tmpl.id, status: "not_sent", formUrl });
+        }
         return arr;
       });
       res.status(201).json(result);
@@ -248,26 +448,28 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/arrangements/:id", requireAuth, async (req, res) => {
+  app.delete("/api/arrangements/:id", requireDirector, async (req, res) => {
     try {
       const arr = await storage.getArrangement(req.params.id);
-      const isDemo = req.query.demo === "true";
+      if (!arr) return res.status(404).json({ message: "Arrangement not found" });
 
-      if (isDemo) {
-        await storage.deleteArrangement(req.params.id);
-        return res.json({ message: "Deleted" });
+      const id = req.params.id;
+
+      // Delete all related records before the arrangement row
+      // condolenceMessages links through announcementId, not arrangementId
+      const linkedAnnouncements = await db.select({ id: announcements.id }).from(announcements).where(eq(announcements.arrangementId, id));
+      if (linkedAnnouncements.length > 0) {
+        await db.delete(condolenceMessages).where(inArray(condolenceMessages.announcementId, linkedAnnouncements.map(a => a.id)));
       }
+      await db.delete(announcements).where(eq(announcements.arrangementId, id));
+      await db.delete(sessionDocChecklist).where(eq(sessionDocChecklist.arrangementId, id));
+      await db.delete(commEvents).where(eq(commEvents.arrangementId, id));
+      await db.delete(formInstances).where(eq(formInstances.arrangementId, id));
+      await db.delete(arrangementItems).where(eq(arrangementItems.arrangementId, id));
+      await db.delete(activityLogs).where(eq(activityLogs.arrangementId, id));
+      await db.delete(arrangements).where(eq(arrangements.id, id));
 
-      await db.transaction(async (tx) => {
-        await tx.delete(arrangements).where(eq(arrangements.id, req.params.id));
-        await tx.insert(activityLogs).values({
-          arrangementId: req.params.id,
-          actorId: req.user!.id,
-          action: "deleted",
-          details: arr ? `Deleted arrangement for ${arr.familyName}` : "Deleted arrangement",
-        });
-      });
-      res.json({ message: "Deleted" });
+      res.json({ ok: true, familyName: arr.familyName });
     } catch {
       res.status(500).json({ message: "Failed to delete arrangement" });
     }
@@ -335,7 +537,422 @@ export async function registerRoutes(
     }
   });
 
-  // --- Announcement CRUD routes ---
+  app.get("/api/form-templates", requireAuth, async (_req, res) => {
+    try {
+      const templates = await storage.getFormTemplates();
+      res.json(templates);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch form templates" });
+    }
+  });
+
+  app.get("/api/arrangements/:id/forms", requireAuth, async (req, res) => {
+    try {
+      const arr = await storage.getArrangement(req.params.id);
+      if (!arr) return res.status(404).json({ message: "Arrangement not found" });
+
+      let instances = await storage.getFormInstances(req.params.id);
+      const templates = await storage.getFormTemplates();
+      const existingTemplateIds = new Set(instances.map(fi => fi.templateId));
+
+      const serviceType = (arr.selections as Record<string, string> | null)?.["service-type"] || "";
+      const caseToken = arr.caseToken || arr.id;
+      for (const tmpl of templates) {
+        if (existingTemplateIds.has(tmpl.id)) continue;
+        const reqTypes = tmpl.requiredForServiceTypes;
+        const isApplicable = reqTypes.length === 0 || reqTypes.includes("all") || !serviceType || reqTypes.includes(serviceType);
+        if (!isApplicable) continue;
+
+        let formUrl: string | null = null;
+        if (tmpl.type === "jotform" && tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")) {
+          formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { familyName: arr.familyName, serviceType, staffName: "", caseToken });
+        }
+        await storage.createFormInstance({ arrangementId: arr.id, templateId: tmpl.id, status: "not_sent", formUrl });
+      }
+
+      instances = await storage.getFormInstances(req.params.id);
+      const templateMap = Object.fromEntries(templates.map(t => [t.id, t]));
+      const enriched = instances.map(fi => ({
+        ...fi,
+        sentTo: fi.sentTo ? maskDestination(fi.sentTo, fi.sentVia || "email") : null,
+        template: templateMap[fi.templateId] || null,
+      }));
+      res.json(enriched);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch form instances" });
+    }
+  });
+
+  const formStatusEnum = z.enum(["not_sent", "sent", "completed", "error"]);
+  const formChannelEnum = z.enum(["email", "sms"]);
+  const updateFormInstanceSchema = z.object({
+    status: formStatusEnum.optional(),
+    sentVia: formChannelEnum.optional(),
+    sentTo: z.string().optional(),
+    pandadocDocumentId: z.string().optional(),
+    externalLink: z.string().optional(),
+    recipientName: z.string().optional(),
+    recipientEmail: z.string().optional(),
+  });
+
+  app.patch("/api/form-instances/:id", requireAuth, async (req, res) => {
+    try {
+      const parsed = updateFormInstanceSchema.parse(req.body);
+      const existing = await storage.getFormInstance(req.params.id);
+      if (!existing) return res.status(404).json({ message: "Form instance not found" });
+
+      const updates: Partial<Pick<FormInstance, "status" | "sentVia" | "sentTo" | "sentAt" | "completedAt" | "pandadocDocumentId" | "externalLink" | "recipientName" | "recipientEmail">> = {};
+      if (parsed.status) updates.status = parsed.status;
+      if (parsed.sentVia) updates.sentVia = parsed.sentVia;
+      if (parsed.sentTo) updates.sentTo = parsed.sentTo;
+      if (parsed.status === "sent") updates.sentAt = new Date();
+      if (parsed.status === "completed") updates.completedAt = new Date();
+      if (parsed.status && parsed.status !== "completed") updates.completedAt = null;
+      if (parsed.pandadocDocumentId !== undefined) updates.pandadocDocumentId = parsed.pandadocDocumentId;
+      if (parsed.externalLink !== undefined) updates.externalLink = parsed.externalLink;
+      if (parsed.recipientName !== undefined) updates.recipientName = parsed.recipientName;
+      if (parsed.recipientEmail !== undefined) updates.recipientEmail = parsed.recipientEmail;
+      const fi = await storage.updateFormInstance(req.params.id, updates);
+      if (!fi) return res.status(404).json({ message: "Form instance not found" });
+      res.json(fi);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to update form instance" });
+    }
+  });
+
+  // PandaDoc automated send: create doc from template → poll until draft → send to recipient
+  app.post("/api/form-instances/:id/pandadoc-send", requireAuth, async (req, res) => {
+    const PANDADOC_API_KEY = process.env.PANDA_API_KEY_SECRET;
+    if (!PANDADOC_API_KEY) {
+      return res.status(503).json({ message: "PandaDoc API key not configured. Add PANDA_API_KEY_SECRET to Secrets." });
+    }
+
+    const { recipientName, recipientEmail } = req.body;
+    if (!recipientName?.trim() || !recipientEmail?.trim()) {
+      return res.status(400).json({ message: "recipientName and recipientEmail are required" });
+    }
+
+    try {
+      const fi = await storage.getFormInstance(req.params.id);
+      if (!fi) return res.status(404).json({ message: "Form instance not found" });
+
+      const templates = await storage.getFormTemplates();
+      const tmpl = templates.find(t => t.id === fi.templateId);
+      if (!tmpl?.pandadocTemplateId) return res.status(400).json({ message: "No PandaDoc template ID configured" });
+      if (tmpl.pandadocTemplateId.startsWith("PLACEHOLDER")) {
+        return res.status(400).json({ message: "PandaDoc template ID is still a placeholder. Configure it in Form Templates settings." });
+      }
+
+      const arr = await storage.getArrangement(fi.arrangementId);
+      if (!arr) return res.status(404).json({ message: "Arrangement not found" });
+
+      const caseToken = arr.caseToken || arr.id;
+      const nameParts = recipientName.trim().split(" ");
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(" ") || "-";
+
+      const pdHeaders = {
+        "Authorization": `API-Key ${PANDADOC_API_KEY}`,
+        "Content-Type": "application/json",
+      };
+
+      // 1. Fetch template details to get recipient roles defined in the template
+      let roleName = "Signer";
+      try {
+        const tmplResp = await fetch(`https://api.pandadoc.com/public/v1/templates/${tmpl.pandadocTemplateId}/details`, { headers: pdHeaders });
+        if (tmplResp.ok) {
+          const tmplData = await tmplResp.json() as { roles?: { name: string }[] };
+          if (tmplData.roles?.length) roleName = tmplData.roles[0].name;
+        }
+      } catch { /* use default role */ }
+
+      // 2. Create document from template
+      const createBody = {
+        name: `${tmpl.name} – ${arr.familyName}`,
+        template_uuid: tmpl.pandadocTemplateId,
+        recipients: [{ email: recipientEmail.trim(), first_name: firstName, last_name: lastName, role: roleName }],
+        tokens: [
+          { name: "case_token", value: caseToken },
+          { name: "family_name", value: arr.familyName },
+          { name: "recipient_name", value: recipientName.trim() },
+          { name: "deceased_name", value: (arr as any).deceasedName || "" },
+          { name: "authorizing_agent_name", value: (arr as any).authorizingAgentName || recipientName.trim() },
+          { name: "authorizing_agent_phone", value: (arr as any).authorizingAgentPhone || "" },
+          { name: "authorizing_agent_email", value: (arr as any).authorizingAgentEmail || recipientEmail.trim() },
+          { name: "authorizing_agent_address", value: (arr as any).authorizingAgentAddress || "" },
+          { name: "relationship_to_deceased", value: (arr as any).relationshipToDeceased || "" },
+          { name: "service_type", value: (arr as any).selections?.["service-type"] || "" },
+        ],
+        metadata: { case_token: caseToken, arrangement_id: arr.id, form_instance_id: fi.id },
+        tags: [caseToken],
+      };
+
+      const createResp = await fetch("https://api.pandadoc.com/public/v1/documents", {
+        method: "POST", headers: pdHeaders, body: JSON.stringify(createBody),
+      });
+
+      if (!createResp.ok) {
+        const errText = await createResp.text();
+        console.error("PandaDoc create error:", errText);
+        return res.status(502).json({ message: `PandaDoc document creation failed (${createResp.status})` });
+      }
+
+      const created = await createResp.json() as { id?: string; uuid?: string };
+      const docId = (created.id || created.uuid) as string;
+
+      // Save doc ID immediately so it's traceable even if polling times out
+      await storage.updateFormInstance(fi.id, {
+        pandadocDocumentId: docId,
+        recipientName: recipientName.trim(),
+        recipientEmail: recipientEmail.trim(),
+        sentVia: "pandadoc",
+        externalLink: `https://app.pandadoc.com/documents/${docId}`,
+      });
+
+      // 3. Poll until document.draft (up to ~24 s)
+      let isReady = false;
+      for (let i = 0; i < 12; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const pollResp = await fetch(`https://api.pandadoc.com/public/v1/documents/${docId}`, { headers: pdHeaders });
+          if (pollResp.ok) {
+            const pollData = await pollResp.json() as { status?: string };
+            if (pollData.status === "document.draft") { isReady = true; break; }
+          }
+        } catch { /* keep polling */ }
+      }
+
+      if (!isReady) {
+        // Return partial success — webhook will handle completion tracking
+        return res.json({ ok: true, docId, status: "creating", message: "Document is still processing. It will be sent once ready." });
+      }
+
+      // 4. Send the document
+      const sendResp = await fetch(`https://api.pandadoc.com/public/v1/documents/${docId}/send`, {
+        method: "POST", headers: pdHeaders,
+        body: JSON.stringify({ message: "Please review and sign the enclosed document at your earliest convenience.", silent: false }),
+      });
+
+      if (!sendResp.ok) {
+        const sendErr = await sendResp.text();
+        console.error("PandaDoc send error:", sendErr);
+
+        // 403 = account-level restriction (e.g. trial plan can't send to external recipients).
+        // Document was still created — save the link so staff can open and send it from PandaDoc.
+        if (sendResp.status === 403) {
+          await storage.updateFormInstance(fi.id, {
+            status: "not_sent",
+            sentTo: recipientEmail.trim(),
+          });
+          return res.status(403).json({
+            message: "Document created in PandaDoc but could not be sent automatically — your PandaDoc plan may restrict sending to external recipients. Open the document in PandaDoc and send it manually.",
+            docId,
+            docUrl: `https://app.pandadoc.com/documents/${docId}`,
+          });
+        }
+
+        return res.status(502).json({ message: `PandaDoc send failed (${sendResp.status})` });
+      }
+
+      // 5. Mark form instance as sent
+      await storage.updateFormInstance(fi.id, { status: "sent", sentTo: recipientEmail.trim(), sentAt: new Date() });
+
+      res.json({ ok: true, docId, status: "sent" });
+    } catch (err) {
+      console.error("PandaDoc send route error:", err);
+      res.status(500).json({ message: "Failed to create/send PandaDoc document" });
+    }
+  });
+
+  app.get("/api/arrangements/:id/checklist", requireAuth, async (req, res) => {
+    try {
+      const checklist = await storage.getSessionDocChecklist(req.params.id);
+      res.json(checklist || null);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch checklist" });
+    }
+  });
+
+  app.patch("/api/arrangements/:id/checklist", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        documentReceived: z.boolean().optional(),
+        filedToCase: z.boolean().optional(),
+        certificateSubmitted: z.boolean().optional(),
+        certificateApproved: z.boolean().optional(),
+        ssnPurged: z.boolean().optional(),
+        notes: z.string().optional(),
+      });
+      const data = schema.parse(req.body);
+      const checklist = await storage.upsertSessionDocChecklist(req.params.id, data);
+      res.json(checklist);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to update checklist" });
+    }
+  });
+
+  const commEventChannelSchema = z.object({
+    channel: z.enum(["email", "sms"]),
+    destination: z.string().min(1),
+    templateId: z.string().optional(),
+    details: z.string().optional(),
+  });
+
+  app.post("/api/arrangements/:id/comm-events", requireAuth, async (req, res) => {
+    try {
+      const validated = commEventChannelSchema.parse(req.body);
+      const masked = maskDestination(validated.destination, validated.channel);
+      const data = insertCommEventSchema.parse({
+        ...validated,
+        arrangementId: req.params.id,
+        actorId: req.user!.id,
+        destination: masked,
+      });
+
+      if (data.templateId) {
+        const arr = await storage.getArrangement(req.params.id);
+        const tmpl = await storage.getFormTemplate(data.templateId);
+        if (arr && tmpl) {
+          const serviceType = (arr.selections as Record<string, string> | null)?.["service-type"] || "";
+          const caseToken = arr.caseToken || arr.id;
+          let formUrl: string | null = null;
+          if (tmpl.type === "jotform" && tmpl.jotformId && !tmpl.jotformId.startsWith("PLACEHOLDER")) {
+            formUrl = buildJotformUrl(tmpl.jotformId, tmpl.jotformUrl, { familyName: arr.familyName, serviceType, staffName: req.user!.name || "", caseToken });
+          }
+
+          const instances = await storage.getFormInstances(req.params.id);
+          const fi = instances.find(i => i.templateId === data.templateId);
+          if (fi && formUrl) {
+            await storage.updateFormInstance(fi.id, { formUrl });
+          }
+        }
+      }
+
+      const ce = await storage.createCommEvent(data);
+
+      await storage.createActivityLog({
+        arrangementId: req.params.id,
+        actorId: req.user!.id,
+        action: "send_form_link",
+        details: `Sent form link via ${data.channel} to ${masked}`,
+      });
+
+      res.status(201).json(ce);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to create comm event" });
+    }
+  });
+
+  app.get("/api/arrangements/:id/comm-events", requireAuth, async (req, res) => {
+    try {
+      const events = await storage.getCommEvents(req.params.id);
+      res.json(events);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch comm events" });
+    }
+  });
+
+  app.get("/api/service-catalog", requireAuth, async (req, res) => {
+    try {
+      const itemType = req.query.type as string | undefined;
+      const category = req.query.category as string | undefined;
+      const items = await storage.getServiceCatalogItems(itemType, category);
+      res.json(items);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch service catalog" });
+    }
+  });
+
+  app.get("/api/service-catalog/packages", requireAuth, async (_req, res) => {
+    try {
+      const allItems = await storage.getServiceCatalogItems();
+      const packages = allItems.filter(i => i.itemType === "package");
+      const result = packages.map(pkg => ({
+        ...pkg,
+        includedItems: allItems.filter(i => i.itemType !== "package" && (i.includedIn as string[] || []).includes(pkg.id)),
+      }));
+      res.json(result);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch packages" });
+    }
+  });
+
+  app.get("/api/service-catalog/:id", requireAuth, async (req, res) => {
+    try {
+      const item = await storage.getServiceCatalogItem(req.params.id);
+      if (!item) return res.status(404).json({ message: "Catalog item not found" });
+      res.json(item);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch catalog item" });
+    }
+  });
+
+  app.post("/api/service-catalog", requireDirector, async (req, res) => {
+    try {
+      const data = insertServiceCatalogSchema.parse(req.body);
+      const item = await storage.createServiceCatalogItem(data);
+      res.status(201).json(item);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to create catalog item" });
+    }
+  });
+
+  const updateServiceCatalogSchema = insertServiceCatalogSchema.partial();
+
+  app.patch("/api/service-catalog/:id", requireDirector, async (req, res) => {
+    try {
+      const data = updateServiceCatalogSchema.parse(req.body);
+      const item = await storage.updateServiceCatalogItem(req.params.id, data);
+      if (!item) return res.status(404).json({ message: "Catalog item not found" });
+      res.json(item);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to update catalog item" });
+    }
+  });
+
+  app.get("/api/announcements", requireAuth, async (_req, res) => {
+    try {
+      const items = await storage.getAnnouncements();
+      res.json(items);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch announcements" });
+    }
+  });
+
+  app.get("/api/announcements/:id", requireAuth, async (req, res) => {
+    try {
+      const item = await storage.getAnnouncement(req.params.id);
+      if (!item) return res.status(404).json({ message: "Announcement not found" });
+      res.json(item);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch announcement" });
+    }
+  });
+
+  app.get("/api/announcements/by-arrangement/:arrangementId", requireAuth, async (req, res) => {
+    try {
+      const item = await storage.getAnnouncementByArrangementId(req.params.arrangementId);
+      res.json(item || null);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch announcement" });
+    }
+  });
+
   const uploadsDir = path.resolve("client/public/assets/announcements");
   const upload = multer({
     storage: multer.diskStorage({
@@ -361,35 +978,6 @@ export async function registerRoutes(
     if (!req.file) return res.status(400).json({ message: "No valid image file provided" });
     const publicPath = `/assets/announcements/${req.params.slug}/${req.file.filename}`;
     res.json({ path: publicPath });
-  });
-
-  app.get("/api/announcements", requireAuth, async (_req, res) => {
-    try {
-      const items = await storage.getAnnouncements();
-      res.json(items);
-    } catch {
-      res.status(500).json({ message: "Failed to fetch announcements" });
-    }
-  });
-
-  app.get("/api/announcements/:id", requireAuth, async (req, res) => {
-    try {
-      const item = await storage.getAnnouncement(req.params.id);
-      if (!item) return res.status(404).json({ message: "Announcement not found" });
-      res.json(item);
-    } catch {
-      res.status(500).json({ message: "Failed to fetch announcement" });
-    }
-  });
-
-  app.get("/api/announcements/by-arrangement/:arrangementId", requireAuth, async (req, res) => {
-    try {
-      const item = await storage.getAnnouncementByArrangementId(req.params.arrangementId);
-      if (!item) return res.status(404).json({ message: "Not found" });
-      res.json(item);
-    } catch {
-      res.status(500).json({ message: "Failed to fetch announcement" });
-    }
   });
 
   app.post("/api/announcements", requireAuth, async (req, res) => {
@@ -448,6 +1036,30 @@ export async function registerRoutes(
     }
   });
 
+  // Public endpoint — returns configured Jotform URLs for the two public-facing forms.
+  // Used by the website's Cremation page and Schedule a Consultation buttons.
+  app.get("/api/public/forms", async (_req, res) => {
+    try {
+      const templates = await storage.getFormTemplates();
+      const cremation = templates.find(t => t.category === "public" && t.name?.toLowerCase().includes("cremation"));
+      const consultation = templates.find(t => t.category === "public" && t.name?.toLowerCase().includes("consultation"));
+
+      const resolveUrl = (t: typeof cremation) => {
+        if (!t) return null;
+        if (t.jotformUrl) return t.jotformUrl;
+        if (t.jotformId && !t.jotformId.startsWith("PLACEHOLDER")) return `https://jotform.com/${t.jotformId}`;
+        return null;
+      };
+
+      res.json({
+        cremationIntake: resolveUrl(cremation),
+        consultationIntake: resolveUrl(consultation),
+      });
+    } catch {
+      res.status(500).json({ message: "Failed to fetch public forms" });
+    }
+  });
+
   app.get("/api/public/announcements/:slug", async (req, res) => {
     try {
       const item = await storage.getAnnouncementBySlug(req.params.slug);
@@ -495,13 +1107,13 @@ export async function registerRoutes(
         message: msg.trim(),
         announcementId: announcement.id,
       });
-      const item = await storage.createCondolenceMessage(data);
-      res.status(201).json(item);
+      const message = await storage.createCondolenceMessage(data);
+      res.status(201).json(message);
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: err.errors });
       }
-      res.status(500).json({ message: "Failed to create condolence message" });
+      res.status(500).json({ message: "Failed to submit condolence message" });
     }
   });
 
@@ -514,33 +1126,32 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/sitemap.xml", async (_req, res) => {
+  app.delete("/api/condolences/:id", requireAuth, async (req, res) => {
     try {
-      const baseUrl = "https://norwert-hills-funeral-cremation.replit.app";
-      const published = await storage.getAnnouncements();
-      const publishedAnnouncements = published.filter(a => a.isPublished);
-
-      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
-      const staticPages = [
-        { loc: "/", priority: "1.0", changefreq: "weekly" },
-        { loc: "/services", priority: "0.9", changefreq: "monthly" },
-        { loc: "/about", priority: "0.8", changefreq: "monthly" },
-        { loc: "/resources", priority: "0.7", changefreq: "monthly" },
-        { loc: "/contact", priority: "0.8", changefreq: "monthly" },
-      ];
-      for (const page of staticPages) {
-        xml += `  <url><loc>${baseUrl}${page.loc}</loc><changefreq>${page.changefreq}</changefreq><priority>${page.priority}</priority></url>\n`;
-      }
-      for (const a of publishedAnnouncements) {
-        xml += `  <url><loc>${baseUrl}/announcements/${a.slug}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>\n`;
-        if (a.fullObituary) {
-          xml += `  <url><loc>${baseUrl}/obituaries/${a.slug}</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>\n`;
-        }
-      }
-      xml += `</urlset>`;
-      res.type("application/xml").send(xml);
+      await storage.deleteCondolenceMessage(req.params.id);
+      res.json({ message: "Deleted" });
     } catch {
-      res.status(500).send("Failed to generate sitemap");
+      res.status(500).json({ message: "Failed to delete condolence message" });
+    }
+  });
+
+  registerCremationRoutes(app);
+
+  const ASSETS_BASE = path.resolve("attached_assets");
+
+  app.get("/api/form-templates/:id/download", requireAuth, async (req, res) => {
+    try {
+      const template = await storage.getFormTemplate(req.params.id);
+      if (!template || !template.pdfPath) {
+        return res.status(404).json({ message: "PDF not available for this form" });
+      }
+      const filePath = path.resolve(template.pdfPath);
+      if (!filePath.startsWith(ASSETS_BASE)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      res.download(filePath);
+    } catch {
+      res.status(500).json({ message: "Failed to download form" });
     }
   });
 

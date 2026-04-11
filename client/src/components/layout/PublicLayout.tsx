@@ -22,6 +22,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
     { href: "/", label: "Home" },
     { href: "/services", label: "Services" },
     { href: "/cremation", label: "Cremation" },
+    { href: "/pre-planning", label: "Pre-Planning" },
     { href: "/about", label: "Our Story" },
     { href: "/resources", label: "Resources" },
     { href: "/contact", label: "Contact" },
@@ -117,7 +118,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                 <li><Link href="/services/traditional-ceremony" className="hover:text-foreground transition-colors">Traditional Ceremonies</Link></li>
                 <li><Link href="/services/cremation-services" className="hover:text-foreground transition-colors">Cremation Services</Link></li>
                 <li><Link href="/services/bespoke-memorials" className="hover:text-foreground transition-colors">Bespoke Memorials</Link></li>
-                <li><Link href="/services/pre-planning" className="hover:text-foreground transition-colors">Pre-Planning</Link></li>
+                <li><Link href="/pre-planning" className="hover:text-foreground transition-colors">Pre-Planning</Link></li>
               </ul>
             </div>
 

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shield, Heart, Clock, X } from "lucide-react";
 import { useState } from "react";
+import { useSearch } from "wouter";
 
 const benefits = [
   {
@@ -23,7 +24,8 @@ const benefits = [
 ];
 
 export default function PrePlanning() {
-  const [formOpen, setFormOpen] = useState(false);
+  const search = useSearch();
+  const [formOpen, setFormOpen] = useState(() => new URLSearchParams(search).get("start") === "true");
 
   return (
     <>

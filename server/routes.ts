@@ -4,8 +4,8 @@ import { storage } from "./storage";
 import { db } from "./db";
 import { arrangements, activityLogs, formInstances, arrangementItems, commEvents, sessionDocChecklist, announcements, condolenceMessages } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
-import { requireAuth, requireDirector, hashPassword } from "./auth";
-import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertCommEventSchema, insertServiceCatalogSchema, insertAnnouncementSchema, insertCondolenceMessageSchema, type FormInstance } from "@shared/schema";
+import { requireAuth, requireDirector, hashPassword, comparePasswords } from "./auth";
+import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertCommEventSchema, insertServiceCatalogSchema, insertAnnouncementSchema, insertCondolenceMessageSchema, passwordSchema, type FormInstance } from "@shared/schema";
 import { z } from "zod";
 import path from "path";
 import fs from "fs";
@@ -293,6 +293,28 @@ export async function registerRoutes(
       res.json(safe);
     } catch {
       res.status(500).json({ message: "Failed to activate user" });
+    }
+  });
+
+  app.patch("/api/staff/profile/password", requireAuth, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current and new password are required" });
+      }
+      const validated = passwordSchema.parse(newPassword);
+      const user = await storage.getUser(req.user!.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const match = await comparePasswords(currentPassword, user.password);
+      if (!match) return res.status(400).json({ message: "Current password is incorrect" });
+      const hashed = await hashPassword(validated);
+      await storage.updateUserPassword(req.user!.id, hashed);
+      res.json({ message: "Password updated successfully" });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Failed to update password" });
     }
   });
 

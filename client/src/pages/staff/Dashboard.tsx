@@ -2,7 +2,7 @@ import { StaffLayout } from "@/components/layout/StaffLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Mail, MessageSquare, Clock, ChevronRight, CheckCircle2, AlertCircle, Plus, Loader2, LogOut, History, FileEdit, Trash2, FilePlus, FlaskConical } from "lucide-react";
+import { Mail, MessageSquare, Clock, ChevronRight, CheckCircle2, AlertCircle, Plus, Loader2, LogOut, History, FileEdit, Trash2, FilePlus, FlaskConical, KeyRound } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -43,6 +43,9 @@ export default function Dashboard() {
   const [demoMode, setDemoMode] = useState(false);
   const [logRange, setLogRange] = useState<"24h" | "2wk" | "1mo">("24h");
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [pwDialogOpen, setPwDialogOpen] = useState(false);
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [pwError, setPwError] = useState("");
 
   const { data: arrangements = [], isLoading } = useQuery<Arrangement[]>({
     queryKey: ["/api/arrangements"],
@@ -90,6 +93,36 @@ export default function Dashboard() {
       toast({ title: "Error", description: "Could not delete session. Please try again.", variant: "destructive" });
     },
   });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const res = await apiRequest("PATCH", "/api/staff/profile/password", data);
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.message || "Failed to update password");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setPwDialogOpen(false);
+      setPwForm({ current: "", next: "", confirm: "" });
+      setPwError("");
+      toast({ title: "Password Updated", description: "Your password has been changed successfully." });
+    },
+    onError: (err: Error) => {
+      setPwError(err.message);
+    },
+  });
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwError("");
+    if (pwForm.next !== pwForm.confirm) {
+      setPwError("New passwords do not match");
+      return;
+    }
+    changePasswordMutation.mutate({ currentPassword: pwForm.current, newPassword: pwForm.next });
+  };
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -200,6 +233,9 @@ export default function Dashboard() {
                 </form>
               </DialogContent>
             </Dialog>
+            <Button variant="ghost" size="icon" onClick={() => setPwDialogOpen(true)} className="text-muted-foreground hover:text-foreground" title="Change Password" data-testid="button-change-password">
+              <KeyRound className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-foreground" data-testid="button-logout">
               <LogOut className="h-4 w-4" />
             </Button>
@@ -367,6 +403,61 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Change Password dialog */}
+      <Dialog open={pwDialogOpen} onOpenChange={(open) => { if (!open) { setPwDialogOpen(false); setPwForm({ current: "", next: "", confirm: "" }); setPwError(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl">Change Password</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="pw-current">Current Password</Label>
+              <Input
+                id="pw-current"
+                type="password"
+                value={pwForm.current}
+                onChange={e => setPwForm(prev => ({ ...prev, current: e.target.value }))}
+                required
+                data-testid="input-current-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pw-next">New Password</Label>
+              <Input
+                id="pw-next"
+                type="password"
+                value={pwForm.next}
+                onChange={e => setPwForm(prev => ({ ...prev, next: e.target.value }))}
+                required
+                data-testid="input-new-password"
+              />
+              <p className="text-xs text-muted-foreground">Min. 8 characters with uppercase, lowercase, number, and special character.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pw-confirm">Confirm New Password</Label>
+              <Input
+                id="pw-confirm"
+                type="password"
+                value={pwForm.confirm}
+                onChange={e => setPwForm(prev => ({ ...prev, confirm: e.target.value }))}
+                required
+                data-testid="input-confirm-password"
+              />
+            </div>
+            {pwError && <p className="text-sm text-red-400" data-testid="text-password-error">{pwError}</p>}
+            <DialogFooter>
+              <Button type="button" variant="outline" className="border-white/10" onClick={() => { setPwDialogOpen(false); setPwForm({ current: "", next: "", confirm: "" }); setPwError(""); }}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-primary text-primary-foreground" disabled={changePasswordMutation.isPending} data-testid="button-submit-password">
+                {changePasswordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Update Password
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation dialog */}
       <Dialog open={!!deleteConfirm} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>

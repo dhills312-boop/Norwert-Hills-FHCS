@@ -69,12 +69,15 @@ export default function Dashboard() {
       const res = await apiRequest("POST", `/api/arrangements${demoParam}`, data);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/arrangements"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activity-logs"] });
       setNewDialogOpen(false);
       setNewFamily({ familyName: "", email: "", phone: "", scheduledTime: "" });
-      toast({ title: "Arrangement Created", description: "New client session has been created." });
+      toast({ title: "Arrangement Created", description: "Opening the new client session." });
+      if (data?.id) {
+        setLocation(`/staff/sessions/${data.id}`);
+      }
     },
   });
 
@@ -287,7 +290,7 @@ export default function Dashboard() {
                          </span>
                        </div>
                     </div>
-                    <Link href={session.status === 'Completed' ? `/staff/sessions/${session.id}` : `/staff/builder?arrangement=${session.id}`}>
+                    <Link href={(session.status === 'Completed' || session.status === 'Pending Signature') ? `/staff/sessions/${session.id}` : `/staff/builder?arrangement=${session.id}`}>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0" data-testid={`button-open-${session.id}`}>
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </Button>

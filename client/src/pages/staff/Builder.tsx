@@ -119,6 +119,9 @@ export default function Builder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/arrangements"] });
+      if (arrangementId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/arrangements", arrangementId] });
+      }
     },
   });
 

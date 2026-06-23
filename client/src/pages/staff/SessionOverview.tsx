@@ -12,7 +12,7 @@ import {
   ArrowLeft, FileText, Send, Tablet, Copy, CheckCircle2, Clock, AlertTriangle,
   XCircle, Loader2, ShieldCheck, ChevronRight, ExternalLink, ClipboardCheck,
   FileCheck, FolderOpen, Pen, ToggleLeft, ToggleRight, Landmark, ScrollText,
-  UserCircle, ChevronDown, Save
+  UserCircle, ChevronDown, Save, Receipt
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
@@ -602,7 +602,8 @@ export default function SessionOverview() {
     { key: "completed", label: "Complete" },
   ];
 
-  const currentStepIndex = allAuthComplete ? 4
+  const currentStepIndex = arrangement.status === "Completed" ? 5
+    : allAuthComplete ? 4
     : allIntakeComplete ? 3
     : formInstances.some(fi => fi.status === "sent") ? 1
     : 0;
@@ -1039,6 +1040,18 @@ export default function SessionOverview() {
             >
               <Landmark className="h-4 w-4 mr-2" />
               Package Builder
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </Link>
+
+          <Link href={`/staff/billing?arrangement=${sessionId}`}>
+            <Button
+              variant="outline"
+              className="w-full h-12 text-base border-primary/30 text-primary hover:bg-primary/5"
+              data-testid="button-billing"
+            >
+              <Receipt className="h-4 w-4 mr-2" />
+              Billing &amp; Payment
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </Link>

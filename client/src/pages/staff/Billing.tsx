@@ -62,6 +62,7 @@ function buildBillFromArrangement(
 
   const getPrice = (item: ServiceCatalogItem) => {
     if (overrides[item.id] !== undefined) return overrides[item.id];
+    if (item.salePrice) return parseFloat(item.salePrice);
     return parseFloat(item.defaultPrice);
   };
 
@@ -226,9 +227,8 @@ export default function Billing() {
     enabled: !!arrangementId && isAuthenticated,
   });
 
-  const discountLocked = formInstances.length > 0 &&
-    formInstances.filter((fi: any) => fi.template?.category === "authorization" || fi.template?.type === "pandadoc")
-      .every((fi: any) => fi.status === "completed");
+  const authForms = formInstances.filter((fi: any) => fi.template?.category === "authorization" || fi.template?.type === "pandadoc");
+  const discountLocked = arrangement?.status === "Completed" || (authForms.length > 0 && authForms.every((fi: any) => fi.status === "completed"));
 
   useEffect(() => {
     if (arrangement && catalogItems.length > 0 && packages.length > 0) {
@@ -250,13 +250,30 @@ export default function Billing() {
       const res = await apiRequest("PATCH", `/api/arrangements/${arrangementId}`, { selections: sel });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/arrangements", arrangementId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/arrangements"] });
       setEditingDiscount(false);
-      toast({ title: discount ? "Discount Applied" : "Discount Removed" });
+      toast({ title: variables ? "Discount Applied" : "Discount Removed" });
     },
     onError: () => toast({ title: "Error", description: "Could not save discount.", variant: "destructive" }),
   });
+
+  const completeMutation = useMutation({
+    mutationFn: async () => {
+      if (!arrangementId) return;
+      const res = await apiRequest("PATCH", `/api/arrangements/${arrangementId}`, { status: "Completed", nextStep: "Statement Accepted" });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/arrangements", arrangementId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/arrangements"] });
+      toast({ title: "Statement Accepted", description: "The arrangement has been marked as completed." });
+    },
+    onError: () => toast({ title: "Error", description: "Could not finalize the statement.", variant: "destructive" }),
+  });
+
+  const isCompleted = arrangement?.status === "Completed";
 
   const discount = (() => {
     const v = parseFloat(discountValue);
@@ -439,8 +456,14 @@ export default function Billing() {
                     </div>
                   </DialogContent>
                 </Dialog>
-                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20" data-testid="button-finalize">
-                  <ShieldCheck className="w-4 h-4 mr-2" /> Finalize
+                <Button
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
+                  data-testid="button-finalize"
+                  disabled={!arrangementId || isCompleted || completeMutation.isPending}
+                  onClick={() => completeMutation.mutate()}
+                >
+                  {isCompleted ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
+                  {isCompleted ? "Completed" : "Finalize"}
                 </Button>
               </div>
             </div>
@@ -649,10 +672,23 @@ export default function Billing() {
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-white/10">
-                  <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 py-6 text-lg font-serif" data-testid="button-sign-accept">
-                    <PenSquare className="w-4 h-4 mr-2" /> Sign & Accept
+                  <Button
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 py-6 text-lg font-serif"
+                    data-testid="button-sign-accept"
+                    disabled={!arrangementId || isCompleted || completeMutation.isPending}
+                    onClick={() => completeMutation.mutate()}
+                  >
+                    {completeMutation.isPending ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Finalizing…</>
+                    ) : isCompleted ? (
+                      <><CheckCircle2 className="w-4 h-4 mr-2" /> Statement Accepted</>
+                    ) : (
+                      <><PenSquare className="w-4 h-4 mr-2" /> Sign & Accept</>
+                    )}
                   </Button>
-                  <p className="text-xs text-center text-muted-foreground mt-3">Secure digital signature</p>
+                  <p className="text-xs text-center text-muted-foreground mt-3">
+                    {isCompleted ? "This arrangement has been finalized." : "Secure digital signature"}
+                  </p>
                 </div>
               </div>
             </div>

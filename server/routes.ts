@@ -296,6 +296,44 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/admin/users/:id/reset-password", requireDirector, async (req, res) => {
+    try {
+      const target = await storage.getUser(req.params.id);
+      if (!target) return res.status(404).json({ message: "User not found" });
+      if (req.params.id === req.user!.id) {
+        return res.status(400).json({ message: "Use the profile password change to update your own password" });
+      }
+      const WORDS = [
+        "Amber","Anchor","Apple","Arrow","Atlas","Autumn","Badge","Beacon","Birch",
+        "Bison","Blaze","Boulder","Branch","Bridge","Bronze","Cabin","Canyon","Cedar",
+        "Chapel","Cinder","Cipher","Clover","Cobalt","Copper","Coral","Crater","Creek",
+        "Crown","Dagger","Delta","Desert","Ember","Falcon","Fern","Flint","Forest",
+        "Forge","Frost","Garnet","Glacier","Gravel","Harbor","Haven","Hawk","Hazel",
+        "Heron","Hollow","Indigo","Inlet","Ivory","Jasper","Jungle","Keeper","Lantern",
+        "Larch","Lasso","Laurel","Linden","Magnet","Maple","Marble","Meadow","Mist",
+        "Mossy","Narrow","Noble","Nomad","Obsidian","Ocean","Olive","Onyx","Otter",
+        "Oyster","Panther","Patrol","Pebble","Pepper","Petal","Pillar","Pine","Pivot",
+        "Plank","Plover","Porter","Powder","Prism","Quartz","Raven","Resin","Ridge",
+        "Ripple","River","Rowan","Rustic","Saddle","Sage","Salmon","Sandal","Scroll",
+        "Serene","Sierra","Signal","Silver","Sketch","Slate","Snare","Solar","Spark",
+        "Spruce","Squall","Stable","Steep","Stone","Storm","Strata","Stream","Summit",
+        "Talon","Tallow","Tangle","Thorn","Timber","Topaz","Torch","Tower","Trail",
+        "Trawl","Trident","Trove","Tunnel","Turret","Umber","Uplift","Valor","Vantage",
+        "Vapor","Vault","Velvet","Vessel","Viper","Vista","Vivid","Walnut","Warden",
+        "Wicker","Willow","Wren","Yarrow","Zenith"
+      ];
+      const pick = () => WORDS[Math.floor(Math.random() * WORDS.length)];
+      const temporaryPassword = `${pick()}-${pick()}-${pick()}-${pick()}`;
+      const hashed = await hashPassword(temporaryPassword);
+      const updated = await storage.updateUser(req.params.id, { password: hashed });
+      if (!updated) return res.status(404).json({ message: "User not found" });
+      await storage.createAuditLog(req.user!.id, "password_reset", req.params.id);
+      res.json({ temporaryPassword });
+    } catch {
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
   app.patch("/api/staff/profile/password", requireAuth, async (req, res) => {
     try {
       const { currentPassword, newPassword } = req.body;

@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Plus, Shield, UserCheck, UserX, Users } from "lucide-react";
+import { Loader2, Plus, Shield, UserCheck, UserX, Users, KeyRound, Copy, Check } from "lucide-react";
 
 interface StaffUser {
   id: string;
@@ -32,6 +32,9 @@ export default function AdminUsers() {
   const [createOpen, setCreateOpen] = useState(false);
   const [roleConfirm, setRoleConfirm] = useState<{ userId: string; name: string; newRole: "director" | "staff" } | null>(null);
   const [deactivateConfirm, setDeactivateConfirm] = useState<{ userId: string; name: string } | null>(null);
+  const [resetConfirm, setResetConfirm] = useState<{ userId: string; name: string } | null>(null);
+  const [resetResult, setResetResult] = useState<{ name: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "staff" as "director" | "staff" });
 
   const { data: users = [], isLoading } = useQuery<StaffUser[]>({
@@ -100,6 +103,33 @@ export default function AdminUsers() {
       toast({ title: "User Activated" });
     },
   });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId }: { userId: string; name: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/users/${userId}/reset-password`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to reset password");
+      }
+      return res.json() as Promise<{ temporaryPassword: string }>;
+    },
+    onSuccess: (data, variables) => {
+      setResetConfirm(null);
+      setResetResult({ name: variables.name, password: data.temporaryPassword });
+      setCopied(false);
+    },
+    onError: (err: Error) => {
+      setResetConfirm(null);
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const handleCopyPassword = () => {
+    if (!resetResult) return;
+    navigator.clipboard.writeText(resetResult.password);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -232,9 +262,19 @@ export default function AdminUsers() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
                       {u.id !== user?.id && (
                         <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-white/10 text-xs"
+                            onClick={() => setResetConfirm({ userId: u.id, name: u.name })}
+                            disabled={resetPasswordMutation.isPending}
+                            data-testid={`button-reset-password-${u.id}`}
+                          >
+                            <KeyRound className="h-3 w-3 mr-1" /> Reset Password
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -334,6 +374,72 @@ export default function AdminUsers() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Reset Password — Confirm */}
+        <AlertDialog open={!!resetConfirm} onOpenChange={(open) => { if (!open) setResetConfirm(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset Password</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will immediately generate a new temporary password for <strong>{resetConfirm?.name}</strong> and invalidate their current one. You'll need to share the new password with them directly.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (resetConfirm) {
+                    resetPasswordMutation.mutate({ userId: resetConfirm.userId, name: resetConfirm.name });
+                  }
+                }}
+                disabled={resetPasswordMutation.isPending}
+                data-testid="button-confirm-reset-password"
+              >
+                {resetPasswordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Generate New Password
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Reset Password — Result */}
+        <Dialog open={!!resetResult} onOpenChange={(open) => { if (!open) setResetResult(null); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-xl flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-primary" />
+                New Temporary Password
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Password has been reset for <strong className="text-foreground">{resetResult?.name}</strong>. Share this with them securely — it will not be shown again.
+              </p>
+              <div
+                className="flex items-center justify-between gap-3 bg-background/60 border border-primary/20 rounded-lg px-4 py-3 cursor-pointer hover:bg-primary/5 transition-colors group"
+                onClick={handleCopyPassword}
+                data-testid="display-temp-password"
+              >
+                <span className="font-mono text-lg tracking-wider text-primary select-all" data-testid="text-temp-password">
+                  {resetResult?.password}
+                </span>
+                <button
+                  className="flex-shrink-0 text-muted-foreground group-hover:text-primary transition-colors"
+                  onClick={(e) => { e.stopPropagation(); handleCopyPassword(); }}
+                  data-testid="button-copy-temp-password"
+                >
+                  {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                {copied ? "✓ Copied to clipboard" : "Click password to copy"}
+              </p>
+              <p className="text-xs text-amber-400/80 bg-amber-950/20 border border-amber-800/20 rounded-lg px-3 py-2">
+                Ask the staff member to change this password from their dashboard after logging in.
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </StaffLayout>
   );

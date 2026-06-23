@@ -231,6 +231,7 @@ export default function Builder() {
 
   const getPrice = (item: ServiceCatalogItem) => {
     if (selections.overrides?.[item.id] !== undefined) return selections.overrides[item.id];
+    if (item.salePrice) return parseFloat(item.salePrice);
     return parseFloat(item.defaultPrice);
   };
 
@@ -293,7 +294,7 @@ export default function Builder() {
         const hasQty = isQuantityItem(item);
         const qty = getQuantity(item.id);
         const unitLabel = getPricingLabel(item);
-        const unitPrice = parseFloat(item.defaultPrice);
+        const unitPrice = item.salePrice ? parseFloat(item.salePrice) : parseFloat(item.defaultPrice);
         return (
           <motion.div
             key={item.id}
@@ -375,7 +376,14 @@ export default function Builder() {
                   <div className="flex justify-between items-center mb-1">
                     <span className={cn("font-medium text-lg", isSelected ? "text-primary" : "text-foreground")}>{pkg.name}</span>
                     <div className="flex items-center gap-3">
-                      <span className="font-mono text-sm text-muted-foreground">${parseFloat(pkg.defaultPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      {pkg.salePrice ? (
+                        <span className="flex items-center gap-2">
+                          <span className="font-mono text-xs text-muted-foreground line-through">${parseFloat(pkg.defaultPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          <span className="font-mono text-sm text-primary">${parseFloat(pkg.salePrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </span>
+                      ) : (
+                        <span className="font-mono text-sm text-muted-foreground">${parseFloat(pkg.defaultPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      )}
                       {isSelected && <Check className="text-primary w-5 h-5" />}
                     </div>
                   </div>

@@ -26,7 +26,7 @@ export default function CatalogAdmin() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<ServiceCatalogItem>>({});
   const [isAdding, setIsAdding] = useState(false);
-  const [newItem, setNewItem] = useState({ name: "", description: "", defaultPrice: "", category: "", displayOrder: 0 });
+  const [newItem, setNewItem] = useState({ name: "", description: "", defaultPrice: "", salePrice: "", category: "", displayOrder: 0 });
   const { isAuthenticated, isDirector, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -65,7 +65,7 @@ export default function CatalogAdmin() {
       queryClient.invalidateQueries({ queryKey: ["/api/service-catalog"] });
       toast({ title: "Created", description: "New catalog item created." });
       setIsAdding(false);
-      setNewItem({ name: "", description: "", defaultPrice: "", category: "", displayOrder: 0 });
+      setNewItem({ name: "", description: "", defaultPrice: "", salePrice: "", category: "", displayOrder: 0 });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to create item.", variant: "destructive" });
@@ -85,7 +85,7 @@ export default function CatalogAdmin() {
 
   const startEdit = (item: ServiceCatalogItem) => {
     setEditingId(item.id);
-    setEditValues({ name: item.name, description: item.description, defaultPrice: item.defaultPrice, category: item.category, displayOrder: item.displayOrder });
+    setEditValues({ name: item.name, description: item.description, defaultPrice: item.defaultPrice, salePrice: item.salePrice ?? undefined, category: item.category, displayOrder: item.displayOrder });
   };
 
   const saveEdit = () => {
@@ -99,6 +99,7 @@ export default function CatalogAdmin() {
       name: newItem.name,
       description: newItem.description,
       defaultPrice: newItem.defaultPrice,
+      salePrice: newItem.salePrice || null,
       category: newItem.category,
       displayOrder: newItem.displayOrder,
       includedIn: [],
@@ -149,7 +150,7 @@ export default function CatalogAdmin() {
                 <div key={item.id} className="bg-card border border-white/5 rounded-lg p-5" data-testid={`catalog-item-${item.id}`}>
                   {editingId === item.id ? (
                     <div className="space-y-3">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <Input
                           value={editValues.name || ""}
                           onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
@@ -158,21 +159,50 @@ export default function CatalogAdmin() {
                           data-testid="input-edit-name"
                         />
                         <Input
-                          value={editValues.defaultPrice || ""}
-                          onChange={(e) => setEditValues({ ...editValues, defaultPrice: e.target.value })}
-                          placeholder="Price"
-                          type="number"
-                          step="0.01"
-                          className="h-9"
-                          data-testid="input-edit-price"
-                        />
-                        <Input
                           value={editValues.category || ""}
                           onChange={(e) => setEditValues({ ...editValues, category: e.target.value })}
                           placeholder="Category"
                           className="h-9"
                           data-testid="input-edit-category"
                         />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider">MSRP / GPL Price</p>
+                          <Input
+                            value={editValues.defaultPrice || ""}
+                            onChange={(e) => setEditValues({ ...editValues, defaultPrice: e.target.value })}
+                            placeholder="0.00"
+                            type="number"
+                            step="0.01"
+                            className="h-9"
+                            data-testid="input-edit-price"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-primary/80 uppercase tracking-wider">Promo / Sale Price <span className="text-muted-foreground normal-case">(optional)</span></p>
+                          <div className="relative">
+                            <Input
+                              value={editValues.salePrice || ""}
+                              onChange={(e) => setEditValues({ ...editValues, salePrice: e.target.value || undefined })}
+                              placeholder="Leave blank for none"
+                              type="number"
+                              step="0.01"
+                              className="h-9 border-primary/30 focus:border-primary"
+                              data-testid="input-edit-sale-price"
+                            />
+                            {editValues.salePrice && (
+                              <button
+                                type="button"
+                                onClick={() => setEditValues({ ...editValues, salePrice: undefined })}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                title="Clear promo price"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                       <Input
                         value={editValues.description || ""}
@@ -223,6 +253,7 @@ export default function CatalogAdmin() {
                         <div className="flex items-center gap-3 mb-1">
                           <span className="font-medium text-foreground">{item.name}</span>
                           {item.category && <span className="text-xs bg-white/5 text-muted-foreground px-2 py-0.5 rounded">{item.category}</span>}
+                          {item.salePrice && <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-wider">Promo</span>}
                         </div>
                         {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
                         {activeTab !== "package" && ((item.includedIn as string[]) || []).length > 0 && (
@@ -236,9 +267,18 @@ export default function CatalogAdmin() {
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-mono text-lg text-foreground">{parseFloat(item.defaultPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      <div className="flex items-center gap-3 text-right">
+                        {item.salePrice ? (
+                          <div className="flex flex-col items-end">
+                            <span className="font-mono text-xs text-muted-foreground line-through">${parseFloat(item.defaultPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            <span className="font-mono text-lg text-primary">${parseFloat(item.salePrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-mono text-lg text-foreground">{parseFloat(item.defaultPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -247,10 +287,19 @@ export default function CatalogAdmin() {
 
               {isAdding ? (
                 <div className="bg-card border border-dashed border-primary/30 rounded-lg p-5 space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <Input value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} placeholder="Item Name" className="h-9" data-testid="input-new-name" />
-                    <Input value={newItem.defaultPrice} onChange={(e) => setNewItem({ ...newItem, defaultPrice: e.target.value })} placeholder="Price" type="number" step="0.01" className="h-9" data-testid="input-new-price" />
                     <Input value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })} placeholder="Category" className="h-9" data-testid="input-new-category" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">MSRP / GPL Price</p>
+                      <Input value={newItem.defaultPrice} onChange={(e) => setNewItem({ ...newItem, defaultPrice: e.target.value })} placeholder="0.00" type="number" step="0.01" className="h-9" data-testid="input-new-price" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-primary/80 uppercase tracking-wider">Promo / Sale Price <span className="text-muted-foreground normal-case">(optional)</span></p>
+                      <Input value={newItem.salePrice} onChange={(e) => setNewItem({ ...newItem, salePrice: e.target.value })} placeholder="Leave blank for none" type="number" step="0.01" className="h-9 border-primary/30" data-testid="input-new-sale-price" />
+                    </div>
                   </div>
                   <Input value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} placeholder="Description" className="h-9" data-testid="input-new-description" />
                   <div className="flex gap-2 justify-end">

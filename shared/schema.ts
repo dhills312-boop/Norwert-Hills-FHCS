@@ -295,6 +295,7 @@ export const serviceCatalog = pgTable("service_catalog", {
   description: text("description"),
   category: text("category"),
   defaultPrice: numeric("default_price", { precision: 10, scale: 2 }).notNull().default("0"),
+  salePrice: numeric("sale_price", { precision: 10, scale: 2 }),
   displayOrder: integer("display_order").notNull().default(0),
   includedIn: jsonb("included_in").$type<string[]>().default([]),
   isActive: boolean("is_active").notNull().default(true),

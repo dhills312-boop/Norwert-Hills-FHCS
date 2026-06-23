@@ -41,6 +41,7 @@ export interface ArrangementSelections {
   customItems?: { description: string; section: string; amount: number }[];
   overrides?: Record<string, number>;
   quantities?: Record<string, number>;
+  discount?: { type: "percent" | "fixed"; value: number; code?: string };
   [key: string]: unknown;
 }
 

@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Edit2, FileText, ShieldAlert, Receipt, Loader2, Plus, Minus, Trash2, Package, X } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Edit2, FileText, ShieldAlert, Receipt, Loader2, Plus, Minus, Trash2, Package, X, Tag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useSearch } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -41,6 +41,9 @@ export default function Builder() {
   const [editingOverride, setEditingOverride] = useState<string | null>(null);
   const [overrideValue, setOverrideValue] = useState("");
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
+  const [discountValue, setDiscountValue] = useState("");
+  const [discountCode, setDiscountCode] = useState("");
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const search = useSearch();
@@ -82,9 +85,31 @@ export default function Builder() {
 
   useEffect(() => {
     if (arrangement?.selections && typeof arrangement.selections === "object") {
-      setSelections(arrangement.selections as ArrangementSelections);
+      const sel = arrangement.selections as ArrangementSelections;
+      setSelections(sel);
+      if (sel.discount) {
+        setDiscountType(sel.discount.type);
+        setDiscountValue(String(sel.discount.value));
+        setDiscountCode(sel.discount.code || "");
+      }
     }
   }, [arrangement]);
+
+  const handleApplyDiscount = () => {
+    const val = parseFloat(discountValue);
+    if (isNaN(val) || val <= 0) return;
+    const discount = { type: discountType, value: val, ...(discountCode.trim() ? { code: discountCode.trim() } : {}) };
+    saveSelections({ ...selections, discount });
+    toast({ title: "Discount Applied", description: discountType === "percent" ? `${val}% discount applied.` : `$${val.toFixed(2)} discount applied.` });
+  };
+
+  const handleClearDiscount = () => {
+    const { discount: _removed, ...rest } = selections;
+    saveSelections(rest as ArrangementSelections);
+    setDiscountValue("");
+    setDiscountCode("");
+    toast({ title: "Discount Removed" });
+  };
 
   const saveMutation = useMutation({
     mutationFn: async (data: { selections: ArrangementSelections; status: string; nextStep: string }) => {
@@ -520,6 +545,76 @@ export default function Builder() {
                 </div>
               </div>
             )}
+
+            {/* Discount / Promotion Panel */}
+            <div className="bg-white/5 rounded-lg p-4 border border-dashed border-primary/20">
+              <div className="flex items-center gap-2 mb-3">
+                <Tag className="w-3.5 h-3.5 text-primary" />
+                <p className="text-sm uppercase tracking-wider text-primary/80">Discount / Promotion</p>
+                {selections.discount && (
+                  <button onClick={handleClearDiscount} className="ml-auto text-xs text-muted-foreground hover:text-red-400 flex items-center gap-1" data-testid="button-clear-discount">
+                    <X className="w-3 h-3" /> Remove
+                  </button>
+                )}
+              </div>
+
+              {selections.discount ? (
+                <div className="bg-primary/5 border border-primary/20 rounded-md px-3 py-2 flex items-center justify-between" data-testid="applied-discount">
+                  <div>
+                    <span className="text-sm text-primary font-medium">
+                      {selections.discount.type === "percent" ? `${selections.discount.value}% off` : `$${selections.discount.value.toFixed(2)} off`}
+                    </span>
+                    {selections.discount.code && <span className="text-xs text-muted-foreground ml-2">· Code: {selections.discount.code}</span>}
+                  </div>
+                  <span className="font-mono text-sm text-green-400">
+                    {(() => {
+                      const subtotal = allSelectedItems.reduce((s, si) => s + getLineTotal(si.item), 0) + (selections.customItems || []).reduce((s, ci) => s + ci.amount, 0);
+                      const amt = selections.discount!.type === "percent"
+                        ? subtotal * (selections.discount!.value / 100)
+                        : selections.discount!.value;
+                      return `−$${amt.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+                    })()}
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setDiscountType("percent")}
+                      className={cn("flex-1 h-8 text-xs rounded-md border transition-all", discountType === "percent" ? "bg-primary/10 border-primary text-primary" : "border-white/10 text-muted-foreground hover:border-white/20")}
+                      data-testid="button-discount-percent"
+                    >% Percent</button>
+                    <button
+                      onClick={() => setDiscountType("fixed")}
+                      className={cn("flex-1 h-8 text-xs rounded-md border transition-all", discountType === "fixed" ? "bg-primary/10 border-primary text-primary" : "border-white/10 text-muted-foreground hover:border-white/20")}
+                      data-testid="button-discount-fixed"
+                    >$ Fixed Amount</button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder={discountType === "percent" ? "e.g. 10" : "e.g. 250.00"}
+                      type="number"
+                      min="0"
+                      step={discountType === "percent" ? "1" : "0.01"}
+                      value={discountValue}
+                      onChange={(e) => setDiscountValue(e.target.value)}
+                      className="h-9 text-sm flex-1"
+                      data-testid="input-discount-value"
+                    />
+                    <Input
+                      placeholder="Promo code (optional)"
+                      value={discountCode}
+                      onChange={(e) => setDiscountCode(e.target.value)}
+                      className="h-9 text-sm flex-1"
+                      data-testid="input-discount-code"
+                    />
+                    <Button size="sm" className="h-9 bg-primary/80 hover:bg-primary text-primary-foreground" onClick={handleApplyDiscount} disabled={!discountValue} data-testid="button-apply-discount">
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="bg-white/5 rounded-lg p-4 border border-dashed border-white/10">
               <p className="text-sm uppercase tracking-wider text-muted-foreground mb-3">Add Custom Line Item</p>

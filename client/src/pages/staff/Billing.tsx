@@ -2,13 +2,15 @@ import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Printer, Download, Link as LinkIcon, Check, ShieldCheck, PenSquare, Share2, ArrowLeft, FileText, Loader2, ChevronRight, Clock, CheckCircle2 } from "lucide-react";
+import { Printer, Download, Link as LinkIcon, Check, ShieldCheck, PenSquare, Share2, ArrowLeft, FileText, Loader2, ChevronRight, Clock, CheckCircle2, Tag, Lock, X } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -161,6 +163,10 @@ function buildBillFromArrangement(
 export default function Billing() {
   const [billData, setBillData] = useState<BillData | null>(null);
   const [isStaffMode] = useState(true);
+  const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
+  const [discountValue, setDiscountValue] = useState("");
+  const [discountCode, setDiscountCode] = useState("");
+  const [editingDiscount, setEditingDiscount] = useState(false);
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -209,11 +215,55 @@ export default function Billing() {
     enabled: isAuthenticated,
   });
 
+  const { data: formInstances = [] } = useQuery<any[]>({
+    queryKey: [`/api/arrangements/${arrangementId}/forms`],
+    queryFn: async () => {
+      if (!arrangementId) return [];
+      const res = await fetch(`/api/arrangements/${arrangementId}/forms`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!arrangementId && isAuthenticated,
+  });
+
+  const discountLocked = formInstances.length > 0 &&
+    formInstances.filter((fi: any) => fi.template?.category === "authorization" || fi.template?.type === "pandadoc")
+      .every((fi: any) => fi.status === "completed");
+
   useEffect(() => {
     if (arrangement && catalogItems.length > 0 && packages.length > 0) {
       setBillData(buildBillFromArrangement(arrangement, catalogItems, packages));
     }
+    if (arrangement?.selections?.discount) {
+      const d = arrangement.selections.discount as { type: "percent" | "fixed"; value: number; code?: string };
+      setDiscountType(d.type);
+      setDiscountValue(String(d.value));
+      setDiscountCode(d.code || "");
+    }
   }, [arrangement, catalogItems, packages]);
+
+  const discountMutation = useMutation({
+    mutationFn: async (discount: { type: "percent" | "fixed"; value: number; code?: string } | null) => {
+      if (!arrangementId) return;
+      const sel = { ...(arrangement?.selections || {}), discount: discount ?? undefined };
+      if (!discount) delete (sel as any).discount;
+      const res = await apiRequest("PATCH", `/api/arrangements/${arrangementId}`, { selections: sel });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/arrangements", arrangementId] });
+      setEditingDiscount(false);
+      toast({ title: discount ? "Discount Applied" : "Discount Removed" });
+    },
+    onError: () => toast({ title: "Error", description: "Could not save discount.", variant: "destructive" }),
+  });
+
+  const discount = (() => {
+    const v = parseFloat(discountValue);
+    return discountValue && !isNaN(v) && v > 0 ? { type: discountType, value: v, ...(discountCode.trim() ? { code: discountCode.trim() } : {}) } : null;
+  })();
+
+  const savedDiscount = arrangement?.selections?.discount as { type: "percent" | "fixed"; value: number; code?: string } | undefined;
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -226,7 +276,7 @@ export default function Billing() {
   const calculateSectionTotal = (section: BillSection) => section.items.reduce((sum, item) => sum + item.amount, 0);
 
   const calculateTotal = () => {
-    if (!billData) return { subtotal: 0, tax: 0, total: 0, balance: 0, servicesTotal: 0, merchandiseTotal: 0, cashAdvancesTotal: 0, credits: 0 };
+    if (!billData) return { subtotal: 0, tax: 0, total: 0, discountAmount: 0, balance: 0, servicesTotal: 0, merchandiseTotal: 0, cashAdvancesTotal: 0, credits: 0 };
     const servicesTotal = calculateSectionTotal(billData.sections.services);
     const merchandiseTotal = calculateSectionTotal(billData.sections.merchandise);
     const cashAdvancesTotal = calculateSectionTotal(billData.sections.cashAdvances);
@@ -234,8 +284,11 @@ export default function Billing() {
     const tax = merchandiseTotal * billData.taxRate;
     const total = subtotal + tax;
     const credits = billData.credits.reduce((sum, item) => sum + item.amount, 0);
-    const balance = total - credits;
-    return { subtotal, tax, total, balance, servicesTotal, merchandiseTotal, cashAdvancesTotal, credits };
+    const discountAmount = savedDiscount
+      ? savedDiscount.type === "percent" ? total * (savedDiscount.value / 100) : savedDiscount.value
+      : 0;
+    const balance = total - credits - discountAmount;
+    return { subtotal, tax, total, discountAmount, balance, servicesTotal, merchandiseTotal, cashAdvancesTotal, credits };
   };
 
   const totals = calculateTotal();
@@ -485,6 +538,95 @@ export default function Billing() {
                     <span className="font-mono text-foreground">${totals.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
+
+                {/* Discount / Promotion Card */}
+                {arrangementId && (
+                  <div className={cn("rounded-md p-4 mb-6 border", savedDiscount ? "bg-primary/5 border-primary/20" : "bg-white/5 border-dashed border-white/10")}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Tag className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-xs uppercase tracking-wider text-primary/80 font-semibold">Discount / Promotion</span>
+                      {discountLocked && <Lock className="w-3 h-3 text-muted-foreground ml-auto" title="Locked after authorization" />}
+                    </div>
+
+                    {savedDiscount && !editingDiscount ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm text-primary font-medium" data-testid="billing-discount-label">
+                              {savedDiscount.type === "percent" ? `${savedDiscount.value}% off` : `$${savedDiscount.value.toFixed(2)} off`}
+                            </span>
+                            {savedDiscount.code && <span className="text-xs text-muted-foreground ml-2">· Code: {savedDiscount.code}</span>}
+                          </div>
+                          {!discountLocked && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => { setEditingDiscount(true); }}
+                                className="text-xs text-muted-foreground hover:text-foreground"
+                                data-testid="button-edit-discount"
+                              >Edit</button>
+                              <button
+                                onClick={() => discountMutation.mutate(null)}
+                                className="text-xs text-muted-foreground hover:text-red-400"
+                                data-testid="button-remove-discount"
+                              ><X className="w-3 h-3 inline" /> Remove</button>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex justify-between text-sm font-medium">
+                          <span className="text-green-400">Discount Applied</span>
+                          <span className="font-mono text-green-400" data-testid="billing-discount-amount">−${totals.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      </div>
+                    ) : discountLocked ? (
+                      <p className="text-xs text-muted-foreground">No discount applied. Authorization forms are complete — discount is now locked.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setDiscountType("percent")}
+                            className={cn("flex-1 h-7 text-xs rounded border transition-all", discountType === "percent" ? "bg-primary/10 border-primary text-primary" : "border-white/10 text-muted-foreground hover:border-white/20")}
+                            data-testid="billing-btn-percent"
+                          >% Percent</button>
+                          <button
+                            onClick={() => setDiscountType("fixed")}
+                            className={cn("flex-1 h-7 text-xs rounded border transition-all", discountType === "fixed" ? "bg-primary/10 border-primary text-primary" : "border-white/10 text-muted-foreground hover:border-white/20")}
+                            data-testid="billing-btn-fixed"
+                          >$ Fixed</button>
+                        </div>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder={discountType === "percent" ? "e.g. 10" : "e.g. 250.00"}
+                            type="number" min="0"
+                            step={discountType === "percent" ? "1" : "0.01"}
+                            value={discountValue}
+                            onChange={(e) => setDiscountValue(e.target.value)}
+                            className="h-8 text-xs flex-1"
+                            data-testid="billing-input-discount-value"
+                          />
+                          <Input
+                            placeholder="Code (optional)"
+                            value={discountCode}
+                            onChange={(e) => setDiscountCode(e.target.value)}
+                            className="h-8 text-xs flex-1"
+                            data-testid="billing-input-discount-code"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" className="h-8 text-xs flex-1 bg-primary/80 hover:bg-primary"
+                            onClick={() => discount && discountMutation.mutate(discount)}
+                            disabled={!discount || discountMutation.isPending}
+                            data-testid="billing-btn-apply-discount"
+                          >
+                            {discountMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Apply Discount"}
+                          </Button>
+                          {editingDiscount && (
+                            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setEditingDiscount(false)}>Cancel</Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {billData.credits.length > 0 && (
                   <div className="bg-green-900/10 border border-green-500/20 rounded-md p-4 mb-6">

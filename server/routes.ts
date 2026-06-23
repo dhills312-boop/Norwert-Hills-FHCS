@@ -325,8 +325,7 @@ export async function registerRoutes(
       const pick = () => WORDS[Math.floor(Math.random() * WORDS.length)];
       const temporaryPassword = `${pick()}-${pick()}-${pick()}-${pick()}`;
       const hashed = await hashPassword(temporaryPassword);
-      const updated = await storage.updateUser(req.params.id, { password: hashed });
-      if (!updated) return res.status(404).json({ message: "User not found" });
+      await storage.updateUserPassword(req.params.id, hashed);
       await storage.createAuditLog(req.user!.id, "password_reset", req.params.id);
       res.json({ temporaryPassword });
     } catch {

@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Lock, Loader2 } from "lucide-react";
+import { Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function StaffLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [, setLocation] = useLocation();
   const { login, isLoggingIn, isAuthenticated } = useAuth();
@@ -63,16 +64,28 @@ export default function StaffLogin() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" data-testid="label-password">Password</Label>
-              <Input 
-                id="password" 
-                data-testid="input-password"
-                type="password" 
-                placeholder="••••••••" 
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                className="bg-background/50 border-white/10 focus:border-primary"
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  data-testid="input-password"
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••" 
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                  className="bg-background/50 border-white/10 focus:border-primary pr-10"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  data-testid="button-toggle-password"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               {error && <p className="text-destructive text-sm" data-testid="text-error">{error}</p>}
             </div>
             <Button 

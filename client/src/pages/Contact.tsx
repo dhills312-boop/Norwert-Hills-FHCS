@@ -80,7 +80,7 @@ export default function Contact() {
                   <MapPin className="w-5 h-5" />
                   <span className="text-xs uppercase tracking-widest">Location</span>
                 </div>
-                <p className="text-xl font-serif" data-testid="text-address">985 W. Thomas, Hammond, LA 70401</p>
+                <p className="text-xl font-serif" data-testid="text-address">1601 W. Thomas, Hammond, LA 70401</p>
                 <div className="aspect-video w-full overflow-hidden rounded-sm border border-white/5 grayscale">
                   <iframe
                     title="Google Map"

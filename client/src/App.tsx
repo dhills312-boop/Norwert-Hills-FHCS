@@ -57,11 +57,11 @@ function Router() {
       <Route path="/resources/article/:id" component={ArticleDetail} />
       <Route path="/contact" component={Contact} />
       <Route path="/pre-planning" component={PrePlanning} />
+      <Route path="/memorials/:slug" component={Memorial} />
+      <Route path="/social/flyer/:slug" component={SocialFlyer} />
       <Route path="/announcements/charles-braud" component={CharlesBraudAnnouncement} />
       <Route path="/announcements/:slug" component={AnnouncementPage} />
       <Route path="/obituaries/:slug" component={ObituaryPage} />
-      <Route path="/memorials/:slug" component={Memorial} />
-      <Route path="/social/flyer/:slug" component={SocialFlyer} />
       <Route path="/staff/login" component={StaffLogin} />
       <Route path="/staff/dashboard" component={Dashboard} />
       <Route path="/staff/sessions/:id" component={SessionOverview} />

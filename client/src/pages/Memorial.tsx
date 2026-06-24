@@ -1,4 +1,4 @@
-import { CalendarPlus, Copy, ExternalLink, Facebook, Instagram, MapPin, PlayCircle } from "lucide-react";
+import { BookOpen, CalendarPlus, Copy, ExternalLink, Facebook, Flower2, Gift, Instagram, MapPin, MessageSquare, PlayCircle } from "lucide-react";
 import { useRoute } from "wouter";
 import NotFound from "@/pages/not-found";
 import { getMemorial } from "@/lib/memorials";
@@ -13,6 +13,11 @@ const accentStyles = {
 
 function copyLink() {
   void navigator.clipboard?.writeText(window.location.href);
+}
+
+function facebookCommentsUrl(slug: string) {
+  const href = encodeURIComponent(`https://thenhfcs.com/memorials/${slug}`);
+  return `https://www.facebook.com/plugins/comments.php?href=${href}&numposts=8&width=680&order_by=social`;
 }
 
 function directionsUrl(address?: string) {
@@ -144,31 +149,90 @@ export default function Memorial() {
           </div>
         </div>
 
-        {memorial.youtubeEmbedUrl && (
-          <section className="mx-auto mb-10 w-full max-w-4xl border-y border-primary/20 py-10">
-            <div className="mb-6 flex items-center justify-center gap-3 text-primary">
-              <PlayCircle className="h-5 w-5" />
-              <h2 className="text-center text-xs uppercase tracking-[0.38em]">Full Service</h2>
-            </div>
-            <div className="overflow-hidden border border-primary/20 bg-black shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-              <iframe
-                className="aspect-video w-full"
-                src={memorial.youtubeEmbedUrl}
-                title={`${memorial.name} full service`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-              />
-            </div>
-            {memorial.youtubeUrl && (
-              <div className="mt-5 text-center">
-                <Button asChild variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
-                  <a href={memorial.youtubeUrl} target="_blank" rel="noreferrer">
-                    <ExternalLink className="mr-2 h-4 w-4" /> Watch on YouTube
-                  </a>
-                </Button>
+        {(memorial.youtubeEmbedUrl || memorial.facebookPostUrl || memorial.guestbookEnabled || memorial.flowersUrl || memorial.giftsUrl) && (
+          <section className="mx-auto mb-10 grid w-full max-w-4xl gap-6 border-y border-primary/20 py-10">
+            {memorial.youtubeEmbedUrl && (
+              <div>
+                <div className="mb-6 flex items-center justify-center gap-3 text-primary">
+                  <PlayCircle className="h-5 w-5" />
+                  <h2 className="text-center text-xs uppercase tracking-[0.38em]">Full Service</h2>
+                </div>
+                <div className="overflow-hidden border border-primary/20 bg-black shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+                  <iframe
+                    className="aspect-video w-full"
+                    src={memorial.youtubeEmbedUrl}
+                    title={`${memorial.name} full service`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                </div>
+                {memorial.youtubeUrl && (
+                  <div className="mt-5 text-center">
+                    <Button asChild variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
+                      <a href={memorial.youtubeUrl} target="_blank" rel="noreferrer">
+                        <ExternalLink className="mr-2 h-4 w-4" /> Watch on YouTube
+                      </a>
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <MemorialAction
+                icon={<BookOpen className="h-5 w-5" />}
+                title="Guestbook"
+                description="A dedicated Norwert guestbook will be added here for family-approved memories and condolences."
+                status="Coming soon"
+              />
+              <MemorialAction
+                icon={<Flower2 className="h-5 w-5" />}
+                title="Flowers"
+                description="Flower ordering is not connected for this memorial yet."
+                href={memorial.flowersUrl}
+                status={memorial.flowersUrl ? "Available" : "Not available yet"}
+              />
+              <MemorialAction
+                icon={<Gift className="h-5 w-5" />}
+                title="Gifts"
+                description="Memorial gift options are not connected for this memorial yet."
+                href={memorial.giftsUrl}
+                status={memorial.giftsUrl ? "Available" : "Not available yet"}
+              />
+            </div>
+
+            <div className="border border-primary/15 bg-white/[0.03] p-5 text-center">
+              <div className="mb-3 flex items-center justify-center gap-3 text-primary">
+                <MessageSquare className="h-5 w-5" />
+                <h2 className="text-xs uppercase tracking-[0.32em]">Community Remembrances</h2>
+              </div>
+              <p className="mx-auto mb-5 max-w-2xl text-sm leading-6 text-[#f5f0e8]/65">
+                Leave a remembrance with Facebook Comments. Comments are connected to this memorial page.
+              </p>
+              <div className="mx-auto max-w-[680px] overflow-hidden bg-white">
+                <iframe
+                  title={`${memorial.name} Facebook comments`}
+                  src={facebookCommentsUrl(memorial.slug)}
+                  width="680"
+                  height="560"
+                  className="mx-auto w-full max-w-[680px] border-0"
+                  style={{ overflow: "hidden" }}
+                  scrolling="yes"
+                  frameBorder="0"
+                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                />
+              </div>
+              {memorial.facebookPostUrl && (
+                <div className="mt-5 text-center">
+                  <Button asChild variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
+                    <a href={memorial.facebookPostUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="mr-2 h-4 w-4" /> View Facebook thread
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </div>
           </section>
         )}
 
@@ -204,5 +268,54 @@ function Detail({ label, value }: { label: string; value: string }) {
       <p className="text-[10px] uppercase tracking-[0.28em] text-primary/70">{label}</p>
       <p className="mt-2 font-serif text-lg leading-6 text-[#f5f0e8]/85">{value}</p>
     </div>
+  );
+}
+function MemorialAction({
+  icon,
+  title,
+  description,
+  href,
+  status,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  href?: string;
+  status?: string;
+}) {
+  const isAvailable = Boolean(href);
+  const statusText = status || (isAvailable ? "Available" : "Coming soon");
+  const content = (
+    <div
+      className={`group relative h-full border p-5 text-center transition ${
+        isAvailable
+          ? "border-primary/20 bg-white/[0.03] hover:border-primary/40 hover:bg-white/[0.05]"
+          : "cursor-not-allowed border-white/10 bg-white/[0.015] opacity-75"
+      }`}
+      title={statusText}
+      aria-disabled={!isAvailable}
+    >
+      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-primary/25 text-primary">
+        {icon}
+      </div>
+      <h3 className="font-serif text-2xl text-[#f8f1e7]">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-[#f5f0e8]/62">{description}</p>
+      <p className={`mt-4 text-xs uppercase tracking-[0.22em] ${isAvailable ? "text-primary" : "text-[#f5f0e8]/45"}`}>
+        {isAvailable ? "Open" : statusText}
+      </p>
+      {!isAvailable && (
+        <span className="pointer-events-none absolute inset-x-4 top-4 rounded-sm border border-primary/20 bg-[#09070c]/95 px-3 py-2 text-xs uppercase tracking-[0.18em] text-primary opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-within:opacity-100">
+          {statusText}
+        </span>
+      )}
+    </div>
+  );
+
+  if (!isAvailable) return content;
+
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className="block h-full">
+      {content}
+    </a>
   );
 }

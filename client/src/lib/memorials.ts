@@ -17,6 +17,10 @@ export type Memorial = {
   scripture?: string;
   youtubeUrl?: string;
   youtubeEmbedUrl?: string;
+  facebookPostUrl?: string;
+  guestbookEnabled?: boolean;
+  flowersUrl?: string;
+  giftsUrl?: string;
   sourceNote: string;
 };
 
@@ -37,6 +41,8 @@ export const memorials: Memorial[] = [
     scripture: "Those we love remain with us, carried in memory and in love.",
     youtubeUrl: "https://www.youtube.com/live/6Vtndc7Ll2c?si=cx16Q84sSB-jYPOa",
     youtubeEmbedUrl: "https://www.youtube.com/embed/6Vtndc7Ll2c",
+    facebookPostUrl: "https://www.facebook.com/61590433896394/posts/122116307529347796/",
+    guestbookEnabled: true,
     sourceNote: "Service details supplied by Norwert Hills staff. Full service stream confirmed through YouTube.",
   },
   {

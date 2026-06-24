@@ -1,0 +1,1 @@
+- [Deploy conflict markers](deploy-conflict-markers.md) — deploy build fails on unresolved git conflict markers in client/src/App.tsx route list; grep & clean before publishing.

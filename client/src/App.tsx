@@ -13,6 +13,8 @@ import Resources from "@/pages/Resources";
 import ResourcesFAQ from "@/pages/ResourcesFAQ";
 import ArticleDetail from "@/pages/ArticleDetail";
 import Contact from "@/pages/Contact";
+import Memorial from "@/pages/Memorial";
+import SocialFlyer from "@/pages/SocialFlyer";
 import StaffLogin from "@/pages/staff/Login";
 import Dashboard from "@/pages/staff/Dashboard";
 import Builder from "@/pages/staff/Builder";
@@ -54,10 +56,15 @@ function Router() {
       <Route path="/resources/faq" component={ResourcesFAQ} />
       <Route path="/resources/article/:id" component={ArticleDetail} />
       <Route path="/contact" component={Contact} />
+<<<<<<< HEAD
       <Route path="/pre-planning" component={PrePlanning} />
       <Route path="/announcements/charles-braud" component={CharlesBraudAnnouncement} />
       <Route path="/announcements/:slug" component={AnnouncementPage} />
       <Route path="/obituaries/:slug" component={ObituaryPage} />
+=======
+      <Route path="/memorials/:slug" component={Memorial} />
+      <Route path="/social/flyer/:slug" component={SocialFlyer} />
+>>>>>>> 386842f (Add memorial pages)
       <Route path="/staff/login" component={StaffLogin} />
       <Route path="/staff/dashboard" component={Dashboard} />
       <Route path="/staff/sessions/:id" component={SessionOverview} />

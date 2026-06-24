@@ -15,9 +15,12 @@ function copyLink() {
   void navigator.clipboard?.writeText(window.location.href);
 }
 
+const FB_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID as string | undefined;
+
 function facebookCommentsUrl(slug: string) {
   const href = encodeURIComponent(`https://thenhfcs.com/memorials/${slug}`);
-  return `https://www.facebook.com/plugins/comments.php?href=${href}&numposts=8&width=680&order_by=social`;
+  const appId = FB_APP_ID ? `&app_id=${FB_APP_ID}` : "";
+  return `https://www.facebook.com/plugins/comments.php?href=${href}&numposts=8&width=680&order_by=social${appId}`;
 }
 
 function directionsUrl(address?: string) {

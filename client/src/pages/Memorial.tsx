@@ -1,6 +1,5 @@
 import { BookOpen, CalendarPlus, Copy, ExternalLink, Facebook, Flower2, Gift, Instagram, MapPin, MessageSquare, PlayCircle } from "lucide-react";
 import { useRoute } from "wouter";
-import { useEffect, useRef } from "react";
 import NotFound from "@/pages/not-found";
 import { getMemorial } from "@/lib/memorials";
 import { Button } from "@/components/ui/button";
@@ -16,61 +15,6 @@ function copyLink() {
   void navigator.clipboard?.writeText(window.location.href);
 }
 
-const FB_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID as string | undefined;
-
-function FacebookComments({ slug }: { slug: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const pageUrl = `https://thenhfcs.com/memorials/${slug}`;
-
-  useEffect(() => {
-    if (!FB_APP_ID) return;
-
-    const win = window as any;
-
-    const parse = () => {
-      if (win.FB) {
-        win.FB.XFBML.parse(containerRef.current ?? undefined);
-      }
-    };
-
-    if (win.FB) {
-      parse();
-      return;
-    }
-
-    win.fbAsyncInit = () => {
-      win.FB.init({ appId: FB_APP_ID, xfbml: true, version: "v19.0" });
-    };
-
-    if (!document.getElementById("facebook-jssdk")) {
-      const script = document.createElement("script");
-      script.id = "facebook-jssdk";
-      script.src = "https://connect.facebook.net/en_US/sdk.js";
-      script.async = true;
-      script.defer = true;
-      script.onload = parse;
-      document.body.appendChild(script);
-    } else {
-      parse();
-    }
-  }, [slug]);
-
-  if (!FB_APP_ID) return null;
-
-  return (
-    <div ref={containerRef}>
-      <div id="fb-root" />
-      <div
-        className="fb-comments"
-        data-href={pageUrl}
-        data-numposts="8"
-        data-width="100%"
-        data-order-by="social"
-        data-colorscheme="light"
-      />
-    </div>
-  );
-}
 
 function directionsUrl(address?: string) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || "1601 W Thomas St Hammond LA 70401")}`;
@@ -254,27 +198,22 @@ export default function Memorial() {
               />
             </div>
 
-            <div className="border border-primary/15 bg-white/[0.03] p-5 text-center">
-              <div className="mb-3 flex items-center justify-center gap-3 text-primary">
-                <MessageSquare className="h-5 w-5" />
-                <h2 className="text-xs uppercase tracking-[0.32em]">Community Remembrances</h2>
-              </div>
-              <p className="mx-auto mb-5 max-w-2xl text-sm leading-6 text-[#f5f0e8]/65">
-                Leave a remembrance with Facebook Comments. Comments are connected to this memorial page.
-              </p>
-              <div className="mx-auto max-w-[680px] overflow-hidden bg-white p-2">
-                <FacebookComments slug={memorial.slug} />
-              </div>
-              {memorial.facebookPostUrl && (
-                <div className="mt-5 text-center">
-                  <Button asChild variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
-                    <a href={memorial.facebookPostUrl} target="_blank" rel="noreferrer">
-                      <ExternalLink className="mr-2 h-4 w-4" /> View Facebook thread
-                    </a>
-                  </Button>
+            {memorial.facebookPostUrl && (
+              <div className="border border-primary/15 bg-white/[0.03] p-6 text-center">
+                <div className="mb-3 flex items-center justify-center gap-3 text-primary">
+                  <MessageSquare className="h-5 w-5" />
+                  <h2 className="text-xs uppercase tracking-[0.32em]">Community Remembrances</h2>
                 </div>
-              )}
-            </div>
+                <p className="mx-auto mb-5 max-w-2xl text-sm leading-6 text-[#f5f0e8]/65">
+                  Share your remembrance and read messages from others on the memorial Facebook post.
+                </p>
+                <Button asChild variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
+                  <a href={memorial.facebookPostUrl} target="_blank" rel="noreferrer">
+                    <Facebook className="mr-2 h-4 w-4" /> View &amp; Comment on Facebook
+                  </a>
+                </Button>
+              </div>
+            )}
           </section>
         )}
 

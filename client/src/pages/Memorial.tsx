@@ -1,5 +1,6 @@
 import { BookOpen, CalendarPlus, Copy, ExternalLink, Facebook, Flower2, Gift, Instagram, MapPin, MessageSquare, PlayCircle } from "lucide-react";
 import { useRoute } from "wouter";
+import { useEffect, useRef } from "react";
 import NotFound from "@/pages/not-found";
 import { getMemorial } from "@/lib/memorials";
 import { Button } from "@/components/ui/button";
@@ -17,10 +18,58 @@ function copyLink() {
 
 const FB_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID as string | undefined;
 
-function facebookCommentsUrl(slug: string) {
-  const href = encodeURIComponent(`https://thenhfcs.com/memorials/${slug}`);
-  const appId = FB_APP_ID ? `&app_id=${FB_APP_ID}` : "";
-  return `https://www.facebook.com/plugins/comments.php?href=${href}&numposts=8&width=680&order_by=social${appId}`;
+function FacebookComments({ slug }: { slug: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pageUrl = `https://thenhfcs.com/memorials/${slug}`;
+
+  useEffect(() => {
+    if (!FB_APP_ID) return;
+
+    const win = window as any;
+
+    const parse = () => {
+      if (win.FB) {
+        win.FB.XFBML.parse(containerRef.current ?? undefined);
+      }
+    };
+
+    if (win.FB) {
+      parse();
+      return;
+    }
+
+    win.fbAsyncInit = () => {
+      win.FB.init({ appId: FB_APP_ID, xfbml: true, version: "v19.0" });
+    };
+
+    if (!document.getElementById("facebook-jssdk")) {
+      const script = document.createElement("script");
+      script.id = "facebook-jssdk";
+      script.src = "https://connect.facebook.net/en_US/sdk.js";
+      script.async = true;
+      script.defer = true;
+      script.onload = parse;
+      document.body.appendChild(script);
+    } else {
+      parse();
+    }
+  }, [slug]);
+
+  if (!FB_APP_ID) return null;
+
+  return (
+    <div ref={containerRef}>
+      <div id="fb-root" />
+      <div
+        className="fb-comments"
+        data-href={pageUrl}
+        data-numposts="8"
+        data-width="100%"
+        data-order-by="social"
+        data-colorscheme="light"
+      />
+    </div>
+  );
 }
 
 function directionsUrl(address?: string) {
@@ -213,18 +262,8 @@ export default function Memorial() {
               <p className="mx-auto mb-5 max-w-2xl text-sm leading-6 text-[#f5f0e8]/65">
                 Leave a remembrance with Facebook Comments. Comments are connected to this memorial page.
               </p>
-              <div className="mx-auto max-w-[680px] overflow-hidden bg-white">
-                <iframe
-                  title={`${memorial.name} Facebook comments`}
-                  src={facebookCommentsUrl(memorial.slug)}
-                  width="680"
-                  height="560"
-                  className="mx-auto w-full max-w-[680px] border-0"
-                  style={{ overflow: "hidden" }}
-                  scrolling="yes"
-                  frameBorder="0"
-                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                />
+              <div className="mx-auto max-w-[680px] overflow-hidden bg-white p-2">
+                <FacebookComments slug={memorial.slug} />
               </div>
               {memorial.facebookPostUrl && (
                 <div className="mt-5 text-center">

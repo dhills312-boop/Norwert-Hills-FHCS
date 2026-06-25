@@ -48,6 +48,7 @@ mockupState = "FULLSTACK"
 ADMIN_EMAIL = "support@thenhfcs.com"
 ADMIN_NAME = "IT_DANIEL"
 ADMIN_PASSWORD = "BeverlyJean1!"
+VITE_FACEBOOK_APP_ID = "995607849847095"
 
 [postMerge]
 path = "scripts/post-merge.sh"

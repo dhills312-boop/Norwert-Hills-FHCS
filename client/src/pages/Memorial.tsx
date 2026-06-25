@@ -1,5 +1,6 @@
 import { BookOpen, CalendarPlus, Copy, ExternalLink, Facebook, Flower2, Gift, Instagram, MapPin, MessageSquare, PlayCircle } from "lucide-react";
 import { useRoute } from "wouter";
+import { useEffect } from "react";
 import NotFound from "@/pages/not-found";
 import { getMemorial } from "@/lib/memorials";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,29 @@ const accentStyles = {
   violet: "rgba(141,106,184,0.35)",
   blue: "rgba(59,127,191,0.35)",
 };
+
+function useFacebookSDK(enabled: boolean) {
+  useEffect(() => {
+    if (!enabled) return;
+    const win = window as any;
+    if (win.FB) {
+      win.FB.XFBML.parse();
+      return;
+    }
+    win.fbAsyncInit = function () {
+      win.FB.init({ xfbml: true, version: "v19.0" });
+    };
+    if (!document.getElementById("facebook-jssdk")) {
+      const s = document.createElement("script");
+      s.id = "facebook-jssdk";
+      s.src = "https://connect.facebook.net/en_US/sdk.js";
+      s.async = true;
+      s.defer = true;
+      s.crossOrigin = "anonymous";
+      document.head.appendChild(s);
+    }
+  }, [enabled]);
+}
 
 function copyLink() {
   void navigator.clipboard?.writeText(window.location.href);
@@ -57,6 +81,7 @@ function shareUrl(platform: "facebook" | "instagram") {
 export default function Memorial() {
   const [, params] = useRoute("/memorials/:slug");
   const memorial = getMemorial(params?.slug);
+  useFacebookSDK(!!memorial?.facebookPostUrl);
 
   if (!memorial) return <NotFound />;
 
@@ -207,17 +232,13 @@ export default function Memorial() {
                 <p className="mx-auto mb-5 max-w-2xl text-sm leading-6 text-[#f5f0e8]/65">
                   Share your remembrance and read messages from the family's Facebook post.
                 </p>
-                <div className="mx-auto overflow-hidden" style={{ maxWidth: 500 }}>
-                  <iframe
-                    src={`https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(memorial.facebookPostUrl)}&width=500&show_text=true&appId=${import.meta.env.VITE_FACEBOOK_APP_ID ?? ""}`}
-                    width="500"
-                    height="700"
-                    className="w-full border-0"
-                    style={{ overflow: "hidden" }}
-                    scrolling="no"
-                    frameBorder="0"
-                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                    title="Facebook post"
+                <div id="fb-root" />
+                <div className="mx-auto flex justify-center" style={{ maxWidth: 500 }}>
+                  <div
+                    className="fb-post"
+                    data-href={memorial.facebookPostUrl}
+                    data-width="500"
+                    data-show-text="true"
                   />
                 </div>
                 <div className="mt-4">

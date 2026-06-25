@@ -200,18 +200,33 @@ export default function Memorial() {
 
             {memorial.facebookPostUrl && (
               <div className="border border-primary/15 bg-white/[0.03] p-6 text-center">
-                <div className="mb-3 flex items-center justify-center gap-3 text-primary">
+                <div className="mb-4 flex items-center justify-center gap-3 text-primary">
                   <MessageSquare className="h-5 w-5" />
                   <h2 className="text-xs uppercase tracking-[0.32em]">Community Remembrances</h2>
                 </div>
                 <p className="mx-auto mb-5 max-w-2xl text-sm leading-6 text-[#f5f0e8]/65">
-                  Share your remembrance and read messages from others on the memorial Facebook post.
+                  Share your remembrance and read messages from the family's Facebook post.
                 </p>
-                <Button asChild variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
-                  <a href={memorial.facebookPostUrl} target="_blank" rel="noreferrer">
-                    <Facebook className="mr-2 h-4 w-4" /> View &amp; Comment on Facebook
-                  </a>
-                </Button>
+                <div className="mx-auto overflow-hidden" style={{ maxWidth: 500 }}>
+                  <iframe
+                    src={`https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(memorial.facebookPostUrl)}&width=500&show_text=true&appId=${import.meta.env.VITE_FACEBOOK_APP_ID ?? ""}`}
+                    width="500"
+                    height="700"
+                    className="w-full border-0"
+                    style={{ overflow: "hidden" }}
+                    scrolling="no"
+                    frameBorder="0"
+                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                    title="Facebook post"
+                  />
+                </div>
+                <div className="mt-4">
+                  <Button asChild variant="outline" size="sm" className="border-primary/30 text-primary/70 hover:bg-primary/10">
+                    <a href={memorial.facebookPostUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="mr-2 h-3 w-3" /> Open on Facebook
+                    </a>
+                  </Button>
+                </div>
               </div>
             )}
           </section>

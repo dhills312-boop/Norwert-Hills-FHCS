@@ -1,8 +1,9 @@
 
 import { type LucideIcon, Heart, Users, Calendar, FileText, Check, Phone, Mail, MapPin } from "lucide-react";
+import { SERVICE_SLUGS } from "@shared/static-slugs";
 
 export interface Service {
-  id: string;
+  id: typeof SERVICE_SLUGS[number];
   title: string;
   description: string;
   image: string;

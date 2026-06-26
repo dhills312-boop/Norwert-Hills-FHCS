@@ -1,5 +1,7 @@
+import { MEMORIAL_SLUGS } from "@shared/static-slugs";
+
 export type Memorial = {
-  slug: string;
+  slug: typeof MEMORIAL_SLUGS[number];
   name: string;
   honorific?: string;
   lifeDates?: string;

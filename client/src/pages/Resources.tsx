@@ -72,7 +72,7 @@ export default function Resources() {
               <p className="text-muted-foreground text-sm font-light leading-relaxed mb-6 flex-grow">
                 Download the official Louisiana Funeral Planning Guide for comprehensive consumer information.
               </p>
-              <a href="/assets/cremation-guide.pdf" download="Louisiana_Funeral_Planning_Guide.pdf" className="mt-auto block w-full">
+              <a href="/assets/Louisiana-Funeral-Planning-Guide.pdf" download="Louisiana_Funeral_Planning_Guide.pdf" className="mt-auto block w-full">
                 <Button variant="outline" className="w-full border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground uppercase text-xs tracking-widest" data-testid="button-download-guide">
                   <Download className="mr-2 h-4 w-4" /> Download PDF
                 </Button>

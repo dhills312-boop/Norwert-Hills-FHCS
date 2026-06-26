@@ -113,7 +113,7 @@ export default function ResourcesFAQ() {
                 </div>
              </div>
              <div className="flex gap-4">
-               <a href="/assets/Louisiana-Funeral-Planning-Guide.pdf" download>
+               <a href="/assets/Louisiana-Funeral-Planning-Guide.pdf" download="Louisiana_Funeral_Planning_Guide.pdf">
                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 uppercase text-xs tracking-widest px-8">
                    Download PDF
                  </Button>

@@ -3,6 +3,7 @@ import { type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { arrangements, activityLogs, formInstances, arrangementItems, commEvents, sessionDocChecklist, announcements, condolenceMessages } from "@shared/schema";
+import { SERVICE_SLUGS, ARTICLE_SLUGS, MEMORIAL_SLUGS, LEGACY_ANNOUNCEMENT_SLUGS } from "@shared/static-slugs";
 import { eq, inArray } from "drizzle-orm";
 import { requireAuth, requireDirector, hashPassword, comparePasswords } from "./auth";
 import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertCommEventSchema, insertServiceCatalogSchema, insertAnnouncementSchema, insertCondolenceMessageSchema, passwordSchema, type FormInstance } from "@shared/schema";
@@ -54,10 +55,87 @@ function maskDestination(dest: string, channel: string): string {
 
 const updateArrangementSchema = insertArrangementSchema.partial();
 
+const BASE_URL = "https://norwert-hills-funeral-cremation.replit.app";
+
+type SitemapEntry = { path: string; changefreq: string; priority: string };
+
+function buildStaticSitemapUrls(): SitemapEntry[] {
+  const core: SitemapEntry[] = [
+    { path: "/", changefreq: "weekly", priority: "1.0" },
+    { path: "/services", changefreq: "monthly", priority: "0.9" },
+    { path: "/cremation", changefreq: "monthly", priority: "0.9" },
+    { path: "/pre-planning", changefreq: "monthly", priority: "0.8" },
+    { path: "/about", changefreq: "monthly", priority: "0.8" },
+    { path: "/resources", changefreq: "monthly", priority: "0.8" },
+    { path: "/resources/faq", changefreq: "monthly", priority: "0.7" },
+    { path: "/contact", changefreq: "monthly", priority: "0.8" },
+  ];
+
+  const serviceUrls: SitemapEntry[] = SERVICE_SLUGS.map((slug) => ({
+    path: `/services/${slug}`,
+    changefreq: "monthly",
+    priority: "0.7",
+  }));
+
+  const articleUrls: SitemapEntry[] = ARTICLE_SLUGS.map((slug) => ({
+    path: `/resources/article/${slug}`,
+    changefreq: "monthly",
+    priority: "0.6",
+  }));
+
+  const memorialUrls: SitemapEntry[] = MEMORIAL_SLUGS.map((slug) => ({
+    path: `/memorials/${slug}`,
+    changefreq: "weekly",
+    priority: "0.6",
+  }));
+
+  const legacyUrls: SitemapEntry[] = LEGACY_ANNOUNCEMENT_SLUGS.flatMap((slug) => [
+    { path: `/announcements/${slug}`, changefreq: "weekly", priority: "0.6" },
+    { path: `/obituaries/${slug}`, changefreq: "weekly", priority: "0.6" },
+  ]);
+
+  return [...core, ...serviceUrls, ...articleUrls, ...memorialUrls, ...legacyUrls];
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const publishedAnnouncements = await db
+        .select({ slug: announcements.slug })
+        .from(announcements)
+        .where(eq(announcements.isPublished, true));
+
+      const legacySlugsSet = new Set<string>(LEGACY_ANNOUNCEMENT_SLUGS);
+
+      const dynamicUrls = publishedAnnouncements
+        .filter((a) => !legacySlugsSet.has(a.slug))
+        .flatMap((a) => [
+          { path: `/announcements/${a.slug}`, changefreq: "weekly", priority: "0.6" },
+          { path: `/obituaries/${a.slug}`, changefreq: "weekly", priority: "0.6" },
+        ]);
+
+      const allUrls = [...buildStaticSitemapUrls(), ...dynamicUrls];
+
+      const urlEntries = allUrls
+        .map(
+          (u) =>
+            `  <url>\n    <loc>${BASE_URL}${u.path}</loc>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`
+        )
+        .join("\n");
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlEntries}\n</urlset>`;
+
+      res.setHeader("Content-Type", "application/xml");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.send(xml);
+    } catch {
+      res.status(500).send("Failed to generate sitemap");
+    }
+  });
 
   app.post("/api/contact", async (req, res) => {
     try {

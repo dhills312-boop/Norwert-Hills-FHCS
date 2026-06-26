@@ -104,7 +104,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
 
       <footer className="bg-secondary pt-20 pb-10 border-t border-white/5">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-12 mb-16">
             <div className="md:col-span-1">
               <img src="/assets/logo-crest.png" alt="Norwert Hills" className="h-20 w-20 mx-auto opacity-80" />
               <p className="text-muted-foreground text-sm leading-relaxed">
@@ -119,6 +119,20 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                 <li><Link href="/services/cremation-services" className="hover:text-foreground transition-colors">Cremation Services</Link></li>
                 <li><Link href="/services/bespoke-memorials" className="hover:text-foreground transition-colors">Bespoke Memorials</Link></li>
                 <li><Link href="/pre-planning" className="hover:text-foreground transition-colors">Pre-Planning</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-serif text-lg text-primary mb-6">In Memoriam</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li><Link href="/memorials/jonis-warren" className="hover:text-foreground transition-colors">Jonis Warren</Link></li>
+                <li><Link href="/memorials/lelia-henderson" className="hover:text-foreground transition-colors">Lelia Henderson</Link></li>
+                <li><Link href="/memorials/deloris-holden" className="hover:text-foreground transition-colors">Deloris Holden</Link></li>
+                <li><Link href="/memorials/brandon-mckay" className="hover:text-foreground transition-colors">Brandon McKay</Link></li>
+                <li><Link href="/memorials/richard-gross" className="hover:text-foreground transition-colors">Richard Gross</Link></li>
+                <li><Link href="/memorials/keiaris-tilman" className="hover:text-foreground transition-colors">Keiaris Tilman</Link></li>
+                <li><Link href="/memorials/troyshaun-martin" className="hover:text-foreground transition-colors">Troyshaun Martin</Link></li>
+                <li><Link href="/memorials/steven-dillon" className="hover:text-foreground transition-colors">Steven Dillon</Link></li>
               </ul>
             </div>
 

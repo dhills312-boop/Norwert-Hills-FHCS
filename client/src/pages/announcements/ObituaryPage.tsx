@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRoute, Link } from 'wouter';
+import { useAnnouncementFonts } from '@/hooks/use-announcement-fonts';
 
 const logoImage = '/assets/announcements/charles-braud/logo.png';
 
@@ -36,6 +37,7 @@ interface CondolenceMessage {
 }
 
 export default function ObituaryPage() {
+  useAnnouncementFonts();
   const [, params] = useRoute('/obituaries/:slug');
   const slug = params?.slug || '';
   const isPreview = new URLSearchParams(window.location.search).has('preview');
@@ -102,7 +104,7 @@ export default function ObituaryPage() {
     );
   }
 
-  const portraitSrc = announcement.portraitImagePath || '/assets/announcements/charles-braud/portrait.png';
+  const portraitSrc = announcement.portraitImagePath || '/assets/announcements/charles-braud/portrait.webp';
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#09070c' }}>

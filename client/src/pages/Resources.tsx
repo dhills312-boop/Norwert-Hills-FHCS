@@ -10,7 +10,7 @@ const articles = [
     excerpt: "Exploring the process, options, and considerations when choosing cremation for a loved one.",
     category: "Planning",
     readTime: "6 min read",
-    image: "/assets/texture-marble.png",
+    image: "/assets/texture-marble.webp",
     id: "understanding-cremation"
   },
   {
@@ -18,7 +18,7 @@ const articles = [
     excerpt: "How to craft a tribute that truly reflects the unique spirit and legacy of an individual.",
     category: "Honoring",
     readTime: "8 min read",
-    image: "/assets/hero-chapel.png",
+    image: "/assets/hero-chapel.webp",
     id: "bespoke-memorials"
   },
   {
@@ -26,7 +26,7 @@ const articles = [
     excerpt: "The emotional and practical benefits of pre-planning funeral services.",
     category: "Guidance",
     readTime: "5 min read",
-    image: "/assets/staff-interaction.png",
+    image: "/assets/staff-interaction.webp",
     id: "planning-ahead"
   }
 ];
@@ -35,7 +35,7 @@ export default function Resources() {
   return (
     <PublicLayout>
       <div className="pt-32 pb-20 bg-background relative overflow-hidden min-h-screen">
-        <div className="absolute top-0 right-0 w-1/3 h-[50vh] bg-[url('/assets/texture-marble.png')] opacity-10 mix-blend-overlay z-0" />
+        <div className="absolute top-0 right-0 w-1/3 h-[50vh] bg-[url('/assets/texture-marble.webp')] opacity-10 mix-blend-overlay z-0" />
         
         <div className="container mx-auto px-6 relative z-10">
           
@@ -111,7 +111,8 @@ export default function Resources() {
                     <img 
                       src={article.image} 
                       alt={article.title} 
-                      className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105" 
+                      className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
+                      loading="lazy"
                     />
                     <div className="absolute top-4 left-4">
                       <span className="bg-background/80 backdrop-blur-md text-primary text-[10px] uppercase tracking-widest px-3 py-1 rounded-full border border-primary/20">
@@ -133,7 +134,6 @@ export default function Resources() {
               </Link>
             ))}
           </div>
-
         </div>
       </div>
     </PublicLayout>

@@ -29,7 +29,7 @@ export default function SocialFlyer() {
           }`}
           style={{
             backgroundImage:
-              "radial-gradient(circle at 50% 35%, rgba(201,169,110,0.18), transparent 36%), url('/assets/texture-marble.png')",
+              "radial-gradient(circle at 50% 35%, rgba(201,169,110,0.18), transparent 36%), url('/assets/texture-marble.webp')",
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}

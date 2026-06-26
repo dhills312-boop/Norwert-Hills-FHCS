@@ -92,7 +92,7 @@ export default function Memorial() {
       <div
         className="fixed inset-0 opacity-20"
         style={{
-          backgroundImage: "url('/assets/texture-marble.png')",
+          backgroundImage: "url('/assets/texture-marble.webp')",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}

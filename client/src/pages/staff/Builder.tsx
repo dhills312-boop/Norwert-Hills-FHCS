@@ -645,12 +645,12 @@ export default function Builder() {
   };
 
   const previewImages: Record<StepId, string> = {
-    package: "/assets/hero-chapel.png",
-    merchandise: isCremation ? "/assets/texture-marble.png" : "/assets/casket-mahogany.png",
-    floral: "/assets/flowers-seasonal.png",
-    "add-ons": "/assets/ceremonial-detail.png",
-    "cash-advances": "/assets/staff-interaction.png",
-    review: "/assets/hero-chapel.png",
+    package: "/assets/hero-chapel.webp",
+    merchandise: isCremation ? "/assets/texture-marble.webp" : "/assets/casket-mahogany.webp",
+    floral: "/assets/flowers-seasonal.webp",
+    "add-ons": "/assets/ceremonial-detail.webp",
+    "cash-advances": "/assets/staff-interaction.webp",
+    review: "/assets/hero-chapel.webp",
   };
 
   const previewCaptions: Record<StepId, string> = {

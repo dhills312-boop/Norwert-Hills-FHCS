@@ -21,9 +21,10 @@ export default function Home() {
       <section className="relative h-screen min-h-[700px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
-            src="/assets/hero-chapel.png" 
+            src="/assets/hero-chapel.webp" 
             alt="Sanctuary" 
             className="w-full h-full object-cover opacity-60"
+            fetchPriority="high"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/40 to-background/90" />
         </div>
@@ -57,13 +58,13 @@ export default function Home() {
       </section>
       {/* Introduction */}
       <section className="py-24 md:py-32 bg-background relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-[url('/assets/texture-marble.png')] opacity-10 mix-blend-overlay" />
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-[url('/assets/texture-marble.webp')] opacity-10 mix-blend-overlay" />
         
         <div className="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
           <div className="relative in-line block">
             <div className="absolute -bottom-6 -right-6 w-full h-full border border-primary/30 hidden md:block" />
             <div className=" relative aspect-[4/5] overflow-hidden rounded-sm z-10">
-              <img src="/assets/staff-interaction.png" alt="Compassionate Care" className="object-cover w-full h-full hover:scale-105 transition-transform duration-700" />
+              <img src="/assets/staff-interaction.webp" alt="Compassionate Care" className="object-cover w-full h-full hover:scale-105 transition-transform duration-700" loading="lazy" />
               <div className="absolute inset-0 bg-primary/10 mix-blend-overlay" />
             </div>
            
@@ -101,12 +102,12 @@ export default function Home() {
 
         <div className="container mx-auto px-6 grid md:grid-cols-3 gap-8">
           {[
-            { title: "Traditional", image: "/assets/ceremonial-detail.png", desc: "Time-honored ceremonies in our historic chapel." },
-            { title: "Cremation", image: "/assets/texture-marble.png", desc: "Dignified cremation options with memorial gatherings." },
-            { title: "Bespoke", image: "/assets/hero-chapel.png", desc: "Personalized tributes reflecting a unique life." }
+            { title: "Traditional", image: "/assets/ceremonial-detail.webp", desc: "Time-honored ceremonies in our historic chapel." },
+            { title: "Cremation", image: "/assets/texture-marble.webp", desc: "Dignified cremation options with memorial gatherings." },
+            { title: "Bespoke", image: "/assets/hero-chapel.webp", desc: "Personalized tributes reflecting a unique life." }
           ].map((item, i) => (
             <Link key={i} href="/services" className="group block relative overflow-hidden aspect-[3/4]">
-              <img src={item.image} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <img src={item.image} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
               <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors" />
               <div className="absolute inset-0 flex flex-col justify-end p-8">
                 <h3 className="font-serif text-2xl text-white mb-2">{item.title}</h3>

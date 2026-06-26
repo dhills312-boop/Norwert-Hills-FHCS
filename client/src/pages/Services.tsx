@@ -9,7 +9,7 @@ export default function Services() {
   return (
     <PublicLayout>
       <div className="pt-32 pb-20 bg-background relative overflow-hidden min-h-screen">
-         <div className="absolute top-0 left-0 w-full h-[50vh] bg-[url('/assets/texture-marble.png')] opacity-10 mix-blend-overlay z-0" />
+         <div className="absolute top-0 left-0 w-full h-[50vh] bg-[url('/assets/texture-marble.webp')] opacity-10 mix-blend-overlay z-0" />
          
          <div className="container mx-auto px-6 relative z-10">
            <div className="text-center max-w-3xl mx-auto mb-20">

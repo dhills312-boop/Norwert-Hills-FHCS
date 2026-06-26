@@ -31,7 +31,7 @@ export default function PrePlanning() {
     <>
       <PublicLayout>
         <section className="relative min-h-[420px] flex items-center justify-center overflow-hidden bg-background pt-32 pb-20">
-          <div className="absolute inset-0 bg-[url('/assets/texture-marble.png')] opacity-5 mix-blend-overlay" />
+          <div className="absolute inset-0 bg-[url('/assets/texture-marble.webp')] opacity-5 mix-blend-overlay" />
           <div className="relative z-10 container mx-auto px-6 text-center max-w-3xl">
             <motion.div
               initial={{ opacity: 0, y: 24 }}

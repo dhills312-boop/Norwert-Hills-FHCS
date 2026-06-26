@@ -1,6 +1,7 @@
 import { Facebook, Instagram, Twitter, Copy, Check } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRoute, Link } from 'wouter';
+import { useAnnouncementFonts } from '@/hooks/use-announcement-fonts';
 
 const logoImage = '/assets/announcements/charles-braud/logo.png';
 const backgroundImage = '/assets/announcements/charles-braud/background.png';
@@ -223,6 +224,7 @@ function renderSongEmbed(url: string) {
 }
 
 export default function AnnouncementPage() {
+  useAnnouncementFonts();
   const [, params] = useRoute('/announcements/:slug');
   const slug = params?.slug || '';
   const isPreview = new URLSearchParams(window.location.search).has('preview');
@@ -267,7 +269,7 @@ export default function AnnouncementPage() {
   }
 
   const sd = announcement.serviceDetails || {};
-  const portraitSrc = announcement.portraitImagePath || '/assets/announcements/charles-braud/portrait.png';
+  const portraitSrc = announcement.portraitImagePath || '/assets/announcements/charles-braud/portrait.webp';
   const showPreviewBanner = isPreview && !announcement.isPublished;
 
   const handleShare = (platform: string) => {

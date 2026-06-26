@@ -35,7 +35,7 @@ export const memorials: Memorial[] = [
     venue: "Greater Starlight Baptist Church",
     address: "Covington, LA",
     officiant: "Rev. Mallery Callahan II, Presiding",
-    image: "/assets/memorials/jonis-warren.png",
+    image: "/assets/memorials/jonis-warren.webp",
     imagePosition: "center 42%",
     accent: "gold",
     obituary:
@@ -54,7 +54,7 @@ export const memorials: Memorial[] = [
     serviceTime: "10:00 AM",
     venue: "First True Love World Outreach",
     address: "41239 S Range Rd., Ponchatoula, LA 70454",
-    image: "/assets/memorials/lelia-henderson.png",
+    image: "/assets/memorials/lelia-henderson.webp",
     imagePosition: "center 34%",
     accent: "violet",
     obituary:
@@ -72,7 +72,7 @@ export const memorials: Memorial[] = [
     venue: "Greater Community COGIC",
     address: "61489 Bennett Rd., Amite, LA 70456",
     officiant: "Pastor David Franklin, Officiating",
-    image: "/assets/memorials/deloris-holden.png",
+    image: "/assets/memorials/deloris-holden.webp",
     imagePosition: "center center",
     accent: "rose",
     obituary:
@@ -83,8 +83,8 @@ export const memorials: Memorial[] = [
   {
     slug: "brandon-mckay",
     name: "Brandon Chase McKay",
-    image: "/assets/memorials/brandon-mckay.jpg",
-    socialImage: "/assets/memorials/brandon-mckay-cutout.png",
+    image: "/assets/memorials/brandon-mckay.webp",
+    socialImage: "/assets/memorials/brandon-mckay-cutout.webp",
     imagePosition: "center center",
     accent: "gold",
     obituary:
@@ -101,8 +101,8 @@ export const memorials: Memorial[] = [
     serviceTime: "Musical May 8 at 7:00 PM; Life Celebration May 9 at 11:00 AM",
     venue: "Greater Rosevalley Missionary Baptist Church",
     address: "12463 Roseland Ave., Roseland, LA 70456",
-    image: "/assets/memorials/richard-gross.jpg",
-    socialImage: "/assets/memorials/richard-gross-cutout.jpg",
+    image: "/assets/memorials/richard-gross.webp",
+    socialImage: "/assets/memorials/richard-gross-cutout.webp",
     imagePosition: "center center",
     accent: "gold",
     obituary:
@@ -118,7 +118,7 @@ export const memorials: Memorial[] = [
     serviceTime: "12:00 PM",
     venue: "Faith Temple Church",
     address: "11605 Fontana Lane, Independence, LA 70443",
-    image: "/assets/memorials/keiaris-tilman.png",
+    image: "/assets/memorials/keiaris-tilman.webp",
     socialImage: "/assets/logo-crest.png",
     imagePosition: "center center",
     accent: "gold",
@@ -132,7 +132,7 @@ export const memorials: Memorial[] = [
     name: "Troy'Shaun Ja'Rae Martin",
     lifeDates: "September 12, 2018 - February 16, 2026",
     serviceDate: "Friday, February 27, 2026",
-    image: "/assets/memorials/troyshaun-martin.png",
+    image: "/assets/memorials/troyshaun-martin.webp",
     imagePosition: "center 60%",
     accent: "blue",
     obituary:
@@ -149,8 +149,8 @@ export const memorials: Memorial[] = [
     venue: "Greater Mt. Bethel Missionary Baptist Church",
     address: "46375 Durbin Rd Ext, Tickfaw, LA 70466",
     officiant: "Pastor Andrew L. Jackson, Officiating",
-    image: "/assets/memorials/steven-dillon.png",
-    socialImage: "/assets/memorials/steven-dillon-cutout.png",
+    image: "/assets/memorials/steven-dillon.webp",
+    socialImage: "/assets/memorials/steven-dillon-cutout.webp",
     imagePosition: "center 28%",
     accent: "gold",
     obituary:

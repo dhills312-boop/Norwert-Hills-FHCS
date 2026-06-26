@@ -21,20 +21,20 @@ export default function About() {
           </div>
 
           <div className="relative aspect-[21/9] w-full overflow-hidden mb-24 grayscale-[20%]">
-             <img src="/assets/staff-interaction.png" alt="Staff Interaction" className="w-full h-full object-cover" />
+             <img src="/assets/staff-interaction.webp" alt="Staff Interaction" className="w-full h-full object-cover" loading="lazy" />
              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
           </div>
 
           <div className="grid md:grid-cols-2 gap-16 items-center mb-24">
             <div className="order-2 md:order-1 space-y-6 text-muted-foreground font-light leading-loose">
               <h2 className="font-serif text-3xl text-foreground mb-4">A Century of Trust</h2>
-              <p>At the heart of our funeral home is a family that has lived, served, and grieved alongside the North Shore community for generations. Rooted in our experience as pastors, we understand the sacredness of life’s transitions and the deep need for compassion, respect, and dignity during times of loss.</p>
-              <p>Our family-founded funeral home and cremation service was born from this calling—to extend the care we’ve always given through ministry into a place where families find comfort, guidance, and peace. We believe that every farewell should be as unique as the life it honors, and we are dedicated to providing personalized, faith-grounded support that reflects your values and your loved one’s legacy.</p>
+              <p>At the heart of our funeral home is a family that has lived, served, and grieved alongside the North Shore community for generations. Rooted in our experience as pastors, we understand the sacredness of life's transitions and the deep need for compassion, respect, and dignity during times of loss.</p>
+              <p>Our family-founded funeral home and cremation service was born from this calling—to extend the care we've always given through ministry into a place where families find comfort, guidance, and peace. We believe that every farewell should be as unique as the life it honors, and we are dedicated to providing personalized, faith-grounded support that reflects your values and your loved one's legacy.</p>
             </div>
             <div className="order-1 md:order-2">
                <div className="aspect-[4/5] bg-card p-8 border border-white/5 relative">
                  <div className="absolute top-4 left-4 right-4 bottom-4 border border-primary/20" />
-                 <img src="/assets/hero-chapel.png" className="w-full h-full object-cover opacity-80" />
+                 <img src="/assets/hero-chapel.webp" className="w-full h-full object-cover opacity-80" loading="lazy" />
                </div>
             </div>
           </div>

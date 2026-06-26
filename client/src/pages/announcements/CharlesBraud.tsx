@@ -1,9 +1,10 @@
 import { Facebook, Instagram, Twitter, Copy, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useAnnouncementFonts } from '@/hooks/use-announcement-fonts';
 
 const logoImage = '/assets/announcements/charles-braud/logo.png';
 const backgroundImage = '/assets/announcements/charles-braud/background.png';
-const portraitImage = '/assets/announcements/charles-braud/portrait.png';
+const portraitImage = '/assets/announcements/charles-braud/portrait.webp';
 
 function StarField() {
   const [stars, setStars] = useState<{ id: number; x: number; y: number; size: number; delay: number; duration: number }[]>([]);
@@ -43,6 +44,7 @@ function StarField() {
 }
 
 export default function Announcement() {
+  useAnnouncementFonts();
   const [copied, setCopied] = useState(false);
 
   const dateOfBirth = '';

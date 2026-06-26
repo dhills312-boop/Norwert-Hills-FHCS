@@ -16,7 +16,7 @@ const articles: Record<string, {
     category: "Planning",
     date: "Feb 12, 2026",
     readTime: "5 min read",
-    image: "/assets/texture-marble.png",
+    image: "/assets/texture-marble.webp",
     content: (
       <>
         <p className="lead text-xl md:text-2xl font-serif text-muted-foreground mb-8 font-light leading-relaxed">
@@ -54,7 +54,7 @@ const articles: Record<string, {
     category: "Honoring",
     date: "Feb 10, 2026",
     readTime: "4 min read",
-    image: "/assets/hero-chapel.png",
+    image: "/assets/hero-chapel.webp",
     content: (
       <>
         <p className="lead text-xl md:text-2xl font-serif text-muted-foreground mb-8 font-light leading-relaxed">
@@ -89,7 +89,7 @@ const articles: Record<string, {
     category: "Guidance",
     date: "Feb 08, 2026",
     readTime: "5 min read",
-    image: "/assets/staff-interaction.png",
+    image: "/assets/staff-interaction.webp",
     content: (
       <>
         <p className="lead text-xl md:text-2xl font-serif text-muted-foreground mb-8 font-light leading-relaxed">

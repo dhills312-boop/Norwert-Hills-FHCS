@@ -49,14 +49,15 @@ export async function setupVite(server: Server, app: Express) {
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
 
-      const announcementMatch = url.match(/^\/announcements\/([^/?#]+)/);
+      const canonicalPath = url.split('?')[0].split('#')[0];
+      const announcementMatch = canonicalPath.match(/^\/announcements\/([^/?#]+)/);
       if (announcementMatch) {
         const meta = getAnnouncementMeta(announcementMatch[1]);
         if (meta) {
           const protocol = req.headers['x-forwarded-proto'] || 'https';
           const host = req.headers['host'] || '';
           const baseUrl = `${protocol}://${host}`;
-          template = injectAnnouncementMeta(template, meta, baseUrl);
+          template = injectAnnouncementMeta(template, meta, baseUrl, canonicalPath);
         }
       }
 

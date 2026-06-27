@@ -1,3 +1,12 @@
+function escapeHtmlAttr(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 interface AnnouncementMeta {
   title: string;
   description: string;
@@ -16,22 +25,31 @@ export function getAnnouncementMeta(slug: string): AnnouncementMeta | null {
   return announcements[slug] || null;
 }
 
-export function injectAnnouncementMeta(html: string, meta: AnnouncementMeta, baseUrl: string): string {
-  const imageUrl = `${baseUrl}${meta.image}`;
+export function injectAnnouncementMeta(html: string, meta: AnnouncementMeta, baseUrl: string, canonicalPath: string): string {
+  const imageUrl = escapeHtmlAttr(`${baseUrl}${meta.image}`);
+  const canonicalUrl = escapeHtmlAttr(`${baseUrl}${canonicalPath}`);
+  const safeTitle = escapeHtmlAttr(`${meta.title} | Norwert Hills`);
+  const safeOgTitle = escapeHtmlAttr(meta.title);
+  const safeDesc = escapeHtmlAttr(meta.description);
 
   html = html.replace(
     /<title>[^<]*<\/title>/,
-    `<title>${meta.title} | Norwert Hills</title>`
+    `<title>${safeTitle}</title>`
+  );
+
+  html = html.replace(
+    /<meta name="description" content="[^"]*" \/>/,
+    `<meta name="description" content="${safeDesc}" />`
   );
 
   html = html.replace(
     /<meta property="og:title" content="[^"]*" \/>/,
-    `<meta property="og:title" content="${meta.title}" />`
+    `<meta property="og:title" content="${safeOgTitle}" />`
   );
 
   html = html.replace(
     /<meta property="og:description" content="[^"]*" \/>/,
-    `<meta property="og:description" content="${meta.description}" />`
+    `<meta property="og:description" content="${safeDesc}" />`
   );
 
   html = html.replace(
@@ -40,30 +58,86 @@ export function injectAnnouncementMeta(html: string, meta: AnnouncementMeta, bas
   );
 
   html = html.replace(
+    /<meta property="og:image" content="[^"]*" \/>/,
+    `<meta property="og:image" content="${imageUrl}" />`
+  );
+
+  html = html.replace(
     /<meta name="twitter:title" content="[^"]*" \/>/,
-    `<meta name="twitter:title" content="${meta.title}" />`
+    `<meta name="twitter:title" content="${safeOgTitle}" />`
   );
 
   html = html.replace(
     /<meta name="twitter:description" content="[^"]*" \/>/,
-    `<meta name="twitter:description" content="${meta.description}" />`
+    `<meta name="twitter:description" content="${safeDesc}" />`
   );
 
-  if (!html.includes('og:image')) {
+  html = html.replace(
+    /<meta name="twitter:image" content="[^"]*" \/>/,
+    `<meta name="twitter:image" content="${imageUrl}" />`
+  );
+
+  html = injectCanonical(html, canonicalUrl);
+
+  return html;
+}
+
+export function injectStaticMeta(
+  html: string,
+  meta: { title: string; description: string },
+  canonicalUrl: string
+): string {
+  const safeTitle = escapeHtmlAttr(meta.title);
+  const safeDesc = escapeHtmlAttr(meta.description);
+  const safeCanonical = escapeHtmlAttr(canonicalUrl);
+
+  html = html.replace(
+    /<title>[^<]*<\/title>/,
+    `<title>${safeTitle}</title>`
+  );
+
+  html = html.replace(
+    /<meta name="description" content="[^"]*" \/>/,
+    `<meta name="description" content="${safeDesc}" />`
+  );
+
+  html = html.replace(
+    /<meta property="og:title" content="[^"]*" \/>/,
+    `<meta property="og:title" content="${safeTitle}" />`
+  );
+
+  html = html.replace(
+    /<meta property="og:description" content="[^"]*" \/>/,
+    `<meta property="og:description" content="${safeDesc}" />`
+  );
+
+  html = html.replace(
+    /<meta name="twitter:title" content="[^"]*" \/>/,
+    `<meta name="twitter:title" content="${safeTitle}" />`
+  );
+
+  html = html.replace(
+    /<meta name="twitter:description" content="[^"]*" \/>/,
+    `<meta name="twitter:description" content="${safeDesc}" />`
+  );
+
+  html = injectCanonical(html, safeCanonical);
+
+  return html;
+}
+
+export function injectCanonical(html: string, canonicalUrl: string): string {
+  const safeUrl = escapeHtmlAttr(canonicalUrl);
+  if (html.includes('rel="canonical"')) {
     html = html.replace(
-      '</head>',
-      `    <meta property="og:image" content="${imageUrl}" />\n    <meta name="twitter:image" content="${imageUrl}" />\n  </head>`
+      /<link rel="canonical" href="[^"]*" \/>/,
+      `<link rel="canonical" href="${safeUrl}" />`
     );
   } else {
     html = html.replace(
-      /<meta property="og:image" content="[^"]*" \/>/,
-      `<meta property="og:image" content="${imageUrl}" />`
-    );
-    html = html.replace(
-      /<meta name="twitter:image" content="[^"]*" \/>/,
-      `<meta name="twitter:image" content="${imageUrl}" />`
+      '</head>',
+      `    <link rel="canonical" href="${safeUrl}" />\n  </head>`
     );
   }
-
   return html;
 }

@@ -4,7 +4,9 @@ import path from "path";
 import { eq } from "drizzle-orm";
 import { db } from "./db";
 import { announcements, serviceCatalog } from "@shared/schema";
-import { getAnnouncementMeta, injectAnnouncementMeta, injectStaticMeta, injectCanonical } from "./announcement-meta";
+import { getAnnouncementMeta, injectAnnouncementMeta, injectStaticMeta, injectCanonical, injectNoscriptContent } from "./announcement-meta";
+import { articleContent, serviceContent, memorialContent } from "./static-content";
+import { ARTICLE_SLUGS, MEMORIAL_SLUGS, SERVICE_SLUGS, LEGACY_ANNOUNCEMENT_SLUGS } from "@shared/static-slugs";
 
 const SITE_NAME = "Norwert Hills Funeral & Cremation Services";
 
@@ -120,6 +122,14 @@ const articleMetaMap: Record<string, { title: string; description: string }> = {
   },
 };
 
+function esc(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function getBaseUrl(req: express.Request): string {
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers['host'] || '';
@@ -128,6 +138,37 @@ function getBaseUrl(req: express.Request): string {
 
 function stripQuery(url: string): string {
   return url.split('?')[0].split('#')[0];
+}
+
+function buildArticleNoscript(slug: string): string | null {
+  const article = articleContent[slug];
+  if (!article) return null;
+  const paras = article.paragraphs.map(p => `    <p>${esc(p)}</p>`).join('\n');
+  return `    <h1>${esc(article.title)}</h1>\n    <p><em>${esc(article.category)}</em></p>\n${paras}\n    <p><a href="/contact">Contact a Director</a></p>`;
+}
+
+function buildServiceNoscript(slug: string): string | null {
+  const svc = serviceContent[slug];
+  if (!svc) return null;
+  return `    <h1>${esc(svc.title)}</h1>\n    <p>${esc(svc.description)}</p>\n    <p>${esc(svc.longDescription)}</p>\n    <p><a href="/services">View all services</a></p>`;
+}
+
+function buildMemorialNoscript(slug: string): string | null {
+  const m = memorialContent[slug];
+  if (!m) return null;
+  const lines = [`    <h1>In Loving Memory of ${esc(m.name)}</h1>`, `    <p>${esc(m.obituary)}</p>`];
+  if (m.serviceDate) lines.push(`    <p>Service: ${esc(m.serviceDate)}${m.venue ? ` — ${esc(m.venue)}` : ''}${m.address ? `, ${esc(m.address)}` : ''}</p>`);
+  lines.push(`    <p>Hosted by Norwert Hills Funeral &amp; Cremation Services, Hammond, Louisiana.</p>`);
+  return lines.join('\n');
+}
+
+function buildAnnouncementNoscript(name: string, brief: string): string {
+  return `    <h1>In Loving Memory of ${esc(name)}</h1>\n    <p>${esc(brief)}</p>\n    <p>A memorial page by Norwert Hills Funeral &amp; Cremation Services, Hammond, Louisiana.</p>`;
+}
+
+function buildObituaryNoscript(name: string, fullObit: string, briefObit: string): string {
+  const body = fullObit || briefObit;
+  return `    <h1>Obituary: ${esc(name)}</h1>\n    <p>${esc(body)}</p>\n    <p>Norwert Hills Funeral &amp; Cremation Services — Hammond, Louisiana.</p>`;
 }
 
 async function resolveAnnouncementMeta(slug: string): Promise<{ title: string; description: string; image: string } | null> {
@@ -163,6 +204,33 @@ async function resolveAnnouncementMeta(slug: string): Promise<{ title: string; d
   }
 }
 
+async function resolveAnnouncementRow(slug: string): Promise<{
+  deceasedFirstName: string;
+  deceasedLastName: string;
+  briefObituary: string | null;
+  fullObituary: string | null;
+  isPublished: boolean;
+} | null> {
+  const legacy = (LEGACY_ANNOUNCEMENT_SLUGS as readonly string[]).includes(slug);
+  if (legacy) return null;
+  try {
+    const [row] = await db
+      .select({
+        deceasedFirstName: announcements.deceasedFirstName,
+        deceasedLastName: announcements.deceasedLastName,
+        briefObituary: announcements.briefObituary,
+        fullObituary: announcements.fullObituary,
+        isPublished: announcements.isPublished,
+      })
+      .from(announcements)
+      .where(eq(announcements.slug, slug))
+      .limit(1);
+    return row ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function resolveServiceMeta(id: string): Promise<{ title: string; description: string } | null> {
   const static_ = serviceMetaMap[id];
   if (static_) return static_;
@@ -184,6 +252,24 @@ async function resolveServiceMeta(id: string): Promise<{ title: string; descript
   }
 }
 
+function isStaffOrInternalPath(p: string): boolean {
+  return p.startsWith('/staff/') || p.startsWith('/social/');
+}
+
+function isKnownStaticPath(p: string): boolean {
+  return Object.prototype.hasOwnProperty.call(staticRouteMeta, p);
+}
+
+function isKnownSlugPath(p: string): boolean {
+  return (
+    /^\/services\/[^/?#]+$/.test(p) ||
+    /^\/resources\/article\/[^/?#]+$/.test(p) ||
+    /^\/memorials\/[^/?#]+$/.test(p) ||
+    /^\/announcements\/[^/?#]+$/.test(p) ||
+    /^\/obituaries\/[^/?#]+$/.test(p)
+  );
+}
+
 export function serveStatic(app: Express) {
   const distPath = path.resolve(__dirname, "public");
   if (!fs.existsSync(distPath)) {
@@ -202,44 +288,93 @@ export function serveStatic(app: Express) {
 
     let html = fs.readFileSync(indexPath, "utf-8");
 
-    const announcementMatch = canonicalPath.match(/^\/announcements\/([^/?#]+)/);
-    const obituaryMatch = canonicalPath.match(/^\/obituaries\/([^/?#]+)/);
-    const memorialMatch = canonicalPath.match(/^\/memorials\/([^/?#]+)/);
-    const serviceMatch = canonicalPath.match(/^\/services\/([^/?#]+)/);
-    const articleMatch = canonicalPath.match(/^\/resources\/article\/([^/?#]+)/);
+    const announcementMatch = canonicalPath.match(/^\/announcements\/([^/?#]+)$/);
+    const obituaryMatch = canonicalPath.match(/^\/obituaries\/([^/?#]+)$/);
+    const memorialMatch = canonicalPath.match(/^\/memorials\/([^/?#]+)$/);
+    const serviceMatch = canonicalPath.match(/^\/services\/([^/?#]+)$/);
+    const articleMatch = canonicalPath.match(/^\/resources\/article\/([^/?#]+)$/);
 
-    if (announcementMatch || obituaryMatch) {
-      const slug = (announcementMatch || obituaryMatch)![1];
+    if (announcementMatch) {
+      const slug = announcementMatch[1];
+      const isLegacy = (LEGACY_ANNOUNCEMENT_SLUGS as readonly string[]).includes(slug);
       const meta = await resolveAnnouncementMeta(slug);
+
+      if (!meta && !isLegacy) {
+        return res.status(404).set({ "Content-Type": "text/html" }).end(html);
+      }
+
       if (meta) {
         html = injectAnnouncementMeta(html, meta, baseUrl, canonicalPath);
-        return res.status(200).set({ "Content-Type": "text/html" }).end(html);
+        const row = await resolveAnnouncementRow(slug);
+        const brief = row?.briefObituary || meta.description;
+        const noscript = buildAnnouncementNoscript(meta.title.replace(' | Norwert Hills', ''), brief);
+        html = injectNoscriptContent(html, noscript);
       }
+      return res.status(200).set({ "Content-Type": "text/html" }).end(html);
+    }
+
+    if (obituaryMatch) {
+      const slug = obituaryMatch[1];
+      const isLegacy = (LEGACY_ANNOUNCEMENT_SLUGS as readonly string[]).includes(slug);
+      const meta = await resolveAnnouncementMeta(slug);
+
+      if (!meta && !isLegacy) {
+        return res.status(404).set({ "Content-Type": "text/html" }).end(html);
+      }
+
+      if (meta) {
+        html = injectAnnouncementMeta(html, meta, baseUrl, canonicalPath);
+        const row = await resolveAnnouncementRow(slug);
+        const name = meta.title.replace('In Loving Memory of ', '').replace(' | Norwert Hills', '');
+        const noscript = buildObituaryNoscript(name, row?.fullObituary || '', row?.briefObituary || meta.description);
+        html = injectNoscriptContent(html, noscript);
+      }
+      return res.status(200).set({ "Content-Type": "text/html" }).end(html);
     }
 
     if (memorialMatch) {
       const slug = memorialMatch[1];
       const meta = memorialMetaMap[slug];
-      if (meta) {
-        html = injectAnnouncementMeta(html, meta, baseUrl, canonicalPath);
-        return res.status(200).set({ "Content-Type": "text/html" }).end(html);
+
+      if (!meta) {
+        return res.status(404).set({ "Content-Type": "text/html" }).end(html);
       }
+
+      html = injectAnnouncementMeta(html, meta, baseUrl, canonicalPath);
+      const noscript = buildMemorialNoscript(slug);
+      if (noscript) html = injectNoscriptContent(html, noscript);
+      return res.status(200).set({ "Content-Type": "text/html" }).end(html);
     }
 
     if (serviceMatch) {
-      const meta = await resolveServiceMeta(serviceMatch[1]);
+      const id = serviceMatch[1];
+      const isStaticSlug = (SERVICE_SLUGS as readonly string[]).includes(id);
+      const meta = await resolveServiceMeta(id);
+
+      if (!meta && !isStaticSlug) {
+        return res.status(404).set({ "Content-Type": "text/html" }).end(html);
+      }
+
       if (meta) {
         html = injectStaticMeta(html, meta, canonicalUrl);
-        return res.status(200).set({ "Content-Type": "text/html" }).end(html);
+        const noscript = buildServiceNoscript(id);
+        if (noscript) html = injectNoscriptContent(html, noscript);
       }
+      return res.status(200).set({ "Content-Type": "text/html" }).end(html);
     }
 
     if (articleMatch) {
-      const meta = articleMetaMap[articleMatch[1]];
-      if (meta) {
-        html = injectStaticMeta(html, meta, canonicalUrl);
-        return res.status(200).set({ "Content-Type": "text/html" }).end(html);
+      const id = articleMatch[1];
+      const meta = articleMetaMap[id];
+
+      if (!meta) {
+        return res.status(404).set({ "Content-Type": "text/html" }).end(html);
       }
+
+      html = injectStaticMeta(html, meta, canonicalUrl);
+      const noscript = buildArticleNoscript(id);
+      if (noscript) html = injectNoscriptContent(html, noscript);
+      return res.status(200).set({ "Content-Type": "text/html" }).end(html);
     }
 
     const routeMeta = staticRouteMeta[canonicalPath];
@@ -248,7 +383,16 @@ export function serveStatic(app: Express) {
       return res.status(200).set({ "Content-Type": "text/html" }).end(html);
     }
 
-    html = injectCanonical(html, canonicalUrl);
-    return res.status(200).set({ "Content-Type": "text/html" }).end(html);
+    if (isStaffOrInternalPath(canonicalPath)) {
+      html = injectCanonical(html, canonicalUrl);
+      return res.status(200).set({ "Content-Type": "text/html" }).end(html);
+    }
+
+    if (isKnownSlugPath(canonicalPath) || isKnownStaticPath(canonicalPath)) {
+      html = injectCanonical(html, canonicalUrl);
+      return res.status(200).set({ "Content-Type": "text/html" }).end(html);
+    }
+
+    return res.status(404).set({ "Content-Type": "text/html" }).end(html);
   });
 }

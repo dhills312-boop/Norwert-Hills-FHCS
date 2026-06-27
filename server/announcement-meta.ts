@@ -126,6 +126,11 @@ export function injectStaticMeta(
   return html;
 }
 
+export function injectNoscriptContent(html: string, innerHtml: string): string {
+  const block = `\n  <noscript id="page-content">\n${innerHtml}\n  </noscript>`;
+  return html.replace('</body>', `${block}\n</body>`);
+}
+
 export function injectCanonical(html: string, canonicalUrl: string): string {
   const safeUrl = escapeHtmlAttr(canonicalUrl);
   if (html.includes('rel="canonical"')) {

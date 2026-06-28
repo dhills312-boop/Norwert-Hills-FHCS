@@ -1,22 +1,27 @@
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { useRoute, Link } from "wouter";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2, Clock, Calendar } from "lucide-react";
 
 const articles: Record<string, { 
   title: string; 
   category: string; 
-  date: string; 
+  date: string;
+  isoDate: string;
   readTime: string; 
-  image: string; 
+  image: string;
+  description: string;
   content: React.ReactNode 
 }> = {
   "understanding-cremation": {
     title: "Understanding Cremation: A Guide for Families",
     category: "Planning",
     date: "Feb 12, 2026",
+    isoDate: "2026-02-12",
     readTime: "5 min read",
     image: "/assets/texture-marble.webp",
+    description: "Cremation is a choice made by many families for deeply personal reasons. Understanding the cremation process can help families make informed and confident decisions during a difficult time.",
     content: (
       <>
         <p className="lead text-xl md:text-2xl font-serif text-muted-foreground mb-8 font-light leading-relaxed">
@@ -24,7 +29,7 @@ const articles: Record<string, {
         </p>
         <h3 className="text-2xl font-serif text-foreground mt-12 mb-4">What cremation is</h3>
         <p className="mb-6 font-light leading-relaxed text-muted-foreground">
-          Cremation is a dignified process in which the body is respectfully cared for and reduced to cremated remains through controlled heat. These remains are returned to the family in an urn or temporary container and may be kept, buried, scattered, or memorialized according to the family’s wishes and local regulations.
+          Cremation is a dignified process in which the body is respectfully cared for and reduced to cremated remains through controlled heat. These remains are returned to the family in an urn or temporary container and may be kept, buried, scattered, or memorialized according to the family's wishes and local regulations.
         </p>
         <h3 className="text-2xl font-serif text-foreground mt-12 mb-4">Cremation with or without ceremony</h3>
         <p className="mb-6 font-light leading-relaxed text-muted-foreground">
@@ -40,7 +45,7 @@ const articles: Record<string, {
         </p>
         <div className="bg-secondary/20 p-8 rounded-lg mt-12 border border-white/5">
           <p className="italic text-lg text-center font-serif text-muted-foreground">
-            There is no “right” or “wrong” choice. Cremation is one of many respectful options available, and our role is to help families understand each step at their own pace.
+            There is no "right" or "wrong" choice. Cremation is one of many respectful options available, and our role is to help families understand each step at their own pace.
           </p>
         </div>
         <p className="mt-8 font-light leading-relaxed text-muted-foreground">
@@ -53,16 +58,18 @@ const articles: Record<string, {
     title: "The Art of the Bespoke Memorial",
     category: "Honoring",
     date: "Feb 10, 2026",
+    isoDate: "2026-02-10",
     readTime: "4 min read",
     image: "/assets/hero-chapel.webp",
+    description: "A memorial is more than a service. It is a reflection of a life lived, relationships formed, and memories held by family and friends. A bespoke memorial allows space for authenticity, meaning, and quiet beauty.",
     content: (
       <>
         <p className="lead text-xl md:text-2xl font-serif text-muted-foreground mb-8 font-light leading-relaxed">
           A memorial is more than a service. It is a reflection of a life lived, relationships formed, and memories held by family and friends. A bespoke memorial allows space for authenticity, meaning, and quiet beauty.
         </p>
-        <h3 className="text-2xl font-serif text-foreground mt-12 mb-4">What “bespoke” means in memorials</h3>
+        <h3 className="text-2xl font-serif text-foreground mt-12 mb-4">What "bespoke" means in memorials</h3>
         <p className="mb-6 font-light leading-relaxed text-muted-foreground">
-          A bespoke memorial is thoughtfully tailored. It may reflect a person’s passions, values, cultural heritage, faith, or sense of place. There is no template — only intention.
+          A bespoke memorial is thoughtfully tailored. It may reflect a person's passions, values, cultural heritage, faith, or sense of place. There is no template — only intention.
         </p>
         <h3 className="text-2xl font-serif text-foreground mt-12 mb-4">Elements of a personalized tribute</h3>
         <p className="mb-6 font-light leading-relaxed text-muted-foreground">
@@ -78,7 +85,7 @@ const articles: Record<string, {
         </p>
         <div className="bg-secondary/20 p-8 rounded-lg mt-12 border border-white/5">
           <p className="italic text-lg text-center font-serif text-muted-foreground">
-            We believe the most powerful memorials are those that feel honest and unforced — shaped gently, with care, and aligned with the family’s wishes.
+            We believe the most powerful memorials are those that feel honest and unforced — shaped gently, with care, and aligned with the family's wishes.
           </p>
         </div>
       </>
@@ -88,8 +95,10 @@ const articles: Record<string, {
     title: "Planning Ahead: The Gift of Peace",
     category: "Guidance",
     date: "Feb 08, 2026",
+    isoDate: "2026-02-08",
     readTime: "5 min read",
     image: "/assets/staff-interaction.webp",
+    description: "Planning ahead is an act of care. It allows individuals to express their wishes clearly and offers loved ones guidance during an emotional time.",
     content: (
       <>
         <p className="lead text-xl md:text-2xl font-serif text-muted-foreground mb-8 font-light leading-relaxed">
@@ -125,6 +134,55 @@ export default function ArticleDetail() {
   const [match, params] = useRoute("/resources/article/:id");
   const slug = params?.id || "understanding-cremation";
   const article = articles[slug];
+
+  useEffect(() => {
+    if (!article) return;
+
+    const pageUrl = `https://www.thenhfcs.com/resources/article/${slug}`;
+    const imageUrl = article.image.startsWith('http')
+      ? article.image
+      : `https://www.thenhfcs.com${article.image}`;
+
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": pageUrl
+      },
+      "headline": article.title,
+      "description": article.description,
+      "image": imageUrl,
+      "datePublished": article.isoDate,
+      "author": {
+        "@type": "Organization",
+        "name": "Norwert Hills Funeral & Cremation Services",
+        "url": "https://www.thenhfcs.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Norwert Hills Funeral & Cremation Services",
+        "url": "https://www.thenhfcs.com",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://www.thenhfcs.com/favicon.png"
+        }
+      },
+      "articleSection": article.category,
+      "url": pageUrl
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'article-structured-data';
+    script.text = JSON.stringify(schema);
+    document.head.appendChild(script);
+
+    return () => {
+      const existing = document.getElementById('article-structured-data');
+      if (existing) existing.remove();
+    };
+  }, [slug, article]);
 
   if (!article) {
     return (

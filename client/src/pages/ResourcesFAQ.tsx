@@ -1,10 +1,68 @@
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Link } from "wouter";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileText, ExternalLink, MapPin } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
+const faqs = [
+  {
+    question: "Who is legally responsible for making funeral arrangements?",
+    answer: "According to Louisiana Statute § 37:876, authority follows this order: (1) An agent appointed by you in a notarized declaration. (2) Surviving spouse (if not filed for divorce). (3) Adult children. (4) Parents. (5) Siblings. (6) Next living kin. (7) A district court judge."
+  },
+  {
+    question: "Do I have to use a funeral home in Louisiana?",
+    answer: "Yes. Louisiana is one of only 8 states where you must legally employ a licensed funeral director to conduct a disposition. While you can care for your deceased at home, a licensed professional must be involved in the final burial or cremation."
+  },
+  {
+    question: "What are the laws regarding embalming?",
+    answer: "There is no legal requirement for embalming in Louisiana. However, Statute 51 §103 requires either embalming or refrigeration if the disposition does not proceed within 30 hours of death."
+  },
+  {
+    question: "What are the regulations for scattering ashes?",
+    answer: "Louisiana Statute 37 §880 provides specific guidelines. Private Property: Permitted with landowner consent. Multiple persons' ashes may be commingled here. Public Land: Generally permitted unless a specific permit is required. At Sea: Governed by EPA Region 6 (Gulf of Mexico). Must be at least 3 nautical miles from shore, and a form must be submitted within 30 days."
+  },
+  {
+    question: "Is a casket required for cremation?",
+    answer: "No. Louisiana law does not require a casket for cremation. Only a \"suitable rigid container\" is required, which is typically a reinforced cardboard or plywood box."
+  },
+  {
+    question: "Can I purchase a casket from a third party?",
+    answer: "Yes. Following a 2013 court case (St. Joseph Abbey), Louisiana residents can purchase caskets from any third-party seller. Under the FTC Funeral Rule, funeral homes must accept these caskets without charging additional handling fees."
+  },
+  {
+    question: "What if the deceased had no insurance and I can't afford a funeral?",
+    answer: "Financial aid for funerals is limited and varies significantly by parish. In cases of indigence, the parish coroner may coordinate a minimal burial or cremation. Direct cremation is typically the most affordable professional option available."
+  }
+];
+
 export default function ResourcesFAQ() {
+  useEffect(() => {
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": faqs.map(faq => ({
+        "@type": "Question",
+        "name": faq.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.answer
+        }
+      }))
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'faq-structured-data';
+    script.text = JSON.stringify(schema);
+    document.head.appendChild(script);
+
+    return () => {
+      const existing = document.getElementById('faq-structured-data');
+      if (existing) existing.remove();
+    };
+  }, []);
+
   return (
     <PublicLayout>
       <div className="pt-32 pb-20 bg-background min-h-screen">
@@ -25,7 +83,7 @@ export default function ResourcesFAQ() {
             <Accordion type="single" collapsible className="w-full space-y-4">
               <AccordionItem value="item-1" className="border-b border-white/10 px-2">
                 <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  Who is legally responsible for making funeral arrangements?
+                  {faqs[0].question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
                   According to Louisiana Statute § 37:876, authority follows this order:
@@ -43,25 +101,25 @@ export default function ResourcesFAQ() {
 
               <AccordionItem value="item-2" className="border-b border-white/10 px-2">
                 <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  Do I have to use a funeral home in Louisiana?
+                  {faqs[1].question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  Yes. Louisiana is one of only 8 states where you must legally employ a licensed funeral director to conduct a disposition. While you can care for your deceased at home, a licensed professional must be involved in the final burial or cremation.
+                  {faqs[1].answer}
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-3" className="border-b border-white/10 px-2">
                 <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  What are the laws regarding embalming?
+                  {faqs[2].question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  There is no legal requirement for embalming in Louisiana. However, Statute 51 §103 requires either embalming or refrigeration if the disposition does not proceed within 30 hours of death.
+                  {faqs[2].answer}
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-4" className="border-b border-white/10 px-2">
                 <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  What are the regulations for scattering ashes?
+                  {faqs[3].question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
                   <p className="mb-4">Louisiana Statute 37 §880 provides specific guidelines:</p>
@@ -75,28 +133,28 @@ export default function ResourcesFAQ() {
 
               <AccordionItem value="item-5" className="border-b border-white/10 px-2">
                 <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  Is a casket required for cremation?
+                  {faqs[4].question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  No. Louisiana law does not require a casket for cremation. Only a "suitable rigid container" is required, which is typically a reinforced cardboard or plywood box.
+                  {faqs[4].answer}
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-6" className="border-b border-white/10 px-2">
                 <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  Can I purchase a casket from a third party?
+                  {faqs[5].question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  Yes. Following a 2013 court case (St. Joseph Abbey), Louisiana residents can purchase caskets from any third-party seller. Under the FTC Funeral Rule, funeral homes must accept these caskets without charging additional handling fees.
+                  {faqs[5].answer}
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-7" className="border-b border-white/10 px-2">
                 <AccordionTrigger className="text-lg font-serif hover:text-primary hover:no-underline py-6 text-left">
-                  What if the deceased had no insurance and I can't afford a funeral?
+                  {faqs[6].question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground font-light leading-relaxed pb-6">
-                  Financial aid for funerals is limited and varies significantly by parish. In cases of indigence, the parish coroner may coordinate a minimal burial or cremation. Direct cremation is typically the most affordable professional option available.
+                  {faqs[6].answer}
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

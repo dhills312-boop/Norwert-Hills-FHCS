@@ -247,6 +247,62 @@ export default function AnnouncementPage() {
       .catch(() => { setError(true); setLoading(false); });
   }, [slug, isPreview]);
 
+  useEffect(() => {
+    if (!announcement || isPreview) return;
+
+    const fullName = `${announcement.deceasedFirstName} ${announcement.deceasedLastName}`;
+    const pageUrl = `https://www.thenhfcs.com/announcements/${slug}`;
+    const sd = announcement.serviceDetails || {};
+
+    const personSchema: Record<string, unknown> = {
+      "@type": "Person",
+      "name": fullName
+    };
+    if (announcement.dateOfBirth) personSchema["birthDate"] = announcement.dateOfBirth;
+    if (announcement.dateOfPassing) personSchema["deathDate"] = announcement.dateOfPassing;
+    if (announcement.briefObituary) personSchema["description"] = announcement.briefObituary;
+    if (announcement.portraitImagePath) personSchema["image"] = `https://www.thenhfcs.com${announcement.portraitImagePath}`;
+
+    const schemaGraph: unknown[] = [personSchema];
+
+    if (sd.funeralDate && sd.location) {
+      const eventSchema: Record<string, unknown> = {
+        "@type": "Event",
+        "name": `Funeral Service for ${fullName}`,
+        "startDate": sd.funeralDate,
+        "about": { "@type": "Person", "name": fullName },
+        "organizer": {
+          "@type": "Organization",
+          "name": "Norwert Hills Funeral & Cremation Services",
+          "url": "https://www.thenhfcs.com"
+        },
+        "location": {
+          "@type": "Place",
+          "name": sd.location,
+          ...(sd.locationAddress ? { "address": sd.locationAddress } : {})
+        },
+        "url": pageUrl
+      };
+      schemaGraph.push(eventSchema);
+    }
+
+    const schema = {
+      "@context": "https://schema.org",
+      "@graph": schemaGraph
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'announcement-structured-data';
+    script.text = JSON.stringify(schema);
+    document.head.appendChild(script);
+
+    return () => {
+      const existing = document.getElementById('announcement-structured-data');
+      if (existing) existing.remove();
+    };
+  }, [announcement, slug, isPreview]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#09070c' }}>

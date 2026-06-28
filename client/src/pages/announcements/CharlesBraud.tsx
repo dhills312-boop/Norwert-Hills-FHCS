@@ -50,6 +50,48 @@ export default function Announcement() {
   const dateOfBirth = '';
   const dateOfPassing = '';
 
+  useEffect(() => {
+    const schema = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Person",
+          "name": "Charles Braud",
+          "description": "Beloved Father, Grandfather, and Friend"
+        },
+        {
+          "@type": "Event",
+          "name": "Funeral Service for Charles Braud",
+          "startDate": "2026-03-13T10:00:00",
+          "endDate": "2026-03-13T11:00:00",
+          "about": { "@type": "Person", "name": "Charles Braud" },
+          "organizer": {
+            "@type": "Organization",
+            "name": "Norwert Hills Funeral & Cremation Services",
+            "url": "https://www.thenhfcs.com"
+          },
+          "location": {
+            "@type": "Place",
+            "name": "Providence Baptist Church",
+            "address": "240 Pine St., Laplace, LA 70068"
+          },
+          "url": "https://www.thenhfcs.com/announcements/charles-braud"
+        }
+      ]
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'charles-braud-structured-data';
+    script.text = JSON.stringify(schema);
+    document.head.appendChild(script);
+
+    return () => {
+      const existing = document.getElementById('charles-braud-structured-data');
+      if (existing) existing.remove();
+    };
+  }, []);
+
 
   const handleShare = (platform: string) => {
     const url = encodeURIComponent(window.location.href);

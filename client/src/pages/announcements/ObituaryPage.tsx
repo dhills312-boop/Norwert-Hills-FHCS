@@ -63,6 +63,55 @@ export default function ObituaryPage() {
       .catch(() => { setError(true); setLoading(false); });
   }, [slug, isPreview]);
 
+  useEffect(() => {
+    if (!announcement || isPreview) return;
+
+    const fullName = `${announcement.deceasedFirstName} ${announcement.deceasedLastName}`;
+    const pageUrl = `https://www.thenhfcs.com/obituaries/${slug}`;
+
+    const personSchema: Record<string, unknown> = {
+      "@type": "Person",
+      "name": fullName
+    };
+    if (announcement.dateOfBirth) personSchema["birthDate"] = announcement.dateOfBirth;
+    if (announcement.dateOfPassing) personSchema["deathDate"] = announcement.dateOfPassing;
+    if (announcement.portraitImagePath) personSchema["image"] = `https://www.thenhfcs.com${announcement.portraitImagePath}`;
+
+    const schemaGraph: unknown[] = [personSchema];
+
+    if (announcement.fullObituary) {
+      schemaGraph.push({
+        "@type": "Article",
+        "mainEntityOfPage": { "@type": "WebPage", "@id": pageUrl },
+        "headline": `Obituary: ${fullName}`,
+        "about": personSchema,
+        "description": announcement.fullObituary.slice(0, 200),
+        "publisher": {
+          "@type": "Organization",
+          "name": "Norwert Hills Funeral & Cremation Services",
+          "url": "https://www.thenhfcs.com"
+        },
+        "url": pageUrl
+      });
+    }
+
+    const schema = {
+      "@context": "https://schema.org",
+      "@graph": schemaGraph
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'obituary-structured-data';
+    script.text = JSON.stringify(schema);
+    document.head.appendChild(script);
+
+    return () => {
+      const existing = document.getElementById('obituary-structured-data');
+      if (existing) existing.remove();
+    };
+  }, [announcement, slug, isPreview]);
+
   const handleSubmitCondolence = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!visitorName.trim() || !message.trim()) return;

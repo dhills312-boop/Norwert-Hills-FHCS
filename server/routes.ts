@@ -55,7 +55,7 @@ function maskDestination(dest: string, channel: string): string {
 
 const updateArrangementSchema = insertArrangementSchema.partial();
 
-const BASE_URL = "https://norwert-hills-funeral-cremation.replit.app";
+const BASE_URL = "https://thenhfcs.com";
 
 type SitemapEntry = { path: string; changefreq: string; priority: string };
 

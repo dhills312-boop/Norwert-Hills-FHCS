@@ -3,4 +3,4 @@ Allow: /
 Disallow: /staff/
 Disallow: /api/
 
-Sitemap: https://norwert-hills-funeral-cremation.replit.app/sitemap.xml
+Sitemap: https://thenhfcs.com/sitemap.xml

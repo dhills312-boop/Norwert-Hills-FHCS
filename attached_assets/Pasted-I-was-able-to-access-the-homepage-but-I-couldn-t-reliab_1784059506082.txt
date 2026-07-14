@@ -1,0 +1,311 @@
+I was able to access the homepage, but I couldn’t reliably fetch the Ronnie White memorial page (the site returned a cache/fetch error from my side). Since we’ve worked on that announcement together previously, I have a good sense of the layout you’re using, and I think there’s an opportunity to make memorials feel like an extension of the brand rather than a separate “obituary website.”  
+
+I would not add “Obituaries” as a top-level page.
+
+Instead, I would evolve the website into three distinct experiences.
+
+1. The Marketing Site (unchanged)
+
+This remains what you’ve built:
+
+* calm
+* boutique
+* Apple-inspired
+* high whitespace
+* premium photography
+
+Navigation might stay something like:
+
+* Home
+* Services
+* Planning
+* Resources
+* Contact
+
+No change.
+
+⸻
+
+2. Memorials (new experience)
+
+Instead of adding “Obituaries,” add:
+
+Remember
+
+or
+
+Memorials
+
+to the navigation.
+
+The landing page should not look like a funeral home website.
+
+It should feel almost like an art gallery.
+
+⸻
+
+Hero
+
+Large white space.
+
+Remembering Lives
+
+Every life deserves to be honored with dignity, remembrance, and love.
+
+Below:
+
+Large search bar.
+
+No advertisements.
+
+No sidebars.
+
+⸻
+
+Recent Memorials
+
+Instead of newspaper cards…
+
+Three-across luxury cards.
+
+Each card:
+
+* portrait
+* name
+* dates
+* one sentence
+* View Memorial →
+
+No clutter.
+
+⸻
+
+Older Memorials
+
+Below that:
+
+Simple searchable archive.
+
+⸻
+
+3. Individual Memorial Page
+
+I actually think the Ronnie White page should become your design system.
+
+Expand it slightly.
+
+Structure:
+
+Portrait
+Name
+Dates
+Service Information
+Obituary
+Photo Gallery
+Guestbook
+Share Memory
+Flowers / Donations (optional)
+
+Notice:
+
+No advertisements.
+
+No “related obituaries.”
+
+No widgets.
+
+Nothing pulling attention away.
+
+⸻
+
+I would add ONE more feature
+
+A memorial timeline.
+
+Born
+↓
+Military Service
+↓
+Marriage
+↓
+Career
+↓
+Family
+↓
+Celebration of Life
+
+Very understated.
+
+Very Apple.
+
+Very human.
+
+⸻
+
+Gallery
+
+Don’t create a Gallery page.
+
+Instead:
+
+Every memorial owns its own gallery.
+
+Then:
+
+Create one page called:
+
+Life Stories
+
+This becomes:
+
+Featured memorials with exceptional photography.
+
+Almost editorial.
+
+⸻
+
+Staff Portal Integration
+
+This is where it becomes powerful.
+
+Inside Client Session:
+
+Memorial
+Status
+○ Draft
+○ Awaiting Approval
+○ Scheduled
+○ Published
+○ Archived
+
+Buttons:
+
+Edit Memorial
+
+Preview
+
+Publish
+
+Share
+
+⸻
+
+Publication Workflow
+
+When director clicks Publish:
+
+Automatically:
+
+* creates memorial page
+* creates announcement page
+* updates Memorial Archive
+* posts to homepage:
+
+Recent Memorials
+
+⸻
+
+Homepage Addition
+
+Don’t put memorials in navigation only.
+
+Near the bottom:
+
+Remembering Lives
+Recent Memorials
+[3 elegant cards]
+View All →
+
+Very subtle.
+
+Not promotional.
+
+⸻
+
+Future Phase
+
+Eventually:
+
+Family Portal
+
+Families receive a secure link.
+
+They can:
+
+* upload photos
+* approve obituary
+* request edits
+* sign documents
+* receive announcements
+
+All from one place.
+
+⸻
+
+I would redesign the information architecture like this
+
+Home
+Services
+Planning
+Resources
+Remember
+Contact
+
+Then:
+
+Remember
+Search
+Recent Memorials
+Upcoming Services
+Archive
+
+⸻
+
+One thing I would change from your current announcement system
+
+Right now your announcement page feels like an announcement.
+
+I would make it feel like a digital memorial.
+
+That means:
+
+* larger typography
+* more breathing room
+* fewer boxes
+* portrait becomes the hero
+* obituary becomes the centerpiece
+
+The service details become supporting information rather than the visual focus.
+
+Implementation Plan
+
+I’d build this in four phases:
+
+Phase 1 (1–2 days)
+
+* Add a Remember (or Memorials) navigation item.
+* Create a memorial index page with search, recent memorials, and archive.
+* Pull published announcements into this page automatically.
+
+Phase 2 (2–3 days)
+
+* Redesign the memorial detail page using your current announcement layout as the foundation, with improved typography, spacing, and gallery support.
+* Add a “Share” action and printable service information.
+
+Phase 3 (2–4 days)
+
+* Extend the staff portal:
+    * Draft → Review → Published workflow
+    * Preview before publishing
+    * Schedule publication
+    * Archive management
+
+Phase 4 (future enhancement)
+
+* Family collaboration portal
+* Guestbook moderation
+* Photo uploads
+* Tribute videos
+* Memorial donations or charity links (optional)
+
+I actually think this becomes a competitive advantage. Most funeral home sites feel either dated or overly commercial. If Norwert Hills treats memorials with the same restraint and attention to detail as the rest of the brand, families won’t feel like they’ve left the website—they’ll feel like they’ve entered a quieter, more personal space within it. That aligns well with the premium, understated identity you’ve been building.

@@ -1333,6 +1333,25 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/announcements/:id/timeline/:eventId", requireAuth, async (req, res) => {
+    try {
+      const events = await storage.getTimelineEvents(req.params.id);
+      const event = events.find(e => e.id === req.params.eventId);
+      if (!event) return res.status(404).json({ message: "Timeline event not found" });
+      const { eventYear, eventLabel, eventDescription, displayOrder } = req.body;
+      const updated = await storage.updateTimelineEvent(req.params.eventId, {
+        ...(eventYear !== undefined ? { eventYear: eventYear.trim() } : {}),
+        ...(eventLabel !== undefined ? { eventLabel: eventLabel.trim() } : {}),
+        ...(eventDescription !== undefined ? { eventDescription: eventDescription?.trim() || null } : {}),
+        ...(displayOrder !== undefined ? { displayOrder } : {}),
+      });
+      if (!updated) return res.status(404).json({ message: "Timeline event not found" });
+      res.json(updated);
+    } catch {
+      res.status(500).json({ message: "Failed to update timeline event" });
+    }
+  });
+
   app.delete("/api/announcements/:id/timeline/:eventId", requireAuth, async (req, res) => {
     try {
       const events = await storage.getTimelineEvents(req.params.id);

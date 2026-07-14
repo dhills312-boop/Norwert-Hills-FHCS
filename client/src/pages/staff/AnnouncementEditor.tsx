@@ -114,6 +114,10 @@ export default function AnnouncementEditor() {
   const [newEventYear, setNewEventYear] = useState('');
   const [newEventLabel, setNewEventLabel] = useState('');
   const [newEventDescription, setNewEventDescription] = useState('');
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editingYear, setEditingYear] = useState('');
+  const [editingLabel, setEditingLabel] = useState('');
+  const [editingDescription, setEditingDescription] = useState('');
 
   const handlePortraitUpload = async (file: File) => {
     const slug = form.slug || slugify(form.deceasedFirstName, form.deceasedLastName);
@@ -200,6 +204,25 @@ export default function AnnouncementEditor() {
     },
     onError: () => {
       toast({ title: 'Error', description: 'Failed to add timeline event.', variant: 'destructive' });
+    },
+  });
+
+  const updateTimelineMutation = useMutation({
+    mutationFn: async ({ eventId, data }: { eventId: string; data: { eventYear: string; eventLabel: string; eventDescription?: string } }) => {
+      const res = await apiRequest('PATCH', `/api/announcements/${dataToLoad!.id}/timeline/${eventId}`, {
+        eventYear: data.eventYear,
+        eventLabel: data.eventLabel,
+        eventDescription: data.eventDescription || null,
+      });
+      return res.json() as Promise<TimelineEvent>;
+    },
+    onSuccess: (updated) => {
+      setTimelineEvents(prev => prev.map(e => e.id === updated.id ? updated : e));
+      setEditingEventId(null);
+      toast({ title: 'Updated', description: 'Life event updated.' });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to update timeline event.', variant: 'destructive' });
     },
   });
 
@@ -633,26 +656,93 @@ export default function AnnouncementEditor() {
                   {timelineEvents.length > 0 && (
                     <div className="space-y-2">
                       {timelineEvents.map((event) => (
-                        <div key={event.id} className="flex items-start gap-3 p-3 rounded border border-white/8 bg-background/50">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-xs font-medium text-primary/80 font-mono">{event.eventYear}</span>
-                              <span className="text-sm text-foreground truncate">{event.eventLabel}</span>
+                        <div key={event.id} className="rounded border border-white/8 bg-background/50">
+                          {editingEventId === event.id ? (
+                            <div className="p-3 space-y-2">
+                              <div className="grid grid-cols-3 gap-2">
+                                <Input
+                                  value={editingYear}
+                                  onChange={e => setEditingYear(e.target.value)}
+                                  placeholder="Year"
+                                  className="h-7 text-xs"
+                                  data-testid={`input-edit-timeline-year-${event.id}`}
+                                />
+                                <Input
+                                  value={editingLabel}
+                                  onChange={e => setEditingLabel(e.target.value)}
+                                  placeholder="Event label"
+                                  className="h-7 text-xs col-span-2"
+                                  data-testid={`input-edit-timeline-label-${event.id}`}
+                                />
+                              </div>
+                              <Input
+                                value={editingDescription}
+                                onChange={e => setEditingDescription(e.target.value)}
+                                placeholder="Description (optional)"
+                                className="h-7 text-xs"
+                                data-testid={`input-edit-timeline-description-${event.id}`}
+                              />
+                              <div className="flex gap-2 pt-1">
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs px-3"
+                                  onClick={() => {
+                                    if (!editingYear.trim() || !editingLabel.trim()) return;
+                                    updateTimelineMutation.mutate({ eventId: event.id, data: { eventYear: editingYear, eventLabel: editingLabel, eventDescription: editingDescription || undefined } });
+                                  }}
+                                  disabled={updateTimelineMutation.isPending}
+                                  data-testid={`button-save-timeline-${event.id}`}
+                                >
+                                  {updateTimelineMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Save'}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-xs px-3"
+                                  onClick={() => setEditingEventId(null)}
+                                  data-testid={`button-cancel-edit-timeline-${event.id}`}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
                             </div>
-                            {event.eventDescription && (
-                              <p className="text-xs text-muted-foreground line-clamp-1">{event.eventDescription}</p>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="flex-shrink-0 h-7 w-7"
-                            onClick={() => deleteTimelineMutation.mutate(event.id)}
-                            disabled={deleteTimelineMutation.isPending}
-                            data-testid={`button-delete-timeline-${event.id}`}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
+                          ) : (
+                            <div className="flex items-start gap-3 p-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <span className="text-xs font-medium text-primary/80 font-mono">{event.eventYear}</span>
+                                  <span className="text-sm text-foreground truncate">{event.eventLabel}</span>
+                                </div>
+                                {event.eventDescription && (
+                                  <p className="text-xs text-muted-foreground line-clamp-1">{event.eventDescription}</p>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="flex-shrink-0 h-7 w-7"
+                                onClick={() => {
+                                  setEditingEventId(event.id);
+                                  setEditingYear(event.eventYear);
+                                  setEditingLabel(event.eventLabel);
+                                  setEditingDescription(event.eventDescription || '');
+                                }}
+                                data-testid={`button-edit-timeline-${event.id}`}
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-foreground"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="flex-shrink-0 h-7 w-7"
+                                onClick={() => deleteTimelineMutation.mutate(event.id)}
+                                disabled={deleteTimelineMutation.isPending}
+                                data-testid={`button-delete-timeline-${event.id}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

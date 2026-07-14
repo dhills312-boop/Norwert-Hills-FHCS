@@ -90,6 +90,7 @@ export interface IStorage {
   listFeaturedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath">[]>;
   getTimelineEvents(announcementId: string): Promise<MemorialTimelineEvent[]>;
   createTimelineEvent(data: InsertMemorialTimelineEvent): Promise<MemorialTimelineEvent>;
+  updateTimelineEvent(id: string, data: Partial<Pick<InsertMemorialTimelineEvent, 'eventYear' | 'eventLabel' | 'eventDescription' | 'displayOrder'>>): Promise<MemorialTimelineEvent | undefined>;
   deleteTimelineEvent(id: string): Promise<void>;
 
   createCremationOrder(data: InsertCremationOrder): Promise<CremationOrder>;
@@ -394,6 +395,11 @@ export class DatabaseStorage implements IStorage {
 
   async createTimelineEvent(data: InsertMemorialTimelineEvent): Promise<MemorialTimelineEvent> {
     const [event] = await db.insert(memorialTimelineEvents).values(data).returning();
+    return event;
+  }
+
+  async updateTimelineEvent(id: string, data: Partial<Pick<InsertMemorialTimelineEvent, 'eventYear' | 'eventLabel' | 'eventDescription' | 'displayOrder'>>): Promise<MemorialTimelineEvent | undefined> {
+    const [event] = await db.update(memorialTimelineEvents).set(data).where(eq(memorialTimelineEvents.id, id)).returning();
     return event;
   }
 

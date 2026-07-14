@@ -1,4 +1,4 @@
-import { Facebook, Instagram, Twitter, Copy, Check } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Copy, Check, Printer, X } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRoute, Link } from 'wouter';
 import { useAnnouncementFonts } from '@/hooks/use-announcement-fonts';
@@ -40,6 +40,15 @@ interface AnnouncementData {
   isPublished: boolean;
 }
 
+interface TimelineEvent {
+  id: string;
+  announcementId: string;
+  eventYear: string;
+  eventLabel: string;
+  eventDescription: string | null;
+  displayOrder: number;
+}
+
 function StarField() {
   const [stars, setStars] = useState<{ id: number; x: number; y: number; size: number; delay: number; duration: number }[]>([]);
 
@@ -56,7 +65,7 @@ function StarField() {
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
+    <div className="fixed inset-0 pointer-events-none overflow-hidden announcement-print-bg" style={{ zIndex: 1 }}>
       {stars.map((star) => (
         <div
           key={star.id}
@@ -215,12 +224,70 @@ function renderSongEmbed(url: string) {
       videoId = match?.[1] || '';
     }
     if (videoId) {
-      return (
-        <YouTubeAudioPlayer videoId={videoId} />
-      );
+      return <YouTubeAudioPlayer videoId={videoId} />;
     }
   }
   return null;
+}
+
+function GoldDivider() {
+  return (
+    <div className="relative flex items-center justify-center my-[52px]">
+      <div className="absolute left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(201,169,110,0.18) 50%, transparent 100%)' }} />
+      <div className="relative w-[6px] h-[6px] transform rotate-45" style={{ backgroundColor: '#c9a96e', boxShadow: '0 0 12px rgba(201,169,110,0.4)' }} />
+    </div>
+  );
+}
+
+function VerticalTimeline({ events }: { events: TimelineEvent[] }) {
+  if (events.length === 0) return null;
+  return (
+    <div className="relative" data-testid="timeline-events">
+      <div
+        className="absolute"
+        style={{
+          left: '82px',
+          top: '6px',
+          bottom: '6px',
+          width: '1px',
+          background: 'linear-gradient(to bottom, transparent, rgba(201,169,110,0.22) 8%, rgba(201,169,110,0.22) 92%, transparent)',
+        }}
+      />
+      <div className="space-y-8">
+        {events.map((event) => (
+          <div key={event.id} className="flex items-start">
+            <div className="flex-shrink-0 text-right" style={{ width: '68px', paddingRight: '12px', paddingTop: '3px' }}>
+              <span style={{ fontFamily: 'Cinzel, serif', fontSize: '7.5px', letterSpacing: '0.22em', color: '#c9a96e', whiteSpace: 'nowrap' }}>
+                {event.eventYear}
+              </span>
+            </div>
+            <div className="flex-shrink-0 relative z-10" style={{ width: '28px', display: 'flex', justifyContent: 'center', paddingTop: '4px' }}>
+              <div
+                className="rounded-full"
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  backgroundColor: '#c9a96e',
+                  boxShadow: '0 0 8px rgba(201,169,110,0.5)',
+                  outline: '3px solid #09070c',
+                }}
+              />
+            </div>
+            <div className="flex-1" style={{ paddingLeft: '8px' }}>
+              <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '19px', fontWeight: 300, color: '#f5f0e8', letterSpacing: '0.02em' }}>
+                {event.eventLabel}
+              </div>
+              {event.eventDescription && (
+                <div style={{ fontFamily: 'EB Garamond, serif', fontSize: '13px', color: 'rgba(245,240,232,0.45)', marginTop: '2px', lineHeight: '1.6' }}>
+                  {event.eventDescription}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function AnnouncementPage() {
@@ -229,9 +296,11 @@ export default function AnnouncementPage() {
   const slug = params?.slug || '';
   const isPreview = new URLSearchParams(window.location.search).has('preview');
   const [announcement, setAnnouncement] = useState<AnnouncementData | null>(null);
+  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -243,7 +312,16 @@ export default function AnnouncementPage() {
         if (!r.ok) throw new Error('Not found');
         return r.json();
       })
-      .then(data => { setAnnouncement(data); setLoading(false); })
+      .then(data => {
+        setAnnouncement(data);
+        setLoading(false);
+        const timelineEndpoint = isPreview
+          ? `/api/announcements/${data.id}/timeline`
+          : `/api/public/announcements/${slug}/timeline`;
+        return fetch(timelineEndpoint, { credentials: 'include' });
+      })
+      .then(r => r.ok ? r.json() : [])
+      .then(events => setTimelineEvents(Array.isArray(events) ? events : []))
       .catch(() => { setError(true); setLoading(false); });
   }, [slug, isPreview]);
 
@@ -327,6 +405,7 @@ export default function AnnouncementPage() {
   const sd = announcement.serviceDetails || {};
   const portraitSrc = announcement.portraitImagePath || '/assets/announcements/charles-braud/portrait.webp';
   const showPreviewBanner = isPreview && !announcement.isPublished;
+  const gallery = announcement.mediaGallery || {};
 
   const handleShare = (platform: string) => {
     const url = encodeURIComponent(window.location.href);
@@ -392,46 +471,62 @@ export default function AnnouncementPage() {
     URL.revokeObjectURL(urlObj);
   };
 
-  const gallery = announcement.mediaGallery || {};
-
   return (
     <div className="min-h-screen relative" style={{ backgroundColor: '#09070c' }}>
-      <div className="fixed inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${backgroundImage})`, opacity: 0.15, transform: 'scale(1.1)', animation: 'announcement-slow-zoom 60s ease-in-out infinite alternate', zIndex: 0 }} />
+      <div
+        className="fixed inset-0 bg-cover bg-center announcement-print-bg"
+        style={{
+          backgroundImage: `url(${backgroundImage})`,
+          opacity: 0.12,
+          transform: 'scale(1.1)',
+          animation: 'announcement-slow-zoom 60s ease-in-out infinite alternate',
+          zIndex: 0
+        }}
+      />
       <StarField />
-      <div className="fixed inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 20%, rgba(9,7,12,0.7) 70%, #09070c 100%)', zIndex: 2 }} />
+      <div className="fixed inset-0 pointer-events-none announcement-print-bg" style={{ background: 'radial-gradient(ellipse at center, transparent 20%, rgba(9,7,12,0.7) 70%, #09070c 100%)', zIndex: 2 }} />
 
       {showPreviewBanner && (
         <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-3 py-2 px-4" style={{ backgroundColor: 'rgba(201,169,110,0.95)', color: '#09070c' }}>
           <span style={{ fontFamily: 'Cinzel, serif', fontSize: '10px', letterSpacing: '0.2em', fontWeight: 600, textTransform: 'uppercase' as const }}>STAFF PREVIEW — NOT YET PUBLISHED</span>
         </div>
       )}
+
       <div className="relative mx-auto" style={{ maxWidth: '780px', zIndex: 3, paddingTop: showPreviewBanner ? '36px' : '0' }}>
-        <div className="relative h-[680px] overflow-hidden">
-          <div className="absolute top-8 left-1/2 transform -translate-x-1/2 text-center">
-            <div className="w-[80px] h-[80px] mx-auto flex items-center justify-center mb-2" style={{ backgroundColor: 'transparent' }}>
+
+        {/* HERO — full-width portrait */}
+        <div
+          className="relative overflow-hidden"
+          style={{ height: 'min(75vh, 680px)', minHeight: '440px' }}
+          data-testid="section-hero"
+        >
+          <div
+            className="absolute inset-0 bg-cover bg-top"
+            style={{ backgroundImage: `url(${portraitSrc})` }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(to bottom, rgba(9,7,12,0.55) 0%, rgba(9,7,12,0.1) 30%, rgba(9,7,12,0.15) 55%, rgba(9,7,12,0.75) 78%, #09070c 100%)'
+            }}
+          />
+
+          <div className="absolute top-8 left-1/2 transform -translate-x-1/2 text-center" data-print-hidden>
+            <div className="w-[80px] h-[80px] mx-auto flex items-center justify-center mb-2">
               <img src={logoImage} alt="Norwert Hills" className="w-16 h-16 object-contain" style={{ filter: 'brightness(1.2) contrast(1.1)' }} />
             </div>
             <div style={{ fontFamily: 'Cinzel, serif', fontSize: '8.5px', letterSpacing: '0.3em', color: '#c9a96e', textTransform: 'uppercase' }}>NORWERT HILLS</div>
           </div>
 
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 mt-8">
-            <div className="relative">
-              <div className="absolute" style={{ width: '450px', height: '450px', top: '50%', left: '50%', transform: 'translate(-50%, -60%)', background: 'radial-gradient(ellipse 65% 55% at 50% 35%, rgba(201,169,110,0.7) 0%, rgba(201,169,110,0.35) 25%, rgba(201,169,110,0.12) 50%, transparent 80%)', animation: 'announcement-halo-pulse 4s ease-in-out infinite alternate', filter: 'blur(25px)', zIndex: 0 }} />
-              <div className="relative w-[280px] h-[280px] rounded-full overflow-hidden" style={{ border: '2px solid rgba(201,169,110,0.25)', boxShadow: 'inset 0 20px 40px rgba(0,0,0,0.4)', zIndex: 1 }}>
-                <img src={portraitSrc} alt={`${announcement.deceasedFirstName} ${announcement.deceasedLastName}`} className="w-full h-full object-cover" data-testid="img-portrait" />
-              </div>
-            </div>
-          </div>
-
-          <div className="absolute bottom-16 left-0 right-0 text-center px-12">
+          <div className="absolute bottom-0 left-0 right-0 text-center px-8 pb-10">
             {(announcement.dateOfBirth || announcement.dateOfPassing) && (
-              <div className="mb-4" style={{ fontFamily: 'Cinzel, serif', fontSize: '9px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>
-                {announcement.dateOfBirth} {announcement.dateOfBirth && announcement.dateOfPassing && '·'} {announcement.dateOfPassing}
+              <div className="mb-3" style={{ fontFamily: 'Cinzel, serif', fontSize: '9px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>
+                {announcement.dateOfBirth}{announcement.dateOfBirth && announcement.dateOfPassing ? ' · ' : ''}{announcement.dateOfPassing}
               </div>
             )}
-            <h1 className="mb-2 whitespace-nowrap" data-testid="text-deceased-name">
-              <span className="text-[40px] sm:text-[60px]" style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', color: '#e8cfa0' }}>{announcement.deceasedFirstName}</span>{' '}
-              <span className="text-[40px] sm:text-[60px]" style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400, letterSpacing: '0.06em', color: '#f5f0e8' }}>{announcement.deceasedLastName}</span>
+            <h1 className="mb-2" data-testid="text-deceased-name" style={{ lineHeight: '1.1' }}>
+              <span className="text-[44px] sm:text-[64px]" style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', color: '#e8cfa0', display: 'inline' }}>{announcement.deceasedFirstName}</span>{' '}
+              <span className="text-[44px] sm:text-[64px]" style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400, letterSpacing: '0.06em', color: '#f5f0e8', display: 'inline' }}>{announcement.deceasedLastName}</span>
             </h1>
             {announcement.epitaph && (
               <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', fontStyle: 'italic', color: 'rgba(245,240,232,0.45)' }}>{announcement.epitaph}</div>
@@ -439,13 +534,22 @@ export default function AnnouncementPage() {
           </div>
         </div>
 
-        <div className="relative px-6 sm:px-12" style={{ background: 'radial-gradient(ellipse at 20% 100%, rgba(90,50,8,0.18) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(40,20,55,0.15) 0%, transparent 50%), #09070c' }}>
-          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(65deg, transparent 0%, rgba(201,169,110,0.07) 50%, transparent 100%), linear-gradient(115deg, transparent 0%, rgba(201,169,110,0.07) 50%, transparent 100%)', mixBlendMode: 'overlay' }} />
-
-          <div className="relative flex items-center justify-center my-[52px]">
-            <div className="absolute left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(201,169,110,0.18) 50%, transparent 100%)' }} />
-            <div className="relative w-[6px] h-[6px] transform rotate-45" style={{ backgroundColor: '#c9a96e', boxShadow: '0 0 12px rgba(201,169,110,0.4)' }} />
+        {/* Print-only header */}
+        <div className="print-only hidden text-center py-6 border-b" style={{ display: 'none' }}>
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: '28pt', color: '#2c1a00' }}>
+            {announcement.deceasedFirstName} {announcement.deceasedLastName}
           </div>
+          {(announcement.dateOfBirth || announcement.dateOfPassing) && (
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: '12pt', color: '#555' }}>
+              {announcement.dateOfBirth}{announcement.dateOfBirth && announcement.dateOfPassing ? ' – ' : ''}{announcement.dateOfPassing}
+            </div>
+          )}
+        </div>
+
+        <div className="relative px-6 sm:px-12 announcement-print-content" style={{ background: 'radial-gradient(ellipse at 20% 100%, rgba(90,50,8,0.18) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(40,20,55,0.15) 0%, transparent 50%), #09070c' }}>
+          <div className="absolute inset-0 pointer-events-none announcement-print-bg" style={{ background: 'linear-gradient(65deg, transparent 0%, rgba(201,169,110,0.07) 50%, transparent 100%), linear-gradient(115deg, transparent 0%, rgba(201,169,110,0.07) 50%, transparent 100%)', mixBlendMode: 'overlay' }} />
+
+          <GoldDivider />
 
           {(sd.viewingDate || sd.funeralDate || sd.location || sd.interment) && (
             <div className="mb-[52px]" data-testid="section-service-info">
@@ -484,30 +588,42 @@ export default function AnnouncementPage() {
           )}
 
           {sd.locationAddress && (
-            <div className="mb-[52px] flex justify-center">
-              <button onClick={handleGetDirections} className="flex items-center gap-2 px-6 py-3 transition-all hover:bg-opacity-70" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: 'rgba(201,169,110,0.15)', color: '#c9a96e', border: '1px solid rgba(201,169,110,0.25)', textTransform: 'uppercase' }} data-testid="button-get-directions">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                GET DIRECTIONS
+            <div className="mb-[52px] flex justify-center gap-3 flex-wrap" data-print-hidden>
+              <button
+                onClick={handleGetDirections}
+                className="flex items-center gap-2 px-5 py-3 transition-all hover:bg-opacity-70 cursor-pointer"
+                style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: 'rgba(201,169,110,0.15)', color: '#c9a96e', border: '1px solid rgba(201,169,110,0.25)', textTransform: 'uppercase' }}
+                data-testid="button-get-directions"
+              >
+                Get Directions
               </button>
+              {sd.funeralDate && (
+                <button
+                  onClick={handleAddToCalendar}
+                  className="flex items-center gap-2 px-5 py-3 transition-all hover:bg-opacity-70 cursor-pointer"
+                  style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: 'rgba(201,169,110,0.08)', color: 'rgba(201,169,110,0.7)', border: '1px solid rgba(201,169,110,0.15)', textTransform: 'uppercase' }}
+                  data-testid="button-add-to-calendar"
+                >
+                  Add to Calendar
+                </button>
+              )}
             </div>
           )}
 
-          {sd.funeralDate && (
-            <div className="mb-[52px] flex justify-center">
-              <button onClick={handleAddToCalendar} className="flex items-center gap-2 px-6 py-3 transition-all hover:bg-opacity-70" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: 'rgba(201,169,110,0.15)', color: '#c9a96e', border: '1px solid rgba(201,169,110,0.25)', textTransform: 'uppercase' }} data-testid="button-add-calendar">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                ADD TO CALENDAR
-              </button>
-            </div>
+          {timelineEvents.length > 0 && (
+            <>
+              <GoldDivider />
+              <div className="mb-[52px]">
+                <h2 className="text-center mb-8" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>LIFE EVENTS</h2>
+                <VerticalTimeline events={timelineEvents} />
+              </div>
+            </>
           )}
 
           {announcement.memorialSongUrl && (
             <>
-              <div className="relative flex items-center justify-center my-[52px]">
-                <div className="absolute left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(201,169,110,0.18) 50%, transparent 100%)' }} />
-                <div className="relative w-[6px] h-[6px] transform rotate-45" style={{ backgroundColor: '#c9a96e', boxShadow: '0 0 12px rgba(201,169,110,0.4)' }} />
-              </div>
-              <div className="mb-[52px]" data-testid="section-music">
+              <GoldDivider />
+              <div className="mb-[52px]" data-testid="section-music" data-print-hidden>
                 <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>MUSICAL SELECTION</h2>
                 {renderSongEmbed(announcement.memorialSongUrl)}
               </div>
@@ -516,10 +632,7 @@ export default function AnnouncementPage() {
 
           {announcement.briefObituary && (
             <>
-              <div className="relative flex items-center justify-center my-[52px]">
-                <div className="absolute left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(201,169,110,0.18) 50%, transparent 100%)' }} />
-                <div className="relative w-[6px] h-[6px] transform rotate-45" style={{ backgroundColor: '#c9a96e', boxShadow: '0 0 12px rgba(201,169,110,0.4)' }} />
-              </div>
+              <GoldDivider />
               <div className="mb-[52px]" data-testid="section-obituary">
                 <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>OBITUARY</h2>
                 <div style={{ fontFamily: 'EB Garamond, serif', fontSize: '17px', color: 'rgba(245,240,232,0.58)', lineHeight: '1.9', textAlign: 'justify' }}>
@@ -530,7 +643,7 @@ export default function AnnouncementPage() {
           )}
 
           {announcement.fullObituary && (
-            <div className="mb-[52px] flex justify-center">
+            <div className="mb-[52px] flex justify-center" data-print-hidden>
               <Link href={`/obituaries/${announcement.slug}`}>
                 <span className="flex items-center gap-2 px-6 py-3 transition-all hover:bg-opacity-70 cursor-pointer" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: 'rgba(201,169,110,0.15)', color: '#c9a96e', border: '1px solid rgba(201,169,110,0.25)', textTransform: 'uppercase' }} data-testid="link-full-obituary">
                   VIEW FULL OBITUARY & GUESTBOOK
@@ -541,16 +654,19 @@ export default function AnnouncementPage() {
 
           {gallery.photos && gallery.photos.length > 0 && (
             <>
-              <div className="relative flex items-center justify-center my-[52px]">
-                <div className="absolute left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(201,169,110,0.18) 50%, transparent 100%)' }} />
-                <div className="relative w-[6px] h-[6px] transform rotate-45" style={{ backgroundColor: '#c9a96e', boxShadow: '0 0 12px rgba(201,169,110,0.4)' }} />
-              </div>
+              <GoldDivider />
               <div className="mb-[52px]" data-testid="section-gallery">
                 <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>PHOTO GALLERY</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {gallery.photos.map((photo, i) => (
-                    <div key={i} className="aspect-square overflow-hidden rounded" style={{ border: '1px solid rgba(201,169,110,0.18)' }}>
-                      <img src={photo} alt={`Memorial photo ${i + 1}`} className="w-full h-full object-cover" data-testid={`img-gallery-${i}`} />
+                    <div
+                      key={i}
+                      className="aspect-square overflow-hidden rounded cursor-pointer transition-opacity hover:opacity-80"
+                      style={{ border: '1px solid rgba(201,169,110,0.18)' }}
+                      onClick={() => setLightboxPhoto(photo)}
+                      data-testid={`img-gallery-${i}`}
+                    >
+                      <img src={photo} alt={`Memorial photo ${i + 1}`} className="w-full h-full object-cover" />
                     </div>
                   ))}
                 </div>
@@ -560,11 +676,8 @@ export default function AnnouncementPage() {
 
           {gallery.tributeVideoUrls && gallery.tributeVideoUrls.length > 0 && (
             <>
-              <div className="relative flex items-center justify-center my-[52px]">
-                <div className="absolute left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(201,169,110,0.18) 50%, transparent 100%)' }} />
-                <div className="relative w-[6px] h-[6px] transform rotate-45" style={{ backgroundColor: '#c9a96e', boxShadow: '0 0 12px rgba(201,169,110,0.4)' }} />
-              </div>
-              <div className="mb-[52px]" data-testid="section-tribute-videos">
+              <GoldDivider />
+              <div className="mb-[52px]" data-testid="section-tribute-videos" data-print-hidden>
                 <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>TRIBUTE VIDEOS</h2>
                 <div className="space-y-4">
                   {gallery.tributeVideoUrls.map((videoUrl, i) => (
@@ -577,34 +690,29 @@ export default function AnnouncementPage() {
 
           {gallery.livestreamUrl && (
             <>
-              <div className="relative flex items-center justify-center my-[52px]">
-                <div className="absolute left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(201,169,110,0.18) 50%, transparent 100%)' }} />
-                <div className="relative w-[6px] h-[6px] transform rotate-45" style={{ backgroundColor: '#c9a96e', boxShadow: '0 0 12px rgba(201,169,110,0.4)' }} />
-              </div>
-              <div className="mb-[52px]" data-testid="section-livestream">
+              <GoldDivider />
+              <div className="mb-[52px]" data-testid="section-livestream" data-print-hidden>
                 <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>LIVESTREAM</h2>
                 {renderSongEmbed(gallery.livestreamUrl)}
               </div>
             </>
           )}
 
-          <div className="mb-[52px]" data-testid="section-share">
+          <div className="mb-[52px]" data-testid="section-share" data-print-hidden>
             <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>SHARE THIS MEMORIAL</h2>
             <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
               <button onClick={() => handleShare('Facebook')} className="flex items-center gap-2 px-4 py-2.5" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: '#1877f2', color: 'white', textTransform: 'uppercase' }} data-testid="button-share-facebook"><Facebook size={14} /> FACEBOOK</button>
               <button onClick={() => handleShare('Instagram')} className="flex items-center gap-2 px-4 py-2.5" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', background: 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)', color: 'white', textTransform: 'uppercase' }} data-testid="button-share-instagram"><Instagram size={14} /> INSTAGRAM</button>
               <button onClick={() => handleShare('Twitter')} className="flex items-center gap-2 px-4 py-2.5" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: '#000000', color: 'white', textTransform: 'uppercase' }} data-testid="button-share-x"><Twitter size={14} />X</button>
               <button onClick={handleCopyLink} className="flex items-center gap-2 px-4 py-2.5 transition-all" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: copied ? 'rgba(201,169,110,0.2)' : 'rgba(255,255,255,0.03)', color: '#c9a96e', border: `1px solid ${copied ? 'rgba(201,169,110,0.4)' : 'rgba(201,169,110,0.18)'}`, textTransform: 'uppercase' }} data-testid="button-copy-link">{copied ? <Check size={14} /> : <Copy size={14} />}{copied ? 'COPIED!' : 'COPY LINK'}</button>
+              <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2.5 transition-all" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: 'rgba(255,255,255,0.03)', color: 'rgba(201,169,110,0.6)', border: '1px solid rgba(201,169,110,0.12)', textTransform: 'uppercase' }} data-testid="button-print"><Printer size={14} />PRINT</button>
             </div>
           </div>
 
-          <div className="relative flex items-center justify-center my-[52px]">
-            <div className="absolute left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(201,169,110,0.18) 50%, transparent 100%)' }} />
-            <div className="relative w-[6px] h-[6px] transform rotate-45" style={{ backgroundColor: '#c9a96e', boxShadow: '0 0 12px rgba(201,169,110,0.4)' }} />
-          </div>
+          <GoldDivider />
 
           <div className="text-center pb-[60px] pt-8" style={{ borderTop: '1px solid rgba(201,169,110,0.18)' }}>
-            <div className="w-[44px] h-[44px] rounded-full mx-auto flex items-center justify-center mb-6" style={{ backgroundColor: 'rgba(9,7,12,0.55)', border: '1px solid #c9a96e' }}>
+            <div className="w-[44px] h-[44px] rounded-full mx-auto flex items-center justify-center mb-6" style={{ backgroundColor: 'rgba(9,7,12,0.55)', border: '1px solid #c9a96e' }} data-print-hidden>
               <img src={logoImage} alt="Norwert Hills" className="w-8 h-8 object-contain" />
             </div>
             <p className="mb-6 max-w-md mx-auto" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', fontStyle: 'italic', color: 'rgba(245,240,232,0.2)', lineHeight: '1.8' }}>"Well done, good and faithful servant."</p>
@@ -614,6 +722,32 @@ export default function AnnouncementPage() {
           </div>
         </div>
       </div>
+
+      {lightboxPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(9,7,12,0.96)' }}
+          onClick={() => setLightboxPhoto(null)}
+          data-testid="lightbox-overlay"
+        >
+          <button
+            className="absolute top-5 right-5 flex items-center justify-center w-10 h-10 rounded-full transition-colors"
+            style={{ backgroundColor: 'rgba(201,169,110,0.15)', color: '#c9a96e', border: '1px solid rgba(201,169,110,0.3)' }}
+            onClick={() => setLightboxPhoto(null)}
+            data-testid="button-lightbox-close"
+          >
+            <X size={18} />
+          </button>
+          <img
+            src={lightboxPhoto}
+            alt="Memorial photo"
+            className="max-w-full max-h-full object-contain px-4 py-16"
+            onClick={e => e.stopPropagation()}
+            style={{ maxHeight: '90vh', maxWidth: '90vw' }}
+            data-testid="lightbox-image"
+          />
+        </div>
+      )}
     </div>
   );
 }

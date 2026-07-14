@@ -3,6 +3,7 @@ import { db } from "./db";
 import {
   users, auditLogs, contactSubmissions, arrangements, arrangementItems, activityLogs,
   formTemplates, formInstances, commEvents, serviceCatalog, announcements, condolenceMessages,
+  memorialTimelineEvents,
   cremationOrders, cremationEvents, cremationDocuments, waitlistSignups, sessionDocChecklist,
   type User, type InsertUser,
   type AuditLog,
@@ -16,6 +17,7 @@ import {
   type ServiceCatalogItem, type InsertServiceCatalogItem,
   type Announcement, type InsertAnnouncement,
   type CondolenceMessage, type InsertCondolenceMessage,
+  type MemorialTimelineEvent, type InsertMemorialTimelineEvent,
   type CremationOrder, type InsertCremationOrder,
   type CremationEvent, type InsertCremationEvent,
   type CremationDocument, type InsertCremationDocument,
@@ -84,6 +86,11 @@ export interface IStorage {
   getCondolenceMessages(announcementId: string): Promise<CondolenceMessage[]>;
   createCondolenceMessage(data: InsertCondolenceMessage): Promise<CondolenceMessage>;
   deleteCondolenceMessage(id: string): Promise<void>;
+
+  listFeaturedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath">[]>;
+  getTimelineEvents(announcementId: string): Promise<MemorialTimelineEvent[]>;
+  createTimelineEvent(data: InsertMemorialTimelineEvent): Promise<MemorialTimelineEvent>;
+  deleteTimelineEvent(id: string): Promise<void>;
 
   createCremationOrder(data: InsertCremationOrder): Promise<CremationOrder>;
   getCremationOrder(id: string): Promise<CremationOrder | undefined>;
@@ -359,6 +366,39 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCondolenceMessage(id: string): Promise<void> {
     await db.delete(condolenceMessages).where(eq(condolenceMessages.id, id));
+  }
+
+  async listFeaturedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath">[]> {
+    return db
+      .select({
+        slug: announcements.slug,
+        deceasedFirstName: announcements.deceasedFirstName,
+        deceasedLastName: announcements.deceasedLastName,
+        dateOfBirth: announcements.dateOfBirth,
+        dateOfPassing: announcements.dateOfPassing,
+        briefObituary: announcements.briefObituary,
+        portraitImagePath: announcements.portraitImagePath,
+      })
+      .from(announcements)
+      .where(and(eq(announcements.isPublished, true), eq(announcements.isFeatured, true)))
+      .orderBy(desc(announcements.dateOfPassing));
+  }
+
+  async getTimelineEvents(announcementId: string): Promise<MemorialTimelineEvent[]> {
+    return db
+      .select()
+      .from(memorialTimelineEvents)
+      .where(eq(memorialTimelineEvents.announcementId, announcementId))
+      .orderBy(memorialTimelineEvents.displayOrder, memorialTimelineEvents.eventYear);
+  }
+
+  async createTimelineEvent(data: InsertMemorialTimelineEvent): Promise<MemorialTimelineEvent> {
+    const [event] = await db.insert(memorialTimelineEvents).values(data).returning();
+    return event;
+  }
+
+  async deleteTimelineEvent(id: string): Promise<void> {
+    await db.delete(memorialTimelineEvents).where(eq(memorialTimelineEvents.id, id));
   }
 
   async createCremationOrder(data: InsertCremationOrder): Promise<CremationOrder> {

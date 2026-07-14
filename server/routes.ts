@@ -1207,6 +1207,26 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/public/announcements/featured", async (_req, res) => {
+    try {
+      const items = await storage.listFeaturedAnnouncements();
+      res.json(items);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch featured announcements" });
+    }
+  });
+
+  app.get("/api/public/announcements/:slug/timeline", async (req, res) => {
+    try {
+      const item = await storage.getAnnouncementBySlug(req.params.slug);
+      if (!item || !item.isPublished) return res.status(404).json({ message: "Announcement not found" });
+      const events = await storage.getTimelineEvents(item.id);
+      res.json(events);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch timeline events" });
+    }
+  });
+
   app.get("/api/public/announcements/:slug", async (req, res) => {
     try {
       const item = await storage.getAnnouncementBySlug(req.params.slug);
@@ -1279,6 +1299,46 @@ export async function registerRoutes(
       res.json({ message: "Deleted" });
     } catch {
       res.status(500).json({ message: "Failed to delete condolence message" });
+    }
+  });
+
+  app.get("/api/announcements/:id/timeline", requireAuth, async (req, res) => {
+    try {
+      const events = await storage.getTimelineEvents(req.params.id);
+      res.json(events);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch timeline events" });
+    }
+  });
+
+  app.post("/api/announcements/:id/timeline", requireAuth, async (req, res) => {
+    try {
+      const { eventYear, eventLabel, eventDescription, displayOrder } = req.body;
+      if (!eventYear || typeof eventYear !== 'string' || !eventYear.trim()) {
+        return res.status(400).json({ message: "eventYear is required" });
+      }
+      if (!eventLabel || typeof eventLabel !== 'string' || !eventLabel.trim()) {
+        return res.status(400).json({ message: "eventLabel is required" });
+      }
+      const event = await storage.createTimelineEvent({
+        announcementId: req.params.id,
+        eventYear: eventYear.trim(),
+        eventLabel: eventLabel.trim(),
+        eventDescription: eventDescription?.trim() || null,
+        displayOrder: typeof displayOrder === 'number' ? displayOrder : 0,
+      });
+      res.status(201).json(event);
+    } catch {
+      res.status(500).json({ message: "Failed to create timeline event" });
+    }
+  });
+
+  app.delete("/api/announcements/:id/timeline/:eventId", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteTimelineEvent(req.params.eventId);
+      res.json({ message: "Deleted" });
+    } catch {
+      res.status(500).json({ message: "Failed to delete timeline event" });
     }
   });
 

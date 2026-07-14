@@ -44,6 +44,16 @@ interface AnnouncementData {
   memorialSongUrl?: string;
   mediaGallery?: MediaGallery;
   isPublished: boolean;
+  isFeatured: boolean;
+}
+
+interface TimelineEvent {
+  id: string;
+  announcementId: string;
+  eventYear: string;
+  eventLabel: string;
+  eventDescription: string | null;
+  displayOrder: number;
 }
 
 function slugify(firstName: string, lastName: string): string {
@@ -76,6 +86,7 @@ export default function AnnouncementEditor() {
     portraitImagePath: '',
     memorialSongUrl: '',
     isPublished: false,
+    isFeatured: false,
     arrangementId: arrangementId || '',
     serviceDetails: {
       viewingDate: '',
@@ -98,6 +109,11 @@ export default function AnnouncementEditor() {
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
+
+  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
+  const [newEventYear, setNewEventYear] = useState('');
+  const [newEventLabel, setNewEventLabel] = useState('');
+  const [newEventDescription, setNewEventDescription] = useState('');
 
   const handlePortraitUpload = async (file: File) => {
     const slug = form.slug || slugify(form.deceasedFirstName, form.deceasedLastName);
@@ -149,6 +165,57 @@ export default function AnnouncementEditor() {
 
   const dataToLoad = editAnnouncement || existingAnnouncement;
 
+  const { data: fetchedTimeline } = useQuery<TimelineEvent[]>({
+    queryKey: ['/api/announcements', dataToLoad?.id, 'timeline'],
+    queryFn: async () => {
+      if (!dataToLoad?.id) return [];
+      const res = await fetch(`/api/announcements/${dataToLoad.id}/timeline`, { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!dataToLoad?.id && isAuthenticated,
+  });
+
+  useEffect(() => {
+    if (fetchedTimeline) setTimelineEvents(fetchedTimeline);
+  }, [fetchedTimeline]);
+
+  const addTimelineMutation = useMutation({
+    mutationFn: async (data: { eventYear: string; eventLabel: string; eventDescription?: string }) => {
+      const res = await apiRequest('POST', `/api/announcements/${dataToLoad!.id}/timeline`, {
+        announcementId: dataToLoad!.id,
+        eventYear: data.eventYear,
+        eventLabel: data.eventLabel,
+        eventDescription: data.eventDescription || null,
+        displayOrder: timelineEvents.length,
+      });
+      return res.json() as Promise<TimelineEvent>;
+    },
+    onSuccess: (newEvent) => {
+      setTimelineEvents(prev => [...prev, newEvent]);
+      setNewEventYear('');
+      setNewEventLabel('');
+      setNewEventDescription('');
+      toast({ title: 'Added', description: 'Life event added to timeline.' });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to add timeline event.', variant: 'destructive' });
+    },
+  });
+
+  const deleteTimelineMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      await apiRequest('DELETE', `/api/announcements/${dataToLoad!.id}/timeline/${eventId}`);
+      return eventId;
+    },
+    onSuccess: (deletedId) => {
+      setTimelineEvents(prev => prev.filter(e => e.id !== deletedId));
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to delete timeline event.', variant: 'destructive' });
+    },
+  });
+
   useEffect(() => {
     if (dataToLoad) {
       setForm({
@@ -163,6 +230,7 @@ export default function AnnouncementEditor() {
         portraitImagePath: dataToLoad.portraitImagePath || '',
         memorialSongUrl: dataToLoad.memorialSongUrl || '',
         isPublished: dataToLoad.isPublished || false,
+        isFeatured: dataToLoad.isFeatured || false,
         arrangementId: dataToLoad.arrangementId || arrangementId || '',
         serviceDetails: {
           viewingDate: dataToLoad.serviceDetails?.viewingDate || '',
@@ -556,10 +624,103 @@ export default function AnnouncementEditor() {
               </CardContent>
             </Card>
 
+            {dataToLoad && (
+              <Card className="border-white/5 bg-card">
+                <CardContent className="p-6 space-y-4">
+                  <h2 className="font-serif text-lg text-foreground mb-2">Life Events Timeline</h2>
+                  <p className="text-xs text-muted-foreground">Events appear on the public memorial page as a chronological timeline. Enter a year (or date range) and a brief label for each milestone.</p>
+
+                  {timelineEvents.length > 0 && (
+                    <div className="space-y-2">
+                      {timelineEvents.map((event) => (
+                        <div key={event.id} className="flex items-start gap-3 p-3 rounded border border-white/8 bg-background/50">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-xs font-medium text-primary/80 font-mono">{event.eventYear}</span>
+                              <span className="text-sm text-foreground truncate">{event.eventLabel}</span>
+                            </div>
+                            {event.eventDescription && (
+                              <p className="text-xs text-muted-foreground line-clamp-1">{event.eventDescription}</p>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="flex-shrink-0 h-7 w-7"
+                            onClick={() => deleteTimelineMutation.mutate(event.id)}
+                            disabled={deleteTimelineMutation.isPending}
+                            data-testid={`button-delete-timeline-${event.id}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="space-y-3 pt-2 border-t border-white/6">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Year / Date <span className="text-red-400">*</span></Label>
+                        <Input
+                          value={newEventYear}
+                          onChange={e => setNewEventYear(e.target.value)}
+                          placeholder="1952"
+                          className="h-8 text-sm"
+                          data-testid="input-timeline-year"
+                        />
+                      </div>
+                      <div className="col-span-2 space-y-1">
+                        <Label className="text-xs">Event Label <span className="text-red-400">*</span></Label>
+                        <Input
+                          value={newEventLabel}
+                          onChange={e => setNewEventLabel(e.target.value)}
+                          placeholder="Born in Hammond, Louisiana"
+                          className="h-8 text-sm"
+                          data-testid="input-timeline-label"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Description (optional)</Label>
+                      <Input
+                        value={newEventDescription}
+                        onChange={e => setNewEventDescription(e.target.value)}
+                        placeholder="A brief detail or context for this milestone..."
+                        className="h-8 text-sm"
+                        data-testid="input-timeline-description"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-white/10"
+                      onClick={() => {
+                        if (!newEventYear.trim() || !newEventLabel.trim()) {
+                          toast({ title: 'Required', description: 'Please enter a year and label.', variant: 'destructive' });
+                          return;
+                        }
+                        addTimelineMutation.mutate({
+                          eventYear: newEventYear,
+                          eventLabel: newEventLabel,
+                          eventDescription: newEventDescription || undefined,
+                        });
+                      }}
+                      disabled={addTimelineMutation.isPending}
+                      data-testid="button-add-timeline-event"
+                    >
+                      {addTimelineMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Plus className="h-3.5 w-3.5 mr-1" />}
+                      Add Life Event
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="border-white/5 bg-card">
               <CardContent className="p-6 space-y-4">
                 <h2 className="font-serif text-lg text-foreground mb-2">Publishing & Links</h2>
-                <div className="flex items-center gap-3">
+                <div className="space-y-3">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -569,6 +730,16 @@ export default function AnnouncementEditor() {
                       data-testid="checkbox-publish"
                     />
                     <span className="text-sm text-foreground">Published (visible to public)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.isFeatured}
+                      onChange={e => setForm(f => ({ ...f, isFeatured: e.target.checked }))}
+                      className="rounded border-white/20 bg-background"
+                      data-testid="checkbox-featured"
+                    />
+                    <span className="text-sm text-foreground">Featured on Life Stories page</span>
                   </label>
                 </div>
 

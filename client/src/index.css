@@ -160,3 +160,33 @@
   0% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
   100% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
 }
+
+@media print {
+  [data-print-hidden] { display: none !important; }
+  .announcement-print-bg { display: none !important; }
+
+  body {
+    background: #fff !important;
+    color: #111 !important;
+    font-size: 11pt;
+  }
+
+  .announcement-print-content {
+    color: #111 !important;
+    background: #fff !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .announcement-print-content h1,
+  .announcement-print-content h2 {
+    color: #2c1a00 !important;
+  }
+
+  .announcement-print-content p,
+  .announcement-print-content div {
+    color: #333 !important;
+  }
+
+  .print-only { display: block !important; }
+}

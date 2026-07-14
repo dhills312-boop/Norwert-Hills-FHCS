@@ -273,8 +273,19 @@ export const announcements = pgTable("announcements", {
   memorialSongUrl: text("memorial_song_url"),
   mediaGallery: jsonb("media_gallery").$type<MediaGallery>().default({}),
   isPublished: boolean("is_published").notNull().default(false),
+  isFeatured: boolean("is_featured").notNull().default(false),
   memorialStatus: text("memorial_status").notNull().default("draft"),
   scheduledAt: timestamp("scheduled_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const memorialTimelineEvents = pgTable("memorial_timeline_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  announcementId: varchar("announcement_id").notNull(),
+  eventYear: varchar("event_year", { length: 20 }).notNull(),
+  eventLabel: varchar("event_label", { length: 200 }).notNull(),
+  eventDescription: varchar("event_description", { length: 500 }),
+  displayOrder: integer("display_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -289,6 +300,10 @@ export const condolenceMessages = pgTable("condolence_messages", {
 export const insertAnnouncementSchema = createInsertSchema(announcements).omit({ id: true, createdAt: true });
 export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
 export type Announcement = typeof announcements.$inferSelect;
+
+export const insertMemorialTimelineEventSchema = createInsertSchema(memorialTimelineEvents).omit({ id: true, createdAt: true });
+export type InsertMemorialTimelineEvent = z.infer<typeof insertMemorialTimelineEventSchema>;
+export type MemorialTimelineEvent = typeof memorialTimelineEvents.$inferSelect;
 
 export const insertCondolenceMessageSchema = createInsertSchema(condolenceMessages).omit({ id: true, createdAt: true });
 export type InsertCondolenceMessage = z.infer<typeof insertCondolenceMessageSchema>;

@@ -47,6 +47,10 @@ const staticRouteMeta: Record<string, { title: string; description: string }> = 
     title: `Remembering Lives | ${SITE_NAME}`,
     description: 'A curated memorial gallery honoring those who have passed through our care. Read tributes, service details, and share remembrances with families we have served.',
   },
+  '/remember/stories': {
+    title: `Life Stories | ${SITE_NAME}`,
+    description: 'Featured memorials and life stories from families we have had the honor to serve. A curated editorial collection by Norwert Hills Funeral & Cremation Services.',
+  },
 };
 
 const serviceMetaMap: Record<string, { title: string; description: string }> = {
@@ -386,6 +390,10 @@ export function serveStatic(app: Express) {
       html = injectStaticMeta(html, routeMeta, canonicalUrl);
       if (canonicalPath === '/remember') {
         const noscript = `    <h1>Remembering Lives | Norwert Hills Funeral &amp; Cremation Services</h1>\n    <p>A curated memorial gallery honoring those who have passed through our care. Browse tributes, service details, and share remembrances.</p>\n    <p>Norwert Hills Funeral &amp; Cremation Services — Hammond, Louisiana.</p>`;
+        html = injectNoscriptContent(html, noscript);
+      }
+      if (canonicalPath === '/remember/stories') {
+        const noscript = `    <h1>Life Stories | Norwert Hills Funeral &amp; Cremation Services</h1>\n    <p>Featured memorials and life stories from families we have had the honor to serve. A curated editorial collection honoring those who shaped the lives of the people around them.</p>\n    <p>Norwert Hills Funeral &amp; Cremation Services — Hammond, Louisiana.</p>`;
         html = injectNoscriptContent(html, noscript);
       }
       return res.status(200).set({ "Content-Type": "text/html" }).end(html);

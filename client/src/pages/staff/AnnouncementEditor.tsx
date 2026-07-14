@@ -9,7 +9,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
 import { useRoute, useLocation, Link } from "wouter";
-import { ArrowLeft, Save, Eye, Copy, Check, Loader2, Trash2, Plus, ExternalLink, Upload, ImageIcon } from "lucide-react";
+import { ArrowLeft, Save, Eye, Copy, Check, Loader2, Trash2, Plus, ExternalLink, Upload, ImageIcon, ChevronDown } from "lucide-react";
+import { MemorialStatusBadge } from "@/components/MemorialStatusBadge";
 
 interface ServiceDetails {
   viewingDate?: string;
@@ -45,6 +46,8 @@ interface AnnouncementData {
   mediaGallery?: MediaGallery;
   isPublished: boolean;
   isFeatured: boolean;
+  memorialStatus: string;
+  scheduledAt?: string | null;
 }
 
 interface TimelineEvent {
@@ -74,6 +77,9 @@ export default function AnnouncementEditor() {
   const [copiedAnn, setCopiedAnn] = useState(false);
   const [copiedObit, setCopiedObit] = useState(false);
 
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [scheduledAtInput, setScheduledAtInput] = useState('');
+
   const [form, setForm] = useState({
     deceasedFirstName: '',
     deceasedLastName: '',
@@ -87,6 +93,7 @@ export default function AnnouncementEditor() {
     memorialSongUrl: '',
     isPublished: false,
     isFeatured: false,
+    memorialStatus: 'draft',
     arrangementId: arrangementId || '',
     serviceDetails: {
       viewingDate: '',
@@ -254,6 +261,7 @@ export default function AnnouncementEditor() {
         memorialSongUrl: dataToLoad.memorialSongUrl || '',
         isPublished: dataToLoad.isPublished || false,
         isFeatured: dataToLoad.isFeatured || false,
+        memorialStatus: dataToLoad.memorialStatus || 'draft',
         arrangementId: dataToLoad.arrangementId || arrangementId || '',
         serviceDetails: {
           viewingDate: dataToLoad.serviceDetails?.viewingDate || '',
@@ -344,6 +352,26 @@ export default function AnnouncementEditor() {
       queryClient.invalidateQueries({ queryKey: ['/api/announcements'] });
       toast({ title: 'Deleted', description: 'Announcement has been deleted.' });
       setLocation('/staff/announcements');
+    },
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: async ({ status, scheduledAt }: { status: string; scheduledAt?: string }) => {
+      if (!dataToLoad) throw new Error('No announcement loaded');
+      const body: Record<string, string> = { status };
+      if (scheduledAt) body.scheduledAt = scheduledAt;
+      const res = await apiRequest('PATCH', `/api/announcements/${dataToLoad.id}/status`, body);
+      return res.json() as Promise<AnnouncementData>;
+    },
+    onSuccess: (updated) => {
+      setForm(f => ({ ...f, memorialStatus: updated.memorialStatus, isPublished: updated.isPublished }));
+      setScheduledAtInput('');
+      setStatusMenuOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/announcements'] });
+      toast({ title: 'Status updated', description: `Now ${updated.memorialStatus}.` });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to update status.', variant: 'destructive' });
     },
   });
 
@@ -809,18 +837,162 @@ export default function AnnouncementEditor() {
 
             <Card className="border-white/5 bg-card">
               <CardContent className="p-6 space-y-4">
-                <h2 className="font-serif text-lg text-foreground mb-2">Publishing & Links</h2>
-                <div className="space-y-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.isPublished}
-                      onChange={e => setForm(f => ({ ...f, isPublished: e.target.checked }))}
-                      className="rounded border-white/20 bg-background"
-                      data-testid="checkbox-publish"
-                    />
-                    <span className="text-sm text-foreground">Published (visible to public)</span>
-                  </label>
+                <h2 className="font-serif text-lg text-foreground mb-2">Publication Status</h2>
+
+                {dataToLoad ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Current status:</span>
+                        <MemorialStatusBadge status={form.memorialStatus} />
+                      </div>
+                      <div className="relative">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-white/10 text-xs"
+                          onClick={() => setStatusMenuOpen(v => !v)}
+                          data-testid="button-status-menu"
+                        >
+                          Change <ChevronDown className="h-3 w-3 ml-1" />
+                        </Button>
+                        {statusMenuOpen && (
+                          <div className="absolute right-0 top-9 z-50 w-44 rounded-md border border-white/10 bg-card shadow-lg py-1">
+                            {(['draft', 'review', 'published', 'archived'] as const).map(s => (
+                              <button
+                                key={s}
+                                className="w-full text-left px-3 py-1.5 text-sm hover:bg-white/5 flex items-center gap-2"
+                                onClick={() => {
+                                  if (s === form.memorialStatus) { setStatusMenuOpen(false); return; }
+                                  statusMutation.mutate({ status: s });
+                                }}
+                                data-testid={`button-set-status-${s}`}
+                              >
+                                <MemorialStatusBadge status={s} size="sm" />
+                              </button>
+                            ))}
+                            <div className="border-t border-white/8 mt-1 pt-1 px-3 pb-1">
+                              <p className="text-[10px] text-muted-foreground mb-1">Schedule for later</p>
+                              <input
+                                type="datetime-local"
+                                className="w-full rounded border border-white/10 bg-background px-2 py-1 text-xs text-foreground"
+                                value={scheduledAtInput}
+                                onChange={e => setScheduledAtInput(e.target.value)}
+                                data-testid="input-scheduled-at"
+                              />
+                              <Button
+                                size="sm"
+                                className="mt-1 w-full h-7 text-xs bg-sky-900 hover:bg-sky-800 text-sky-100"
+                                disabled={!scheduledAtInput || statusMutation.isPending}
+                                onClick={() => statusMutation.mutate({ status: 'scheduled', scheduledAt: new Date(scheduledAtInput).toISOString() })}
+                                data-testid="button-schedule"
+                              >
+                                {statusMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Schedule'}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {form.memorialStatus === 'draft' && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-amber-900/60 hover:bg-amber-900 text-amber-100 border-amber-800/50 text-xs"
+                          onClick={() => statusMutation.mutate({ status: 'review' })}
+                          disabled={statusMutation.isPending}
+                          data-testid="button-submit-review"
+                        >
+                          Submit for Review
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 border-emerald-800/50 text-xs"
+                          onClick={() => statusMutation.mutate({ status: 'published' })}
+                          disabled={statusMutation.isPending}
+                          data-testid="button-publish-now"
+                        >
+                          Publish Now
+                        </Button>
+                      </div>
+                    )}
+                    {form.memorialStatus === 'review' && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 border-emerald-800/50 text-xs"
+                          onClick={() => statusMutation.mutate({ status: 'published' })}
+                          disabled={statusMutation.isPending}
+                          data-testid="button-approve-publish"
+                        >
+                          Approve &amp; Publish
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-white/10 text-xs"
+                          onClick={() => statusMutation.mutate({ status: 'draft' })}
+                          disabled={statusMutation.isPending}
+                          data-testid="button-return-draft"
+                        >
+                          Return to Draft
+                        </Button>
+                      </div>
+                    )}
+                    {form.memorialStatus === 'scheduled' && (
+                      <div className="flex gap-2 items-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-white/10 text-xs"
+                          onClick={() => statusMutation.mutate({ status: 'draft' })}
+                          disabled={statusMutation.isPending}
+                          data-testid="button-cancel-schedule"
+                        >
+                          Cancel Schedule
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 text-xs"
+                          onClick={() => statusMutation.mutate({ status: 'published' })}
+                          disabled={statusMutation.isPending}
+                          data-testid="button-publish-immediately"
+                        >
+                          Publish Now
+                        </Button>
+                      </div>
+                    )}
+                    {form.memorialStatus === 'published' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-white/10 text-zinc-400 hover:bg-zinc-900 text-xs"
+                        onClick={() => statusMutation.mutate({ status: 'archived' })}
+                        disabled={statusMutation.isPending}
+                        data-testid="button-archive"
+                      >
+                        Archive
+                      </Button>
+                    )}
+                    {form.memorialStatus === 'archived' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-white/10 text-xs"
+                        onClick={() => statusMutation.mutate({ status: 'draft' })}
+                        disabled={statusMutation.isPending}
+                        data-testid="button-restore-draft"
+                      >
+                        Restore to Draft
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Save this announcement first to manage its publication status.</p>
+                )}
+
+                <div className="space-y-2 pt-2 border-t border-white/6">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"

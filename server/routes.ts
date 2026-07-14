@@ -1135,6 +1135,25 @@ export async function registerRoutes(
 
   const updateAnnouncementSchema = insertAnnouncementSchema.partial();
 
+  app.patch("/api/announcements/:id/status", requireAuth, async (req, res) => {
+    try {
+      const { status, scheduledAt } = req.body;
+      const validStatuses = ["draft", "review", "scheduled", "published", "archived"];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      if (status === "scheduled" && !scheduledAt) {
+        return res.status(400).json({ message: "scheduledAt is required when status is 'scheduled'" });
+      }
+      const parsedScheduledAt = scheduledAt ? new Date(scheduledAt) : undefined;
+      const item = await storage.updateAnnouncementStatus(req.params.id, status, parsedScheduledAt);
+      if (!item) return res.status(404).json({ message: "Announcement not found" });
+      res.json(item);
+    } catch {
+      res.status(500).json({ message: "Failed to update announcement status" });
+    }
+  });
+
   app.patch("/api/announcements/:id", requireAuth, async (req, res) => {
     try {
       const data = updateAnnouncementSchema.parse(req.body);

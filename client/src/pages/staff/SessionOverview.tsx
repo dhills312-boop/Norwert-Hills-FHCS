@@ -14,6 +14,7 @@ import {
   FileCheck, FolderOpen, Pen, ToggleLeft, ToggleRight, Landmark, ScrollText,
   UserCircle, ChevronDown, Save, Receipt
 } from "lucide-react";
+import { MemorialStatusBadge } from "@/components/MemorialStatusBadge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from "@/components/ui/dialog";
@@ -357,6 +358,11 @@ export default function SessionOverview() {
 
   const { data: checklist } = useQuery<SessionDocChecklist | null>({
     queryKey: [`/api/arrangements/${sessionId}/checklist`],
+    enabled: isAuthenticated && !!sessionId,
+  });
+
+  const { data: sessionAnnouncement } = useQuery<{ memorialStatus?: string; isPublished?: boolean } | null>({
+    queryKey: [`/api/announcements/by-arrangement/${sessionId}`],
     enabled: isAuthenticated && !!sessionId,
   });
 
@@ -1060,11 +1066,18 @@ export default function SessionOverview() {
             <Link href={`/staff/sessions/${sessionId}/announcement`}>
               <Button
                 variant="outline"
-                className="w-full h-11 border-white/10 hover:bg-white/5 text-sm"
+                className="w-full h-11 border-white/10 hover:bg-white/5 text-sm flex-col gap-0.5 py-1"
                 data-testid="button-manage-announcement"
               >
-                <FileCheck className="h-4 w-4 mr-2" />
-                Announcement
+                <span className="flex items-center gap-1.5">
+                  <FileCheck className="h-4 w-4" />
+                  Announcement
+                </span>
+                {sessionAnnouncement ? (
+                  <MemorialStatusBadge status={sessionAnnouncement.memorialStatus || 'draft'} size="sm" />
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">No announcement</span>
+                )}
               </Button>
             </Link>
             <Link href={`/staff/cremation`}>

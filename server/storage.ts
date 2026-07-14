@@ -15,7 +15,7 @@ import {
   type FormInstance, type InsertFormInstance,
   type CommEvent, type InsertCommEvent,
   type ServiceCatalogItem, type InsertServiceCatalogItem,
-  type Announcement, type InsertAnnouncement,
+  type Announcement, type InsertAnnouncement, type MemorialStatus,
   type CondolenceMessage, type InsertCondolenceMessage,
   type MemorialTimelineEvent, type InsertMemorialTimelineEvent,
   type CremationOrder, type InsertCremationOrder,
@@ -81,6 +81,7 @@ export interface IStorage {
   listPublishedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath">[]>;
   createAnnouncement(data: InsertAnnouncement): Promise<Announcement>;
   updateAnnouncement(id: string, data: Partial<InsertAnnouncement>): Promise<Announcement | undefined>;
+  updateAnnouncementStatus(id: string, status: MemorialStatus, scheduledAt?: Date | null): Promise<Announcement | undefined>;
   deleteAnnouncement(id: string): Promise<void>;
 
   getCondolenceMessages(announcementId: string): Promise<CondolenceMessage[]>;
@@ -305,6 +306,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAnnouncements(): Promise<Announcement[]> {
+    const now = new Date();
+    await db
+      .update(announcements)
+      .set({ memorialStatus: "published", isPublished: true, scheduledAt: null })
+      .where(and(eq(announcements.memorialStatus, "scheduled"), gte(now, announcements.scheduledAt as any)));
     return db.select().from(announcements).orderBy(desc(announcements.createdAt));
   }
 
@@ -346,6 +352,20 @@ export class DatabaseStorage implements IStorage {
 
   async updateAnnouncement(id: string, data: Partial<InsertAnnouncement>): Promise<Announcement | undefined> {
     const [a] = await db.update(announcements).set(data).where(eq(announcements.id, id)).returning();
+    return a;
+  }
+
+  async updateAnnouncementStatus(id: string, status: MemorialStatus, scheduledAt?: Date | null): Promise<Announcement | undefined> {
+    const isPublished = status === "published";
+    const isArchivedOrDraftOrReview = status !== "published";
+    const updates: Partial<InsertAnnouncement> = {
+      memorialStatus: status,
+      isPublished,
+      ...(scheduledAt !== undefined ? { scheduledAt } : {}),
+      ...(status !== "scheduled" ? { scheduledAt: null } : {}),
+    };
+    const [a] = await db.update(announcements).set(updates).where(eq(announcements.id, id)).returning();
+    void isArchivedOrDraftOrReview;
     return a;
   }
 

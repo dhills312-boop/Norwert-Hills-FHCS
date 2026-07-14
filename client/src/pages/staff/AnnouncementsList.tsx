@@ -1,12 +1,14 @@
 import { StaffLayout } from "@/components/layout/StaffLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Plus, Loader2, ExternalLink, Copy, Check } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
+import { MemorialStatusBadge } from "@/components/MemorialStatusBadge";
+import { useToast } from "@/hooks/use-toast";
 
 interface AnnouncementData {
   id: string;
@@ -16,6 +18,7 @@ interface AnnouncementData {
   dateOfBirth?: string;
   dateOfPassing?: string;
   isPublished: boolean;
+  memorialStatus: string;
   createdAt: string;
 }
 
@@ -23,6 +26,7 @@ export default function AnnouncementsList() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const { data: announcements = [], isLoading } = useQuery<AnnouncementData[]>({
     queryKey: ['/api/announcements'],
@@ -32,6 +36,19 @@ export default function AnnouncementsList() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) setLocation('/staff/login');
   }, [authLoading, isAuthenticated, setLocation]);
+
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await apiRequest('PATCH', `/api/announcements/${id}/status`, { status });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/announcements'] });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to update status.', variant: 'destructive' });
+    },
+  });
 
   const handleCopy = (slug: string, id: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/announcements/${slug}`);
@@ -77,11 +94,9 @@ export default function AnnouncementsList() {
                         {a.dateOfPassing ? `Passed: ${a.dateOfPassing}` : 'No date set'}
                       </p>
                     </div>
-                    <Badge variant={a.isPublished ? 'default' : 'outline'} className={a.isPublished ? 'bg-green-900 text-green-100 border-none' : 'text-muted-foreground border-white/10'}>
-                      {a.isPublished ? 'Published' : 'Draft'}
-                    </Badge>
+                    <MemorialStatusBadge status={a.memorialStatus || 'draft'} />
                   </div>
-                  <div className="flex gap-2 mt-3">
+                  <div className="flex flex-wrap gap-2 mt-3">
                     <Link href={`/staff/announcements/${a.id}`}>
                       <Button variant="outline" size="sm" className="border-white/10 text-xs" data-testid={`button-edit-${a.id}`}>Edit</Button>
                     </Link>
@@ -89,12 +104,48 @@ export default function AnnouncementsList() {
                       {copiedId === a.id ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
                       {copiedId === a.id ? 'Copied' : 'Copy Link'}
                     </Button>
-                    {a.isPublished && (
-                      <a href={`/announcements/${a.slug}`} target="_blank" rel="noopener noreferrer">
-                        <Button variant="outline" size="sm" className="border-white/10 text-xs" data-testid={`button-view-${a.id}`}>
-                          <ExternalLink className="h-3 w-3 mr-1" /> View
+                    {a.memorialStatus !== 'published' && a.memorialStatus !== 'archived' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-emerald-800/50 text-emerald-400 hover:bg-emerald-950/30 text-xs"
+                        onClick={() => statusMutation.mutate({ id: a.id, status: 'published' })}
+                        disabled={statusMutation.isPending}
+                        data-testid={`button-publish-${a.id}`}
+                      >
+                        Publish
+                      </Button>
+                    )}
+                    {a.memorialStatus === 'published' && (
+                      <>
+                        <a href={`/announcements/${a.slug}`} target="_blank" rel="noopener noreferrer">
+                          <Button variant="outline" size="sm" className="border-white/10 text-xs" data-testid={`button-view-${a.id}`}>
+                            <ExternalLink className="h-3 w-3 mr-1" /> View
+                          </Button>
+                        </a>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-white/10 text-zinc-400 hover:bg-zinc-900 text-xs"
+                          onClick={() => statusMutation.mutate({ id: a.id, status: 'archived' })}
+                          disabled={statusMutation.isPending}
+                          data-testid={`button-archive-${a.id}`}
+                        >
+                          Archive
                         </Button>
-                      </a>
+                      </>
+                    )}
+                    {a.memorialStatus === 'archived' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-white/10 text-muted-foreground hover:bg-muted/20 text-xs"
+                        onClick={() => statusMutation.mutate({ id: a.id, status: 'draft' })}
+                        disabled={statusMutation.isPending}
+                        data-testid={`button-restore-${a.id}`}
+                      >
+                        Restore to Draft
+                      </Button>
                     )}
                   </div>
                 </CardContent>

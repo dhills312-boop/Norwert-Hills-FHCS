@@ -254,6 +254,9 @@ export interface MediaGallery {
   [key: string]: unknown;
 }
 
+export const memorialStatusValues = ["draft", "review", "scheduled", "published", "archived"] as const;
+export type MemorialStatus = (typeof memorialStatusValues)[number];
+
 export const announcements = pgTable("announcements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   arrangementId: varchar("arrangement_id"),
@@ -270,6 +273,8 @@ export const announcements = pgTable("announcements", {
   memorialSongUrl: text("memorial_song_url"),
   mediaGallery: jsonb("media_gallery").$type<MediaGallery>().default({}),
   isPublished: boolean("is_published").notNull().default(false),
+  memorialStatus: text("memorial_status").notNull().default("draft"),
+  scheduledAt: timestamp("scheduled_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

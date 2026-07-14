@@ -2,9 +2,93 @@
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Phone } from "lucide-react";
+import { ArrowRight, Phone, User } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+
+type PublishedAnnouncement = {
+  slug: string;
+  deceasedFirstName: string;
+  deceasedLastName: string;
+  dateOfBirth: string | null;
+  dateOfPassing: string | null;
+  briefObituary: string | null;
+  portraitImagePath: string | null;
+};
+
+function RecentMemorialsSection() {
+  const { data: announcements = [] } = useQuery<PublishedAnnouncement[]>({
+    queryKey: ["/api/public/announcements"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const recent = announcements.slice(0, 3);
+  if (recent.length === 0) return null;
+
+  return (
+    <section className="py-24 bg-secondary border-t border-white/5">
+      <div className="container mx-auto px-6">
+        <div className="text-center mb-14">
+          <span className="text-primary text-xs uppercase tracking-[0.3em] mb-4 block">In Memoriam</span>
+          <h2 className="font-serif text-3xl md:text-4xl mb-4">Remembering Lives</h2>
+          <p className="text-muted-foreground font-light max-w-xl mx-auto">
+            Honoring those entrusted to our care — their stories, their service, their legacy.
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-8">
+          {recent.map((item, i) => {
+            const fullName = `${item.deceasedFirstName} ${item.deceasedLastName}`;
+            return (
+              <motion.div
+                key={item.slug}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+              >
+                <Link href={`/announcements/${item.slug}`} data-testid={`card-home-memorial-${item.slug}`}>
+                  <div className="group relative flex flex-col overflow-hidden bg-card border border-white/8 hover:border-primary/30 transition-all duration-500 cursor-pointer h-full">
+                    <div className="relative aspect-[3/4] overflow-hidden bg-background flex-shrink-0">
+                      {item.portraitImagePath ? (
+                        <img
+                          src={item.portraitImagePath}
+                          alt={fullName}
+                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-secondary">
+                          <User className="w-12 h-12 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/10 to-transparent" />
+                    </div>
+                    <div className="p-5 flex flex-col gap-2">
+                      <div className="w-6 h-[1px] bg-primary/60" />
+                      <h3 className="font-serif text-lg text-foreground leading-snug">{fullName}</h3>
+                      {item.dateOfPassing && (
+                        <p className="text-xs text-muted-foreground font-light">{item.dateOfPassing}</p>
+                      )}
+                      <div className="flex items-center gap-2 text-primary text-xs tracking-widest uppercase mt-1 group-hover:gap-3 transition-all">
+                        View Memorial <ArrowRight className="w-3 h-3" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
+        </div>
+        <div className="text-center mt-10">
+          <Link href="/remember">
+            <Button variant="ghost" className="text-foreground hover:text-primary uppercase tracking-widest text-xs" data-testid="button-view-all-memorials">
+              View All Memorials
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   const { data: publicForms } = useQuery<{ cremationIntake: string | null; consultationIntake: string | null }>({
@@ -128,6 +212,9 @@ export default function Home() {
           </Link>
         </div>
       </section>
+      {/* Remembering Lives Widget */}
+      <RecentMemorialsSection />
+
       {/* CTA Section */}
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/5" />

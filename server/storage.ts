@@ -76,6 +76,7 @@ export interface IStorage {
   getAnnouncement(id: string): Promise<Announcement | undefined>;
   getAnnouncementBySlug(slug: string): Promise<Announcement | undefined>;
   getAnnouncementByArrangementId(arrangementId: string): Promise<Announcement | undefined>;
+  listPublishedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath">[]>;
   createAnnouncement(data: InsertAnnouncement): Promise<Announcement>;
   updateAnnouncement(id: string, data: Partial<InsertAnnouncement>): Promise<Announcement | undefined>;
   deleteAnnouncement(id: string): Promise<void>;
@@ -297,6 +298,22 @@ export class DatabaseStorage implements IStorage {
 
   async getAnnouncements(): Promise<Announcement[]> {
     return db.select().from(announcements).orderBy(desc(announcements.createdAt));
+  }
+
+  async listPublishedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath">[]> {
+    return db
+      .select({
+        slug: announcements.slug,
+        deceasedFirstName: announcements.deceasedFirstName,
+        deceasedLastName: announcements.deceasedLastName,
+        dateOfBirth: announcements.dateOfBirth,
+        dateOfPassing: announcements.dateOfPassing,
+        briefObituary: announcements.briefObituary,
+        portraitImagePath: announcements.portraitImagePath,
+      })
+      .from(announcements)
+      .where(eq(announcements.isPublished, true))
+      .orderBy(desc(announcements.dateOfPassing));
   }
 
   async getAnnouncement(id: string): Promise<Announcement | undefined> {

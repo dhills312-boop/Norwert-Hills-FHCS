@@ -25,6 +25,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
     { href: "/pre-planning", label: "Pre-Planning" },
     { href: "/about", label: "Our Story" },
     { href: "/resources", label: "Resources" },
+    { href: "/remember", label: "Remember" },
     { href: "/contact", label: "Contact" },
     { href: "/staff/login", label: "Staff Portal" },
   ];
@@ -125,6 +126,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <div>
               <h4 className="font-serif text-lg text-primary mb-6">In Memoriam</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
+                <li><Link href="/remember" className="hover:text-foreground transition-colors font-medium">View All Memorials →</Link></li>
                 <li><Link href="/memorials/jonis-warren" className="hover:text-foreground transition-colors">Jonis Warren</Link></li>
                 <li><Link href="/memorials/lelia-henderson" className="hover:text-foreground transition-colors">Lelia Henderson</Link></li>
                 <li><Link href="/memorials/deloris-holden" className="hover:text-foreground transition-colors">Deloris Holden</Link></li>

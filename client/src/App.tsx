@@ -33,6 +33,7 @@ import CremationOrders from "@/pages/staff/CremationOrders";
 import CremationCaseDetail from "@/pages/staff/CremationCaseDetail";
 import FormTemplates from "@/pages/staff/FormTemplates";
 import PrePlanning from "@/pages/PrePlanning";
+import Remember from "@/pages/Remember";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/resources/article/:id" component={ArticleDetail} />
       <Route path="/contact" component={Contact} />
       <Route path="/pre-planning" component={PrePlanning} />
+      <Route path="/remember" component={Remember} />
       <Route path="/memorials/:slug" component={Memorial} />
       <Route path="/social/flyer/:slug" component={SocialFlyer} />
       <Route path="/announcements/charles-braud" component={CharlesBraudAnnouncement} />

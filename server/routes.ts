@@ -69,6 +69,7 @@ function buildStaticSitemapUrls(): SitemapEntry[] {
     { path: "/resources", changefreq: "monthly", priority: "0.8" },
     { path: "/resources/faq", changefreq: "monthly", priority: "0.7" },
     { path: "/contact", changefreq: "monthly", priority: "0.8" },
+    { path: "/remember", changefreq: "weekly", priority: "0.8" },
   ];
 
   const serviceUrls: SitemapEntry[] = SERVICE_SLUGS.map((slug) => ({
@@ -1194,6 +1195,15 @@ export async function registerRoutes(
       });
     } catch {
       res.status(500).json({ message: "Failed to fetch public forms" });
+    }
+  });
+
+  app.get("/api/public/announcements", async (_req, res) => {
+    try {
+      const items = await storage.listPublishedAnnouncements();
+      res.json(items);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch announcements" });
     }
   });
 

@@ -43,6 +43,10 @@ const staticRouteMeta: Record<string, { title: string; description: string }> = 
     title: `Pre-Plan Your Funeral | ${SITE_NAME}`,
     description: 'Pre-plan your funeral arrangements with Norwert Hills. Give your family the gift of peace of mind with thoughtful advance planning in Louisiana.',
   },
+  '/remember': {
+    title: `Remembering Lives | ${SITE_NAME}`,
+    description: 'A curated memorial gallery honoring those who have passed through our care. Read tributes, service details, and share remembrances with families we have served.',
+  },
 };
 
 const serviceMetaMap: Record<string, { title: string; description: string }> = {

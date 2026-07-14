@@ -384,6 +384,10 @@ export function serveStatic(app: Express) {
     const routeMeta = staticRouteMeta[canonicalPath];
     if (routeMeta) {
       html = injectStaticMeta(html, routeMeta, canonicalUrl);
+      if (canonicalPath === '/remember') {
+        const noscript = `    <h1>Remembering Lives | Norwert Hills Funeral &amp; Cremation Services</h1>\n    <p>A curated memorial gallery honoring those who have passed through our care. Browse tributes, service details, and share remembrances.</p>\n    <p>Norwert Hills Funeral &amp; Cremation Services — Hammond, Louisiana.</p>`;
+        html = injectNoscriptContent(html, noscript);
+      }
       return res.status(200).set({ "Content-Type": "text/html" }).end(html);
     }
 

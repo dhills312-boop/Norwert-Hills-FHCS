@@ -126,15 +126,14 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <div>
               <h4 className="font-serif text-lg text-primary mb-6">In Memoriam</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
-                <li><Link href="/remember" className="hover:text-foreground transition-colors font-medium">View All Memorials →</Link></li>
-                <li><Link href="/memorials/jonis-warren" className="hover:text-foreground transition-colors">Jonis Warren</Link></li>
-                <li><Link href="/memorials/lelia-henderson" className="hover:text-foreground transition-colors">Lelia Henderson</Link></li>
-                <li><Link href="/memorials/deloris-holden" className="hover:text-foreground transition-colors">Deloris Holden</Link></li>
-                <li><Link href="/memorials/brandon-mckay" className="hover:text-foreground transition-colors">Brandon McKay</Link></li>
-                <li><Link href="/memorials/richard-gross" className="hover:text-foreground transition-colors">Richard Gross</Link></li>
-                <li><Link href="/memorials/keiaris-tilman" className="hover:text-foreground transition-colors">Keiaris Tilman</Link></li>
-                <li><Link href="/memorials/troyshaun-martin" className="hover:text-foreground transition-colors">Troyshaun Martin</Link></li>
-                <li><Link href="/memorials/steven-dillon" className="hover:text-foreground transition-colors">Steven Dillon</Link></li>
+                <li>
+                  <Link href="/remember" className="hover:text-foreground transition-colors">
+                    Memorial Gallery
+                  </Link>
+                </li>
+                <li className="text-muted-foreground/60 text-xs leading-relaxed pt-1">
+                  Honoring those who have passed through our care. Visit the gallery to read tributes and share remembrances.
+                </li>
               </ul>
             </div>
 

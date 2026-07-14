@@ -8,6 +8,13 @@
       "when": 1773423546686,
       "tag": "0000_modern_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784061489756,
+      "tag": "0001_add_is_featured_and_memorial_timeline",
+      "breakpoints": true
     }
   ]
 }

@@ -1335,6 +1335,9 @@ export async function registerRoutes(
 
   app.delete("/api/announcements/:id/timeline/:eventId", requireAuth, async (req, res) => {
     try {
+      const events = await storage.getTimelineEvents(req.params.id);
+      const event = events.find(e => e.id === req.params.eventId);
+      if (!event) return res.status(404).json({ message: "Timeline event not found" });
       await storage.deleteTimelineEvent(req.params.eventId);
       res.json({ message: "Deleted" });
     } catch {

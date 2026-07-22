@@ -860,7 +860,7 @@ export default function AnnouncementEditor() {
                         {statusMenuOpen && (
                           <div className="absolute right-0 top-9 z-50 w-44 rounded-md border border-white/10 bg-card shadow-lg py-1">
                             {(['draft', 'review', 'published', 'archived'] as const)
-                              .filter(s => isDirector || !['published', 'archived'].includes(s))
+                              .filter(s => isDirector || !['published'].includes(s))
                               .map(s => (
                               <button
                                 key={s}
@@ -972,7 +972,7 @@ export default function AnnouncementEditor() {
                         </Button>
                       </div>
                     )}
-                    {form.memorialStatus === 'published' && isDirector && (
+                    {form.memorialStatus === 'published' && (
                       <Button
                         variant="outline"
                         size="sm"

@@ -1136,10 +1136,10 @@ export async function registerRoutes(
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
       }
-      const directorOnlyStatuses = ["published", "archived", "scheduled"];
+      const directorOnlyStatuses = ["published", "scheduled"];
       const actor = req.user as { role?: string } | undefined;
       if (directorOnlyStatuses.includes(status) && actor?.role !== "director") {
-        return res.status(403).json({ message: "Only directors can publish, archive, or schedule announcements" });
+        return res.status(403).json({ message: "Only directors can publish or schedule announcements" });
       }
       if (status === "scheduled" && !scheduledAt) {
         return res.status(400).json({ message: "scheduledAt is required when status is 'scheduled'" });

@@ -1096,10 +1096,14 @@ export default function SessionOverview() {
                   </Button>
                 </Link>
                 {sessionAnnouncement?.slug && (
-                  <a href={`/announcements/${sessionAnnouncement.slug}`} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={`/announcements/${sessionAnnouncement.slug}${sessionAnnouncement.memorialStatus === 'published' ? '' : '?preview'}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <Button variant="outline" size="sm" className="border-white/10 text-xs" data-testid="button-preview-memorial">
                       <ExternalLink className="h-3 w-3 mr-1" />
-                      Preview
+                      {sessionAnnouncement.memorialStatus === 'published' ? 'View' : 'Preview'}
                     </Button>
                   </a>
                 )}
@@ -1126,7 +1130,7 @@ export default function SessionOverview() {
                     Publish
                   </Button>
                 )}
-                {sessionAnnouncement && isDirector && sessionAnnouncement.memorialStatus === 'published' && (
+                {sessionAnnouncement && sessionAnnouncement.memorialStatus === 'published' && (
                   <Button
                     variant="outline"
                     size="sm"

@@ -100,6 +100,12 @@ export default function AnnouncementsList() {
                     <Link href={`/staff/announcements/${a.id}`}>
                       <Button variant="outline" size="sm" className="border-white/10 text-xs" data-testid={`button-edit-${a.id}`}>Edit</Button>
                     </Link>
+                    <a href={`/announcements/${a.slug}${a.memorialStatus === 'published' ? '' : '?preview'}`} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm" className="border-white/10 text-xs" data-testid={`button-preview-${a.id}`}>
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        {a.memorialStatus === 'published' ? 'View' : 'Preview'}
+                      </Button>
+                    </a>
                     <Button variant="outline" size="sm" className="border-white/10 text-xs" onClick={() => handleCopy(a.slug, a.id)} data-testid={`button-copy-${a.id}`}>
                       {copiedId === a.id ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
                       {copiedId === a.id ? 'Copied' : 'Copy Link'}
@@ -130,25 +136,16 @@ export default function AnnouncementsList() {
                       ) : null
                     )}
                     {a.memorialStatus === 'published' && (
-                      <>
-                        <a href={`/announcements/${a.slug}`} target="_blank" rel="noopener noreferrer">
-                          <Button variant="outline" size="sm" className="border-white/10 text-xs" data-testid={`button-view-${a.id}`}>
-                            <ExternalLink className="h-3 w-3 mr-1" /> View
-                          </Button>
-                        </a>
-                        {isDirector && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-white/10 text-zinc-400 hover:bg-zinc-900 text-xs"
-                            onClick={() => statusMutation.mutate({ id: a.id, status: 'archived' })}
-                            disabled={statusMutation.isPending}
-                            data-testid={`button-archive-${a.id}`}
-                          >
-                            Archive
-                          </Button>
-                        )}
-                      </>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-white/10 text-zinc-400 hover:bg-zinc-900 text-xs"
+                        onClick={() => statusMutation.mutate({ id: a.id, status: 'archived' })}
+                        disabled={statusMutation.isPending}
+                        data-testid={`button-archive-${a.id}`}
+                      >
+                        Archive
+                      </Button>
                     )}
                     {a.memorialStatus === 'archived' && (
                       <Button

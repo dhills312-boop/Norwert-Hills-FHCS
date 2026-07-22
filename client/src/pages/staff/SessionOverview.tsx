@@ -361,9 +361,22 @@ export default function SessionOverview() {
     enabled: isAuthenticated && !!sessionId,
   });
 
-  const { data: sessionAnnouncement } = useQuery<{ memorialStatus?: string; isPublished?: boolean } | null>({
+  const { data: sessionAnnouncement } = useQuery<{ id: string; slug: string; memorialStatus?: string; isPublished?: boolean } | null>({
     queryKey: [`/api/announcements/by-arrangement/${sessionId}`],
     enabled: isAuthenticated && !!sessionId,
+  });
+
+  const memStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await apiRequest('PATCH', `/api/announcements/${id}/status`, { status });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/announcements/by-arrangement/${sessionId}`] });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to update announcement status.', variant: 'destructive' });
+    },
   });
 
   const defaultChecklist: SessionDocChecklist = {
@@ -1062,35 +1075,71 @@ export default function SessionOverview() {
             </Button>
           </Link>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Link href={`/staff/sessions/${sessionId}/announcement`}>
-              <Button
-                variant="outline"
-                className="w-full h-11 border-white/10 hover:bg-white/5 text-sm flex-col gap-0.5 py-1"
-                data-testid="button-manage-announcement"
-              >
-                <span className="flex items-center gap-1.5">
-                  <FileCheck className="h-4 w-4" />
-                  Announcement
+          <Card className="border-white/5 bg-card" data-testid="card-memorial-workflow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <FileCheck className="h-4 w-4 text-muted-foreground" />
+                  Memorial Announcement
                 </span>
                 {sessionAnnouncement ? (
-                  <MemorialStatusBadge status={sessionAnnouncement.memorialStatus || 'draft'} size="sm" />
+                  <MemorialStatusBadge status={sessionAnnouncement.memorialStatus || 'draft'} />
                 ) : (
-                  <span className="text-[10px] text-muted-foreground">No announcement</span>
+                  <span className="text-xs text-muted-foreground">Not created</span>
                 )}
-              </Button>
-            </Link>
-            <Link href={`/staff/cremation`}>
-              <Button
-                variant="outline"
-                className="w-full h-11 border-white/10 hover:bg-white/5 text-sm"
-                data-testid="button-cremation"
-              >
-                <ClipboardCheck className="h-4 w-4 mr-2" />
-                Cremation
-              </Button>
-            </Link>
-          </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link href={`/staff/sessions/${sessionId}/announcement`}>
+                  <Button variant="outline" size="sm" className="border-white/10 text-xs" data-testid="button-manage-announcement">
+                    <FileCheck className="h-3 w-3 mr-1" />
+                    {sessionAnnouncement ? 'Edit' : 'Create'}
+                  </Button>
+                </Link>
+                {sessionAnnouncement?.slug && (
+                  <a href={`/announcements/${sessionAnnouncement.slug}`} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm" className="border-white/10 text-xs" data-testid="button-preview-memorial">
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Preview
+                    </Button>
+                  </a>
+                )}
+                {sessionAnnouncement && !isDirector && sessionAnnouncement.memorialStatus === 'draft' && (
+                  <Button
+                    size="sm"
+                    className="bg-amber-900/60 hover:bg-amber-900 text-amber-100 text-xs"
+                    onClick={() => memStatusMutation.mutate({ id: sessionAnnouncement.id, status: 'review' })}
+                    disabled={memStatusMutation.isPending}
+                    data-testid="button-submit-review-session"
+                  >
+                    Submit for Review
+                  </Button>
+                )}
+                {sessionAnnouncement && isDirector && (sessionAnnouncement.memorialStatus === 'draft' || sessionAnnouncement.memorialStatus === 'review') && (
+                  <Button
+                    size="sm"
+                    className="bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 text-xs"
+                    onClick={() => memStatusMutation.mutate({ id: sessionAnnouncement.id, status: 'published' })}
+                    disabled={memStatusMutation.isPending}
+                    data-testid="button-publish-session"
+                  >
+                    {memStatusMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                    Publish
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Link href={`/staff/cremation`}>
+            <Button
+              variant="outline"
+              className="w-full h-11 border-white/10 hover:bg-white/5 text-sm"
+              data-testid="button-cremation"
+            >
+              <ClipboardCheck className="h-4 w-4 mr-2" />
+              Cremation
+            </Button>
+          </Link>
         </div>
       </div>
 

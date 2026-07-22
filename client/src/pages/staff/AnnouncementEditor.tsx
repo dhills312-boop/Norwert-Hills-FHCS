@@ -72,7 +72,7 @@ export default function AnnouncementEditor() {
   const arrangementId = paramsArr?.id;
 
   const { toast } = useToast();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, isDirector } = useAuth();
   const [, setLocation] = useLocation();
   const [copiedAnn, setCopiedAnn] = useState(false);
   const [copiedObit, setCopiedObit] = useState(false);
@@ -858,7 +858,9 @@ export default function AnnouncementEditor() {
                         </Button>
                         {statusMenuOpen && (
                           <div className="absolute right-0 top-9 z-50 w-44 rounded-md border border-white/10 bg-card shadow-lg py-1">
-                            {(['draft', 'review', 'published', 'archived'] as const).map(s => (
+                            {(['draft', 'review', 'published', 'archived'] as const)
+                              .filter(s => isDirector || !['published', 'archived'].includes(s))
+                              .map(s => (
                               <button
                                 key={s}
                                 className="w-full text-left px-3 py-1.5 text-sm hover:bg-white/5 flex items-center gap-2"
@@ -871,25 +873,27 @@ export default function AnnouncementEditor() {
                                 <MemorialStatusBadge status={s} size="sm" />
                               </button>
                             ))}
-                            <div className="border-t border-white/8 mt-1 pt-1 px-3 pb-1">
-                              <p className="text-[10px] text-muted-foreground mb-1">Schedule for later</p>
-                              <input
-                                type="datetime-local"
-                                className="w-full rounded border border-white/10 bg-background px-2 py-1 text-xs text-foreground"
-                                value={scheduledAtInput}
-                                onChange={e => setScheduledAtInput(e.target.value)}
-                                data-testid="input-scheduled-at"
-                              />
-                              <Button
-                                size="sm"
-                                className="mt-1 w-full h-7 text-xs bg-sky-900 hover:bg-sky-800 text-sky-100"
-                                disabled={!scheduledAtInput || statusMutation.isPending}
-                                onClick={() => statusMutation.mutate({ status: 'scheduled', scheduledAt: new Date(scheduledAtInput).toISOString() })}
-                                data-testid="button-schedule"
-                              >
-                                {statusMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Schedule'}
-                              </Button>
-                            </div>
+                            {isDirector && (
+                              <div className="border-t border-white/8 mt-1 pt-1 px-3 pb-1">
+                                <p className="text-[10px] text-muted-foreground mb-1">Schedule for later</p>
+                                <input
+                                  type="datetime-local"
+                                  className="w-full rounded border border-white/10 bg-background px-2 py-1 text-xs text-foreground"
+                                  value={scheduledAtInput}
+                                  onChange={e => setScheduledAtInput(e.target.value)}
+                                  data-testid="input-scheduled-at"
+                                />
+                                <Button
+                                  size="sm"
+                                  className="mt-1 w-full h-7 text-xs bg-sky-900 hover:bg-sky-800 text-sky-100"
+                                  disabled={!scheduledAtInput || statusMutation.isPending}
+                                  onClick={() => statusMutation.mutate({ status: 'scheduled', scheduledAt: new Date(scheduledAtInput).toISOString() })}
+                                  data-testid="button-schedule"
+                                >
+                                  {statusMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Schedule'}
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -906,28 +910,32 @@ export default function AnnouncementEditor() {
                         >
                           Submit for Review
                         </Button>
-                        <Button
-                          size="sm"
-                          className="bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 border-emerald-800/50 text-xs"
-                          onClick={() => statusMutation.mutate({ status: 'published' })}
-                          disabled={statusMutation.isPending}
-                          data-testid="button-publish-now"
-                        >
-                          Publish Now
-                        </Button>
+                        {isDirector && (
+                          <Button
+                            size="sm"
+                            className="bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 border-emerald-800/50 text-xs"
+                            onClick={() => statusMutation.mutate({ status: 'published' })}
+                            disabled={statusMutation.isPending}
+                            data-testid="button-publish-now"
+                          >
+                            Publish Now
+                          </Button>
+                        )}
                       </div>
                     )}
                     {form.memorialStatus === 'review' && (
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 border-emerald-800/50 text-xs"
-                          onClick={() => statusMutation.mutate({ status: 'published' })}
-                          disabled={statusMutation.isPending}
-                          data-testid="button-approve-publish"
-                        >
-                          Approve &amp; Publish
-                        </Button>
+                        {isDirector && (
+                          <Button
+                            size="sm"
+                            className="bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 border-emerald-800/50 text-xs"
+                            onClick={() => statusMutation.mutate({ status: 'published' })}
+                            disabled={statusMutation.isPending}
+                            data-testid="button-approve-publish"
+                          >
+                            Approve &amp; Publish
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -940,7 +948,7 @@ export default function AnnouncementEditor() {
                         </Button>
                       </div>
                     )}
-                    {form.memorialStatus === 'scheduled' && (
+                    {form.memorialStatus === 'scheduled' && isDirector && (
                       <div className="flex gap-2 items-center">
                         <Button
                           variant="outline"
@@ -963,7 +971,7 @@ export default function AnnouncementEditor() {
                         </Button>
                       </div>
                     )}
-                    {form.memorialStatus === 'published' && (
+                    {form.memorialStatus === 'published' && isDirector && (
                       <Button
                         variant="outline"
                         size="sm"

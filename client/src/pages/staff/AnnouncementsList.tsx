@@ -23,7 +23,7 @@ interface AnnouncementData {
 }
 
 export default function AnnouncementsList() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, isDirector } = useAuth();
   const [, setLocation] = useLocation();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -105,16 +105,29 @@ export default function AnnouncementsList() {
                       {copiedId === a.id ? 'Copied' : 'Copy Link'}
                     </Button>
                     {a.memorialStatus !== 'published' && a.memorialStatus !== 'archived' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-emerald-800/50 text-emerald-400 hover:bg-emerald-950/30 text-xs"
-                        onClick={() => statusMutation.mutate({ id: a.id, status: 'published' })}
-                        disabled={statusMutation.isPending}
-                        data-testid={`button-publish-${a.id}`}
-                      >
-                        Publish
-                      </Button>
+                      isDirector ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-emerald-800/50 text-emerald-400 hover:bg-emerald-950/30 text-xs"
+                          onClick={() => statusMutation.mutate({ id: a.id, status: 'published' })}
+                          disabled={statusMutation.isPending}
+                          data-testid={`button-publish-${a.id}`}
+                        >
+                          Publish
+                        </Button>
+                      ) : a.memorialStatus !== 'review' ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-amber-800/50 text-amber-400 hover:bg-amber-950/30 text-xs"
+                          onClick={() => statusMutation.mutate({ id: a.id, status: 'review' })}
+                          disabled={statusMutation.isPending}
+                          data-testid={`button-submit-review-${a.id}`}
+                        >
+                          Submit for Review
+                        </Button>
+                      ) : null
                     )}
                     {a.memorialStatus === 'published' && (
                       <>
@@ -123,16 +136,18 @@ export default function AnnouncementsList() {
                             <ExternalLink className="h-3 w-3 mr-1" /> View
                           </Button>
                         </a>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-white/10 text-zinc-400 hover:bg-zinc-900 text-xs"
-                          onClick={() => statusMutation.mutate({ id: a.id, status: 'archived' })}
-                          disabled={statusMutation.isPending}
-                          data-testid={`button-archive-${a.id}`}
-                        >
-                          Archive
-                        </Button>
+                        {isDirector && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-white/10 text-zinc-400 hover:bg-zinc-900 text-xs"
+                            onClick={() => statusMutation.mutate({ id: a.id, status: 'archived' })}
+                            disabled={statusMutation.isPending}
+                            data-testid={`button-archive-${a.id}`}
+                          >
+                            Archive
+                          </Button>
+                        )}
                       </>
                     )}
                     {a.memorialStatus === 'archived' && (

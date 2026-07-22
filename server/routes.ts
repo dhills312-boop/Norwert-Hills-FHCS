@@ -1155,7 +1155,13 @@ export async function registerRoutes(
 
   app.patch("/api/announcements/:id", requireAuth, async (req, res) => {
     try {
+      const actor = req.user as { role?: string } | undefined;
       const data = updateAnnouncementSchema.parse(req.body);
+      if (actor?.role !== "director") {
+        delete (data as Record<string, unknown>).isPublished;
+        delete (data as Record<string, unknown>).memorialStatus;
+        delete (data as Record<string, unknown>).scheduledAt;
+      }
       if (data.slug) {
         const existing = await storage.getAnnouncementBySlug(data.slug);
         if (existing && existing.id !== req.params.id) {

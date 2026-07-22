@@ -835,7 +835,8 @@ export default function AnnouncementEditor() {
               </Card>
             )}
 
-            <Card className="border-white/5 bg-card">
+            <div className="sticky top-4 z-30">
+            <Card className="border-white/5 bg-card shadow-xl">
               <CardContent className="p-6 space-y-4">
                 <h2 className="font-serif text-lg text-foreground mb-2">Publication Status</h2>
 
@@ -1039,6 +1040,7 @@ export default function AnnouncementEditor() {
                 )}
               </CardContent>
             </Card>
+            </div>
 
             <div className="flex justify-end gap-2 pb-8">
               <Button onClick={handleSave} disabled={saveMutation.isPending} className="bg-primary" data-testid="button-save-bottom">

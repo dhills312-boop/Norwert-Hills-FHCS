@@ -361,7 +361,7 @@ export default function SessionOverview() {
     enabled: isAuthenticated && !!sessionId,
   });
 
-  const { data: sessionAnnouncement } = useQuery<{ id: string; slug: string; memorialStatus?: string; isPublished?: boolean } | null>({
+  const { data: sessionAnnouncement } = useQuery<{ id: string; slug: string; memorialStatus?: string; isPublished?: boolean; createdAt?: string } | null>({
     queryKey: [`/api/announcements/by-arrangement/${sessionId}`],
     enabled: isAuthenticated && !!sessionId,
   });
@@ -1126,7 +1126,24 @@ export default function SessionOverview() {
                     Publish
                   </Button>
                 )}
+                {sessionAnnouncement && isDirector && sessionAnnouncement.memorialStatus === 'published' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-white/10 text-zinc-400 hover:bg-zinc-900 text-xs"
+                    onClick={() => memStatusMutation.mutate({ id: sessionAnnouncement.id, status: 'archived' })}
+                    disabled={memStatusMutation.isPending}
+                    data-testid="button-archive-session"
+                  >
+                    Archive
+                  </Button>
+                )}
               </div>
+              {sessionAnnouncement?.createdAt && (
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  Created {new Date(sessionAnnouncement.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              )}
             </CardContent>
           </Card>
 

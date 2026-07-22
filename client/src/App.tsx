@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, useRoute } from "wouter";
 import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -13,7 +13,6 @@ import Resources from "@/pages/Resources";
 import ResourcesFAQ from "@/pages/ResourcesFAQ";
 import ArticleDetail from "@/pages/ArticleDetail";
 import Contact from "@/pages/Contact";
-import Memorial from "@/pages/Memorial";
 import SocialFlyer from "@/pages/SocialFlyer";
 import StaffLogin from "@/pages/staff/Login";
 import Dashboard from "@/pages/staff/Dashboard";
@@ -23,7 +22,6 @@ import AdminUsers from "@/pages/staff/AdminUsers";
 import CatalogAdmin from "@/pages/staff/CatalogAdmin";
 import SessionOverview from "@/pages/staff/SessionOverview";
 import FormFill from "@/pages/staff/FormFill";
-import CharlesBraudAnnouncement from "@/pages/announcements/CharlesBraud";
 import AnnouncementPage from "@/pages/announcements/AnnouncementPage";
 import ObituaryPage from "@/pages/announcements/ObituaryPage";
 import AnnouncementsList from "@/pages/staff/AnnouncementsList";
@@ -35,6 +33,15 @@ import FormTemplates from "@/pages/staff/FormTemplates";
 import PrePlanning from "@/pages/PrePlanning";
 import Remember from "@/pages/Remember";
 import LifeStories from "@/pages/LifeStories";
+
+function MemorialRedirect() {
+  const [, params] = useRoute("/memorials/:slug");
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    if (params?.slug) setLocation(`/announcements/${params.slug}`, { replace: true } as any);
+  }, [params?.slug, setLocation]);
+  return null;
+}
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -61,9 +68,8 @@ function Router() {
       <Route path="/pre-planning" component={PrePlanning} />
       <Route path="/remember/stories" component={LifeStories} />
       <Route path="/remember" component={Remember} />
-      <Route path="/memorials/:slug" component={Memorial} />
+      <Route path="/memorials/:slug" component={MemorialRedirect} />
       <Route path="/social/flyer/:slug" component={SocialFlyer} />
-      <Route path="/announcements/charles-braud" component={CharlesBraudAnnouncement} />
       <Route path="/announcements/:slug" component={AnnouncementPage} />
       <Route path="/obituaries/:slug" component={ObituaryPage} />
       <Route path="/staff/login" component={StaffLogin} />

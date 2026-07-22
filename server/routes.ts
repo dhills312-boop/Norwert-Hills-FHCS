@@ -3,7 +3,7 @@ import { type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { arrangements, activityLogs, formInstances, arrangementItems, commEvents, sessionDocChecklist, announcements, condolenceMessages } from "@shared/schema";
-import { SERVICE_SLUGS, ARTICLE_SLUGS, MEMORIAL_SLUGS, LEGACY_ANNOUNCEMENT_SLUGS } from "@shared/static-slugs";
+import { SERVICE_SLUGS, ARTICLE_SLUGS, LEGACY_ANNOUNCEMENT_SLUGS } from "@shared/static-slugs";
 import { eq, inArray } from "drizzle-orm";
 import { requireAuth, requireDirector, hashPassword, comparePasswords } from "./auth";
 import { insertContactSchema, insertArrangementSchema, insertArrangementItemSchema, createUserSchema, staffEmailSchema, insertCommEventSchema, insertServiceCatalogSchema, insertAnnouncementSchema, insertCondolenceMessageSchema, passwordSchema, type FormInstance } from "@shared/schema";
@@ -84,18 +84,12 @@ function buildStaticSitemapUrls(): SitemapEntry[] {
     priority: "0.6",
   }));
 
-  const memorialUrls: SitemapEntry[] = MEMORIAL_SLUGS.map((slug) => ({
-    path: `/memorials/${slug}`,
-    changefreq: "weekly",
-    priority: "0.6",
-  }));
-
   const legacyUrls: SitemapEntry[] = LEGACY_ANNOUNCEMENT_SLUGS.flatMap((slug) => [
     { path: `/announcements/${slug}`, changefreq: "weekly", priority: "0.6" },
     { path: `/obituaries/${slug}`, changefreq: "weekly", priority: "0.6" },
   ]);
 
-  return [...core, ...serviceUrls, ...articleUrls, ...memorialUrls, ...legacyUrls];
+  return [...core, ...serviceUrls, ...articleUrls, ...legacyUrls];
 }
 
 export async function registerRoutes(

@@ -1,0 +1,340 @@
+.memorial-obituary p + p {
+  margin-top: 1.2rem;
+}
+
+.memorial-divider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4.25rem 0 3rem;
+}
+
+.memorial-divider::before {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 169, 110, 0.22), transparent);
+  content: "";
+}
+
+.memorial-divider span {
+  position: relative;
+  width: 0.42rem;
+  height: 0.42rem;
+  background: var(--memorial-gold);
+  box-shadow: 0 0 14px rgba(201, 169, 110, 0.4);
+  transform: rotate(45deg);
+}
+
+.memorial-command-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.memorial-timeline {
+  position: relative;
+  max-width: 42rem;
+  margin: 2.25rem auto 0;
+}
+
+.memorial-timeline::before {
+  position: absolute;
+  top: 0.6rem;
+  bottom: 0.6rem;
+  left: 6.35rem;
+  width: 1px;
+  background: rgba(201, 169, 110, 0.22);
+  content: "";
+}
+
+.memorial-timeline-event {
+  position: relative;
+  display: grid;
+  grid-template-columns: 5.25rem 1.5rem 1fr;
+  align-items: start;
+  gap: 0.35rem;
+  padding-block: 1rem;
+}
+
+.memorial-timeline-year {
+  padding-top: 0.2rem;
+  color: var(--memorial-gold);
+  font-family: Montserrat, "Segoe UI", sans-serif;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.17em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.memorial-timeline-marker {
+  position: relative;
+  z-index: 1;
+  width: 0.62rem;
+  height: 0.62rem;
+  margin: 0.25rem auto 0;
+  border: 3px solid var(--memorial-ink);
+  border-radius: 50%;
+  background: var(--memorial-gold);
+  box-sizing: content-box;
+}
+
+.memorial-timeline-event h3 {
+  color: var(--memorial-ivory);
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.memorial-timeline-event div p {
+  margin-top: 0.3rem;
+  color: rgba(245, 240, 232, 0.56);
+  font-family: Montserrat, "Segoe UI", sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.65;
+}
+
+.memorial-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 2rem;
+  border: 1px solid rgba(201, 169, 110, 0.18);
+  background: rgba(201, 169, 110, 0.16);
+}
+
+.memorial-action {
+  display: flex;
+  min-height: 6.5rem;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.25rem;
+  background: rgba(9, 7, 12, 0.94);
+  color: var(--memorial-ivory);
+  transition: background-color 160ms ease;
+}
+
+.memorial-action:hover,
+.memorial-action:focus-visible {
+  background: rgba(201, 169, 110, 0.08);
+  outline: none;
+}
+
+.memorial-action-disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.memorial-action-icon {
+  display: grid;
+  width: 2.7rem;
+  height: 2.7rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(201, 169, 110, 0.35);
+  border-radius: 50%;
+  color: var(--memorial-gold);
+}
+
+.memorial-action strong,
+.memorial-action small {
+  display: block;
+  font-family: Montserrat, "Segoe UI", sans-serif;
+}
+
+.memorial-action strong {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.memorial-action small {
+  margin-top: 0.35rem;
+  color: rgba(245, 240, 232, 0.45);
+  font-size: 0.65rem;
+}
+
+.memorial-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.memorial-media-section,
+.memorial-media-stack {
+  max-width: 48rem;
+  margin: 2rem auto 0;
+}
+
+.memorial-media-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.memorial-media-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  color: var(--memorial-gold);
+}
+
+.memorial-video-frame,
+.memorial-native-video {
+  width: 100%;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid rgba(201, 169, 110, 0.22);
+  background: #000;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+}
+
+.memorial-video-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.memorial-audio-frame {
+  width: 100%;
+  height: 166px;
+  border: 1px solid rgba(201, 169, 110, 0.22);
+}
+
+.memorial-share {
+  padding-bottom: 1rem;
+}
+
+.memorial-footer {
+  padding: 4rem 1rem 5rem;
+  border-top: 1px solid rgba(201, 169, 110, 0.18);
+  text-align: center;
+}
+
+.memorial-footer img {
+  width: 4rem;
+  height: 4rem;
+  object-fit: contain;
+}
+
+.memorial-footer p {
+  margin: 1.3rem auto;
+  color: rgba(245, 240, 232, 0.55);
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.1rem;
+  font-style: italic;
+}
+
+.memorial-footer address {
+  color: rgba(201, 169, 110, 0.46);
+  font-family: Montserrat, "Segoe UI", sans-serif;
+  font-size: 0.58rem;
+  font-style: normal;
+  letter-spacing: 0.16em;
+  line-height: 1.9;
+  text-transform: uppercase;
+}
+
+.memorial-preview-banner {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  right: 0;
+  left: 0;
+  padding: 0.65rem 1rem;
+  background: var(--memorial-gold);
+  color: var(--memorial-ink);
+  font-family: Montserrat, "Segoe UI", sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.memorial-state {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  background:
+    radial-gradient(circle, rgba(201, 169, 110, 0.15), transparent 20rem),
+    #09070c;
+  color: #c9a96e;
+  font-family: Montserrat, "Segoe UI", sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.memorial-state img {
+  width: 5.5rem;
+  height: 5.5rem;
+  object-fit: contain;
+}
+
+.memorial-state a {
+  color: rgba(245, 240, 232, 0.65);
+  text-decoration: underline;
+  text-underline-offset: 0.35rem;
+}
+
+.memorial-lightbox {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 4rem 1rem;
+  background: rgba(9, 7, 12, 0.97);
+}
+
+.memorial-lightbox > button {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid rgba(201, 169, 110, 0.35);
+  border-radius: 50%;
+  background: rgba(201, 169, 110, 0.1);
+  color: var(--memorial-gold);
+}
+
+.memorial-lightbox img {
+  max-width: min(92vw, 1100px);
+  max-height: 86vh;
+  object-fit: contain;
+}
+
+@media (max-width: 800px) {
+  .memorial-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .memorial-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .memorial-timeline::before {
+    left: 5.35rem;
+  }
+
+  .memorial-timeline-event {
+    grid-template-columns: 4.25rem 1.5rem 1fr;
+  }
+}

@@ -1,0 +1,34 @@
+@media (max-width: 800px) {
+  .memorial-page .memorial-hero {
+    padding-top: 1.6rem;
+    padding-bottom: 2.5rem;
+  }
+
+  .memorial-page .memorial-brand-seal {
+    margin-bottom: 1.8rem;
+  }
+
+  .memorial-page .memorial-hero-layout {
+    gap: 2.1rem;
+  }
+
+  .memorial-page .memorial-portrait-frame {
+    width: min(69vw, 270px);
+  }
+
+  .memorial-page .memorial-eyebrow {
+    margin-bottom: 1rem;
+  }
+
+  .memorial-page .memorial-life-dates {
+    margin-top: 1.1rem;
+  }
+
+  .memorial-page .memorial-epitaph {
+    margin-top: 1.25rem;
+  }
+
+  .memorial-page .memorial-brand-name {
+    margin-top: 2.2rem;
+  }
+}

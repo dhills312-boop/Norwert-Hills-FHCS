@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { ArrowRight, Phone, User } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import type { PortraitCrop } from "@shared/schema";
+import { portraitCropStyle } from "@/lib/portrait-crop";
 
 type PublishedAnnouncement = {
   slug: string;
@@ -14,6 +16,7 @@ type PublishedAnnouncement = {
   dateOfPassing: string | null;
   briefObituary: string | null;
   portraitImagePath: string | null;
+  mediaGallery?: { portraitCrop?: PortraitCrop } | null;
 };
 
 function RecentMemorialsSection() {
@@ -52,7 +55,8 @@ function RecentMemorialsSection() {
                         <img
                           src={item.portraitImagePath}
                           alt={fullName}
-                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                          className="w-full h-full object-cover transition-transform duration-700"
+                          style={portraitCropStyle(item.mediaGallery?.portraitCrop)}
                           loading="lazy"
                         />
                       ) : (

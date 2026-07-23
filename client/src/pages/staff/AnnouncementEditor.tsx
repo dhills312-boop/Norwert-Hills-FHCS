@@ -11,6 +11,8 @@ import { useState, useEffect } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import { ArrowLeft, Save, Eye, Copy, Check, Loader2, Trash2, Plus, ExternalLink, Upload, ImageIcon, ChevronDown } from "lucide-react";
 import { MemorialStatusBadge } from "@/components/MemorialStatusBadge";
+import type { PortraitCrop } from "@shared/schema";
+import { portraitCropStyle } from "@/lib/portrait-crop";
 
 interface ServiceDetails {
   viewingDate?: string;
@@ -19,6 +21,7 @@ interface ServiceDetails {
   funeralTime?: string;
   location?: string;
   locationAddress?: string;
+  officiant?: string;
   interment?: string;
   intermentDetails?: string;
 }
@@ -27,6 +30,9 @@ interface MediaGallery {
   photos?: string[];
   tributeVideoUrls?: string[];
   livestreamUrl?: string;
+  teaserVideoUrl?: string;
+  videoPosterUrl?: string;
+  portraitCrop?: PortraitCrop;
 }
 
 interface AnnouncementData {
@@ -102,6 +108,7 @@ export default function AnnouncementEditor() {
       funeralTime: '',
       location: '',
       locationAddress: '',
+      officiant: '',
       interment: '',
       intermentDetails: '',
     } as ServiceDetails,
@@ -109,6 +116,7 @@ export default function AnnouncementEditor() {
       photos: [] as string[],
       tributeVideoUrls: [] as string[],
       livestreamUrl: '',
+      portraitCrop: { x: 50, y: 28, scale: 1 },
     } as MediaGallery,
   });
 
@@ -270,6 +278,7 @@ export default function AnnouncementEditor() {
           funeralTime: dataToLoad.serviceDetails?.funeralTime || '',
           location: dataToLoad.serviceDetails?.location || '',
           locationAddress: dataToLoad.serviceDetails?.locationAddress || '',
+          officiant: dataToLoad.serviceDetails?.officiant || '',
           interment: dataToLoad.serviceDetails?.interment || '',
           intermentDetails: dataToLoad.serviceDetails?.intermentDetails || '',
         },
@@ -277,6 +286,13 @@ export default function AnnouncementEditor() {
           photos: dataToLoad.mediaGallery?.photos || [],
           tributeVideoUrls: dataToLoad.mediaGallery?.tributeVideoUrls || [],
           livestreamUrl: dataToLoad.mediaGallery?.livestreamUrl || '',
+          teaserVideoUrl: dataToLoad.mediaGallery?.teaserVideoUrl || '',
+          videoPosterUrl: dataToLoad.mediaGallery?.videoPosterUrl || '',
+          portraitCrop: {
+            x: dataToLoad.mediaGallery?.portraitCrop?.x ?? 50,
+            y: dataToLoad.mediaGallery?.portraitCrop?.y ?? 28,
+            scale: dataToLoad.mediaGallery?.portraitCrop?.scale ?? 1,
+          },
         },
       });
     }
@@ -498,7 +514,12 @@ export default function AnnouncementEditor() {
                   <div className="flex gap-4 items-start">
                     <div className="w-28 h-28 rounded-full overflow-hidden border border-white/10 bg-muted flex items-center justify-center flex-shrink-0">
                       {form.portraitImagePath ? (
-                        <img src={form.portraitImagePath} alt="Portrait preview" className="w-full h-full object-cover" />
+                        <img
+                          src={form.portraitImagePath}
+                          alt="Portrait preview"
+                          className="w-full h-full object-cover"
+                          style={portraitCropStyle(form.mediaGallery.portraitCrop)}
+                        />
                       ) : (
                         <ImageIcon className="h-8 w-8 text-muted-foreground" />
                       )}
@@ -530,6 +551,61 @@ export default function AnnouncementEditor() {
                       </div>
                     </div>
                   </div>
+                  {form.portraitImagePath && (
+                    <div className="grid gap-4 border-t border-white/5 pt-4 md:grid-cols-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <Label htmlFor="portrait-crop-x" className="text-xs">Horizontal</Label>
+                          <span className="text-xs tabular-nums text-muted-foreground">{form.mediaGallery.portraitCrop?.x ?? 50}%</span>
+                        </div>
+                        <input
+                          id="portrait-crop-x"
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={form.mediaGallery.portraitCrop?.x ?? 50}
+                          onChange={e => setForm(f => ({ ...f, mediaGallery: { ...f.mediaGallery, portraitCrop: { ...f.mediaGallery.portraitCrop, x: Number(e.target.value) } } }))}
+                          className="w-full accent-primary"
+                          data-testid="input-portrait-crop-x"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <Label htmlFor="portrait-crop-y" className="text-xs">Vertical</Label>
+                          <span className="text-xs tabular-nums text-muted-foreground">{form.mediaGallery.portraitCrop?.y ?? 28}%</span>
+                        </div>
+                        <input
+                          id="portrait-crop-y"
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={form.mediaGallery.portraitCrop?.y ?? 28}
+                          onChange={e => setForm(f => ({ ...f, mediaGallery: { ...f.mediaGallery, portraitCrop: { ...f.mediaGallery.portraitCrop, y: Number(e.target.value) } } }))}
+                          className="w-full accent-primary"
+                          data-testid="input-portrait-crop-y"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <Label htmlFor="portrait-crop-scale" className="text-xs">Zoom</Label>
+                          <span className="text-xs tabular-nums text-muted-foreground">{(form.mediaGallery.portraitCrop?.scale ?? 1).toFixed(2)}x</span>
+                        </div>
+                        <input
+                          id="portrait-crop-scale"
+                          type="range"
+                          min="1"
+                          max="2"
+                          step="0.05"
+                          value={form.mediaGallery.portraitCrop?.scale ?? 1}
+                          onChange={e => setForm(f => ({ ...f, mediaGallery: { ...f.mediaGallery, portraitCrop: { ...f.mediaGallery.portraitCrop, scale: Number(e.target.value) } } }))}
+                          className="w-full accent-primary"
+                          data-testid="input-portrait-crop-scale"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Memorial Song URL (SoundCloud or YouTube)</Label>
@@ -571,6 +647,10 @@ export default function AnnouncementEditor() {
                     <Label>Location Address</Label>
                     <Input value={form.serviceDetails.locationAddress || ''} onChange={e => setForm(f => ({ ...f, serviceDetails: { ...f.serviceDetails, locationAddress: e.target.value } }))} placeholder="240 Pine St., Laplace, LA 70068" data-testid="input-location-address" />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Officiant</Label>
+                  <Input value={form.serviceDetails.officiant || ''} onChange={e => setForm(f => ({ ...f, serviceDetails: { ...f.serviceDetails, officiant: e.target.value } }))} placeholder="Pastor or officiant name" data-testid="input-officiant" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

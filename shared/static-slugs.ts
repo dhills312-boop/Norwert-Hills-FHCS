@@ -11,7 +11,7 @@ export const ARTICLE_SLUGS = [
   "planning-ahead",
 ] as const;
 
-export const MEMORIAL_SLUGS: readonly string[] = [];
+export const MEMORIAL_SLUGS: readonly string[] = ["jane-ross", "ronnie-white"];
 
 export const LEGACY_ANNOUNCEMENT_SLUGS = [
   "charles-braud",

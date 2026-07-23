@@ -4,6 +4,8 @@ import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { motion } from "framer-motion";
 import { Search, ArrowRight, User } from "lucide-react";
+import type { PortraitCrop } from "@shared/schema";
+import { portraitCropStyle } from "@/lib/portrait-crop";
 
 type PublishedAnnouncement = {
   slug: string;
@@ -13,6 +15,7 @@ type PublishedAnnouncement = {
   dateOfPassing: string | null;
   briefObituary: string | null;
   portraitImagePath: string | null;
+  mediaGallery?: { portraitCrop?: PortraitCrop } | null;
 };
 
 function MemorialCard({ item, index }: { item: PublishedAnnouncement; index: number }) {
@@ -32,7 +35,8 @@ function MemorialCard({ item, index }: { item: PublishedAnnouncement; index: num
               <img
                 src={item.portraitImagePath}
                 alt={fullName}
-                className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                className="w-full h-full object-cover transition-transform duration-700"
+                style={portraitCropStyle(item.mediaGallery?.portraitCrop)}
                 loading="lazy"
               />
             ) : (
@@ -173,7 +177,8 @@ export default function Remember() {
                               <img
                                 src={item.portraitImagePath}
                                 alt={fullName}
-                                className="w-12 h-12 rounded-full object-cover object-top flex-shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
+                                className="w-12 h-12 rounded-full object-cover flex-shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
+                                style={portraitCropStyle(item.mediaGallery?.portraitCrop)}
                               />
                             ) : (
                               <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">

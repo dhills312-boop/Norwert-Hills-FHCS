@@ -1,3 +1,6 @@
+import type { PortraitCrop } from "@shared/schema";
+import { portraitCropStyle } from "@/lib/portrait-crop";
+
 type MemorialBrandHeroProps = {
   firstName: string;
   lastName: string;
@@ -5,6 +8,7 @@ type MemorialBrandHeroProps = {
   dateOfBirth?: string;
   dateOfPassing?: string;
   epitaph?: string;
+  portraitCrop?: PortraitCrop;
 };
 
 const logoImage = "/assets/logo-crest.png";
@@ -16,6 +20,7 @@ export default function MemorialBrandHero({
   dateOfBirth,
   dateOfPassing,
   epitaph,
+  portraitCrop,
 }: MemorialBrandHeroProps) {
   const lifeDates = [dateOfBirth, dateOfPassing].filter(Boolean).join(" - ");
 
@@ -33,7 +38,11 @@ export default function MemorialBrandHero({
         <div className="memorial-portrait-frame">
           <div className="memorial-portrait-halo" aria-hidden="true" />
           <div className="memorial-portrait">
-            <img src={portraitSrc} alt={`${firstName} ${lastName}`} />
+            <img
+              src={portraitSrc}
+              alt={`${firstName} ${lastName}`}
+              style={portraitCropStyle(portraitCrop)}
+            />
           </div>
         </div>
 

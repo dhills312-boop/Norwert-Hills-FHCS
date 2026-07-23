@@ -1,10 +1,24 @@
-import { Facebook, Instagram, Twitter, Copy, Check, Printer, X } from 'lucide-react';
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useRoute, Link } from 'wouter';
-import { useAnnouncementFonts } from '@/hooks/use-announcement-fonts';
-
-const logoImage = '/assets/announcements/charles-braud/logo.png';
-const backgroundImage = '/assets/announcements/charles-braud/background.png';
+import {
+  BookOpen,
+  CalendarPlus,
+  Check,
+  Copy,
+  ExternalLink,
+  Facebook,
+  Flower2,
+  Gift,
+  Instagram,
+  MapPin,
+  PlayCircle,
+  Printer,
+  Twitter,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useRoute } from "wouter";
+import MemorialBrandHero from "@/components/MemorialBrandHero";
+import { useAnnouncementFonts } from "@/hooks/use-announcement-fonts";
+import "@/styles/memorial-brand.css";
 
 interface ServiceDetails {
   viewingDate?: string;
@@ -42,259 +56,165 @@ interface AnnouncementData {
 
 interface TimelineEvent {
   id: string;
-  announcementId: string;
   eventYear: string;
   eventLabel: string;
   eventDescription: string | null;
-  displayOrder: number;
 }
 
-function StarField() {
-  const [stars, setStars] = useState<{ id: number; x: number; y: number; size: number; delay: number; duration: number }[]>([]);
+const fallbackPortrait = "/assets/announcements/charles-braud/portrait.webp";
 
-  useEffect(() => {
-    const generatedStars = Array.from({ length: 100 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 2 + 1,
-      delay: Math.random() * 5,
-      duration: Math.random() * 3 + 2
-    }));
-    setStars(generatedStars);
-  }, []);
+function GoldDivider() {
+  return (
+    <div className="memorial-divider" aria-hidden="true">
+      <span />
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="memorial-section-title">{children}</h2>;
+}
+
+function ServiceItem({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+}) {
+  return (
+    <div className="memorial-service-item">
+      <p className="memorial-service-label">{label}</p>
+      <p className="memorial-service-value">{value}</p>
+      {detail && <p className="memorial-service-detail">{detail}</p>}
+    </div>
+  );
+}
+
+function getYouTubeId(url: string) {
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?.*v=|embed\/|live\/)|youtu\.be\/)([^?&/]+)/i,
+  );
+  return match?.[1] || "";
+}
+
+function MediaEmbed({ url, title }: { url: string; title: string }) {
+  const youtubeId = getYouTubeId(url);
+
+  if (youtubeId) {
+    return (
+      <div className="memorial-video-frame">
+        <iframe
+          src={`https://www.youtube.com/embed/${youtubeId}`}
+          title={title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+
+  if (url.includes("soundcloud.com")) {
+    return (
+      <iframe
+        className="memorial-audio-frame"
+        title={title}
+        allow="autoplay"
+        src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23c9a96e&auto_play=false&hide_related=true&show_comments=false`}
+      />
+    );
+  }
+
+  if (/\.(mp4|webm|mov)(?:$|\?)/i.test(url)) {
+    return (
+      <video className="memorial-native-video" controls preload="metadata">
+        <source src={url} />
+        Your browser does not support this memorial video.
+      </video>
+    );
+  }
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden announcement-print-bg" style={{ zIndex: 1 }}>
-      {stars.map((star) => (
-        <div
-          key={star.id}
-          className="absolute rounded-full"
-          style={{
-            left: `${star.x}%`,
-            top: `${star.y}%`,
-            width: `${star.size}px`,
-            height: `${star.size}px`,
-            backgroundColor: '#c9a96e',
-            opacity: 0.3,
-            animation: `announcement-twinkle ${star.duration}s ease-in-out ${star.delay}s infinite alternate, announcement-float ${star.duration * 2}s ease-in-out ${star.delay}s infinite alternate`,
-            boxShadow: '0 0 4px rgba(201,169,110,0.5)'
-          }}
-        />
+    <a className="memorial-button" href={url} target="_blank" rel="noreferrer">
+      <ExternalLink size={15} />
+      Open media
+    </a>
+  );
+}
+
+function Timeline({ events }: { events: TimelineEvent[] }) {
+  return (
+    <div className="memorial-timeline" data-testid="timeline-events">
+      {events.map((event) => (
+        <div className="memorial-timeline-event" key={event.id}>
+          <p className="memorial-timeline-year">{event.eventYear}</p>
+          <span className="memorial-timeline-marker" aria-hidden="true" />
+          <div>
+            <h3>{event.eventLabel}</h3>
+            {event.eventDescription && <p>{event.eventDescription}</p>}
+          </div>
+        </div>
       ))}
     </div>
   );
 }
 
-function YouTubeAudioPlayer({ videoId }: { videoId: string }) {
-  const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const playerRef = useRef<any>(null);
-  const intervalRef = useRef<any>(null);
-  const containerRef = useRef<string>(`yt-player-${videoId}-${Math.random().toString(36).slice(2)}`);
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  useEffect(() => {
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
-      document.head.appendChild(tag);
-    }
-
-    const initPlayer = () => {
-      if (!(window as any).YT?.Player) {
-        setTimeout(initPlayer, 200);
-        return;
-      }
-      playerRef.current = new (window as any).YT.Player(containerRef.current, {
-        height: '0',
-        width: '0',
-        videoId,
-        playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, modestbranding: 1, rel: 0 },
-        events: {
-          onReady: (e: any) => {
-            setDuration(e.target.getDuration());
-          },
-          onStateChange: (e: any) => {
-            if (e.data === 1) {
-              setPlaying(true);
-              intervalRef.current = setInterval(() => {
-                const t = e.target.getCurrentTime();
-                const d = e.target.getDuration();
-                setCurrentTime(t);
-                setProgress(d > 0 ? (t / d) * 100 : 0);
-              }, 250);
-            } else {
-              setPlaying(false);
-              if (intervalRef.current) clearInterval(intervalRef.current);
-            }
-          },
-        },
-      });
-    };
-
-    if ((window as any).YT?.Player) initPlayer();
-    else {
-      const prevCallback = (window as any).onYouTubeIframeAPIReady;
-      (window as any).onYouTubeIframeAPIReady = () => {
-        if (prevCallback) prevCallback();
-        initPlayer();
-      };
-    }
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (playerRef.current?.destroy) playerRef.current.destroy();
-    };
-  }, [videoId]);
-
-  const togglePlay = useCallback(() => {
-    if (!playerRef.current) return;
-    if (playing) playerRef.current.pauseVideo();
-    else playerRef.current.playVideo();
-  }, [playing]);
-
-  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!playerRef.current || !duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    playerRef.current.seekTo(pct * duration, true);
-    setProgress(pct * 100);
-    setCurrentTime(pct * duration);
-  }, [duration]);
-
-  return (
-    <div className="rounded" style={{ background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.18)', padding: '16px 20px' }} data-testid="embed-youtube-audio">
-      <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div id={containerRef.current} />
-      </div>
-      <div className="flex items-center gap-4">
-        <button onClick={togglePlay} className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors" style={{ backgroundColor: 'rgba(201,169,110,0.15)', border: '1px solid rgba(201,169,110,0.3)' }} data-testid="button-yt-play">
-          {playing ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#c9a96e"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#c9a96e"><path d="M8 5v14l11-7L8 5z"/></svg>
-          )}
-        </button>
-        <div className="flex-1 space-y-1">
-          <div className="cursor-pointer h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(201,169,110,0.12)' }} onClick={handleSeek} data-testid="progress-bar">
-            <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: '#c9a96e' }} />
-          </div>
-          <div className="flex justify-between">
-            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '9px', letterSpacing: '0.15em', color: 'rgba(201,169,110,0.6)' }}>{formatTime(currentTime)}</span>
-            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '9px', letterSpacing: '0.15em', color: 'rgba(201,169,110,0.6)' }}>{formatTime(duration)}</span>
-          </div>
-        </div>
-        <div className="flex-shrink-0">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(201,169,110,0.5)" strokeWidth="1.5"><path d="M9 18V5l12 7-12 7z"/></svg>
-        </div>
-      </div>
-    </div>
+function FutureAction({
+  icon,
+  title,
+  href,
+  availableLabel,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  href?: string;
+  availableLabel?: string;
+}) {
+  const content = (
+    <>
+      <span className="memorial-action-icon">{icon}</span>
+      <span>
+        <strong>{title}</strong>
+        <small>{href ? availableLabel || "Available" : "Coming soon"}</small>
+      </span>
+    </>
   );
-}
 
-function renderSongEmbed(url: string) {
-  if (url.includes('soundcloud.com')) {
-    const encodedUrl = encodeURIComponent(url);
+  if (href) {
     return (
-      <iframe
-        width="100%"
-        height="166"
-        scrolling="no"
-        frameBorder="no"
-        allow="autoplay"
-        src={`https://w.soundcloud.com/player/?url=${encodedUrl}&color=%231c2334&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`}
-        data-testid="embed-soundcloud"
-      />
+      <Link className="memorial-action" href={href}>
+        {content}
+      </Link>
     );
   }
-  if (url.includes('youtube.com') || url.includes('youtu.be')) {
-    let videoId = '';
-    if (url.includes('youtu.be/')) {
-      videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
-    } else {
-      const match = url.match(/[?&]v=([^&]+)/);
-      videoId = match?.[1] || '';
-    }
-    if (videoId) {
-      return <YouTubeAudioPlayer videoId={videoId} />;
-    }
+
+  return (
+    <div className="memorial-action memorial-action-disabled" aria-disabled="true" title="Coming soon">
+      {content}
+    </div>
+  );
+}
+
+function setOrCreateMeta(selector: string, attributes: Record<string, string>) {
+  let element = document.head.querySelector<HTMLMetaElement>(selector);
+  const created = !element;
+  if (!element) {
+    element = document.createElement("meta");
+    document.head.appendChild(element);
   }
-  return null;
-}
-
-function GoldDivider() {
-  return (
-    <div className="relative flex items-center justify-center my-[52px]">
-      <div className="absolute left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(201,169,110,0.18) 50%, transparent 100%)' }} />
-      <div className="relative w-[6px] h-[6px] transform rotate-45" style={{ backgroundColor: '#c9a96e', boxShadow: '0 0 12px rgba(201,169,110,0.4)' }} />
-    </div>
-  );
-}
-
-function VerticalTimeline({ events }: { events: TimelineEvent[] }) {
-  if (events.length === 0) return null;
-  return (
-    <div className="relative" data-testid="timeline-events">
-      <div
-        className="absolute"
-        style={{
-          left: '82px',
-          top: '6px',
-          bottom: '6px',
-          width: '1px',
-          background: 'linear-gradient(to bottom, transparent, rgba(201,169,110,0.22) 8%, rgba(201,169,110,0.22) 92%, transparent)',
-        }}
-      />
-      <div className="space-y-8">
-        {events.map((event) => (
-          <div key={event.id} className="flex items-start">
-            <div className="flex-shrink-0 text-right" style={{ width: '68px', paddingRight: '12px', paddingTop: '3px' }}>
-              <span style={{ fontFamily: 'Cinzel, serif', fontSize: '7.5px', letterSpacing: '0.22em', color: '#c9a96e', whiteSpace: 'nowrap' }}>
-                {event.eventYear}
-              </span>
-            </div>
-            <div className="flex-shrink-0 relative z-10" style={{ width: '28px', display: 'flex', justifyContent: 'center', paddingTop: '4px' }}>
-              <div
-                className="rounded-full"
-                style={{
-                  width: '10px',
-                  height: '10px',
-                  backgroundColor: '#c9a96e',
-                  boxShadow: '0 0 8px rgba(201,169,110,0.5)',
-                  outline: '3px solid #09070c',
-                }}
-              />
-            </div>
-            <div className="flex-1" style={{ paddingLeft: '8px' }}>
-              <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '19px', fontWeight: 300, color: '#f5f0e8', letterSpacing: '0.02em' }}>
-                {event.eventLabel}
-              </div>
-              {event.eventDescription && (
-                <div style={{ fontFamily: 'EB Garamond, serif', fontSize: '13px', color: 'rgba(245,240,232,0.45)', marginTop: '2px', lineHeight: '1.6' }}>
-                  {event.eventDescription}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  Object.entries(attributes).forEach(([key, value]) => element?.setAttribute(key, value));
+  return () => {
+    if (created) element?.remove();
+  };
 }
 
 export default function AnnouncementPage() {
   useAnnouncementFonts();
-  const [, params] = useRoute('/announcements/:slug');
-  const slug = params?.slug || '';
-  const isPreview = new URLSearchParams(window.location.search).has('preview');
+  const [, params] = useRoute("/announcements/:slug");
+  const slug = params?.slug || "";
+  const isPreview = new URLSearchParams(window.location.search).has("preview");
   const [announcement, setAnnouncement] = useState<AnnouncementData | null>(null);
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -307,447 +227,378 @@ export default function AnnouncementPage() {
     const endpoint = isPreview
       ? `/api/staff/announcements/preview/${slug}`
       : `/api/public/announcements/${slug}`;
-    fetch(endpoint, { credentials: 'include' })
-      .then(r => {
-        if (!r.ok) throw new Error('Not found');
-        return r.json();
+
+    fetch(endpoint, { credentials: "include" })
+      .then((response) => {
+        if (!response.ok) throw new Error("Announcement not found");
+        return response.json();
       })
-      .then(data => {
+      .then((data: AnnouncementData) => {
         setAnnouncement(data);
-        setLoading(false);
         const timelineEndpoint = isPreview
           ? `/api/announcements/${data.id}/timeline`
           : `/api/public/announcements/${slug}/timeline`;
-        return fetch(timelineEndpoint, { credentials: 'include' });
+        return fetch(timelineEndpoint, { credentials: "include" });
       })
-      .then(r => r.ok ? r.json() : [])
-      .then(events => setTimelineEvents(Array.isArray(events) ? events : []))
-      .catch(() => { setError(true); setLoading(false); });
-  }, [slug, isPreview]);
+      .then((response) => (response.ok ? response.json() : []))
+      .then((events) => setTimelineEvents(Array.isArray(events) ? events : []))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [isPreview, slug]);
 
   useEffect(() => {
     if (!announcement || isPreview) return;
-
     const fullName = `${announcement.deceasedFirstName} ${announcement.deceasedLastName}`;
     const pageUrl = `https://www.thenhfcs.com/announcements/${slug}`;
-    const sd = announcement.serviceDetails || {};
+    const previousTitle = document.title;
+    document.title = `In Loving Memory of ${fullName} | Norwert Hills`;
 
-    const personSchema: Record<string, unknown> = {
+    const cleanupDescription = setOrCreateMeta('meta[name="description"]', {
+      name: "description",
+      content:
+        announcement.briefObituary ||
+        `View service details and share memories in honor of ${fullName}.`,
+    });
+    const cleanupOgTitle = setOrCreateMeta('meta[property="og:title"]', {
+      property: "og:title",
+      content: `In Loving Memory of ${fullName}`,
+    });
+    const cleanupOgImage = announcement.portraitImagePath
+      ? setOrCreateMeta('meta[property="og:image"]', {
+          property: "og:image",
+          content: new URL(announcement.portraitImagePath, window.location.origin).href,
+        })
+      : () => undefined;
+
+    const service = announcement.serviceDetails || {};
+    const person: Record<string, unknown> = {
       "@type": "Person",
-      "name": fullName
+      name: fullName,
+      ...(announcement.dateOfBirth ? { birthDate: announcement.dateOfBirth } : {}),
+      ...(announcement.dateOfPassing ? { deathDate: announcement.dateOfPassing } : {}),
+      ...(announcement.briefObituary ? { description: announcement.briefObituary } : {}),
+      ...(announcement.portraitImagePath
+        ? { image: new URL(announcement.portraitImagePath, window.location.origin).href }
+        : {}),
     };
-    if (announcement.dateOfBirth) personSchema["birthDate"] = announcement.dateOfBirth;
-    if (announcement.dateOfPassing) personSchema["deathDate"] = announcement.dateOfPassing;
-    if (announcement.briefObituary) personSchema["description"] = announcement.briefObituary;
-    if (announcement.portraitImagePath) personSchema["image"] = `https://www.thenhfcs.com${announcement.portraitImagePath}`;
+    const graph: unknown[] = [person];
 
-    const schemaGraph: unknown[] = [personSchema];
-
-    if (sd.funeralDate && sd.location) {
-      const eventSchema: Record<string, unknown> = {
+    if (service.funeralDate && service.location) {
+      graph.push({
         "@type": "Event",
-        "name": `Funeral Service for ${fullName}`,
-        "startDate": sd.funeralDate,
-        "about": { "@type": "Person", "name": fullName },
-        "organizer": {
+        name: `Funeral Service for ${fullName}`,
+        startDate: service.funeralDate,
+        about: { "@type": "Person", name: fullName },
+        organizer: {
           "@type": "Organization",
-          "name": "Norwert Hills Funeral & Cremation Services",
-          "url": "https://www.thenhfcs.com"
+          name: "Norwert Hills Funeral & Cremation Services",
+          url: "https://www.thenhfcs.com",
         },
-        "location": {
+        location: {
           "@type": "Place",
-          "name": sd.location,
-          ...(sd.locationAddress ? { "address": sd.locationAddress } : {})
+          name: service.location,
+          ...(service.locationAddress ? { address: service.locationAddress } : {}),
         },
-        "url": pageUrl
-      };
-      schemaGraph.push(eventSchema);
+        url: pageUrl,
+      });
     }
 
-    const schema = {
-      "@context": "https://schema.org",
-      "@graph": schemaGraph
-    };
-
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.id = 'announcement-structured-data';
-    script.text = JSON.stringify(schema);
+    const script = document.createElement("script");
+    script.id = "announcement-structured-data";
+    script.type = "application/ld+json";
+    script.text = JSON.stringify({ "@context": "https://schema.org", "@graph": graph });
     document.head.appendChild(script);
 
     return () => {
-      const existing = document.getElementById('announcement-structured-data');
-      if (existing) existing.remove();
+      document.title = previousTitle;
+      cleanupDescription();
+      cleanupOgTitle();
+      cleanupOgImage();
+      script.remove();
     };
-  }, [announcement, slug, isPreview]);
+  }, [announcement, isPreview, slug]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#09070c' }}>
-        <div style={{ color: '#c9a96e', fontFamily: 'Cinzel, serif', fontSize: '12px', letterSpacing: '0.3em' }}>LOADING...</div>
+      <div className="memorial-state">
+        <img src="/assets/logo-crest.png" alt="" />
+        <p>Preparing Memorial</p>
       </div>
     );
   }
 
   if (error || !announcement) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#09070c' }}>
-        <div className="text-center">
-          <div style={{ color: '#c9a96e', fontFamily: 'Cinzel, serif', fontSize: '12px', letterSpacing: '0.3em', marginBottom: '16px' }}>ANNOUNCEMENT NOT FOUND</div>
-          <Link href="/">
-            <span style={{ color: 'rgba(245,240,232,0.4)', fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', cursor: 'pointer' }}>Return Home</span>
-          </Link>
-        </div>
+      <div className="memorial-state">
+        <img src="/assets/logo-crest.png" alt="" />
+        <p>Memorial Not Found</p>
+        <Link href="/">Return home</Link>
       </div>
     );
   }
 
-  const sd = announcement.serviceDetails || {};
-  const portraitSrc = announcement.portraitImagePath || '/assets/announcements/charles-braud/portrait.webp';
-  const showPreviewBanner = isPreview && !announcement.isPublished;
+  const service = announcement.serviceDetails || {};
   const gallery = announcement.mediaGallery || {};
+  const fullName = `${announcement.deceasedFirstName} ${announcement.deceasedLastName}`;
+  const showPreviewBanner = isPreview && !announcement.isPublished;
 
-  const handleShare = (platform: string) => {
-    const url = encodeURIComponent(window.location.href);
-    const title = encodeURIComponent(`In Loving Memory of ${announcement.deceasedFirstName} ${announcement.deceasedLastName}`);
-    if (platform === 'Facebook') window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
-    else if (platform === 'Twitter') window.open(`https://twitter.com/intent/tweet?url=${url}&text=${title}`, '_blank');
-    else if (platform === 'Instagram') {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Link copied! Open Instagram and paste it in your story or post.');
-    }
+  const copyLink = () => {
+    navigator.clipboard
+      .writeText(window.location.href)
+      .then(() => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => undefined);
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
+  const share = (platform: "facebook" | "instagram" | "x") => {
+    const url = encodeURIComponent(window.location.href);
+    const title = encodeURIComponent(`In Loving Memory of ${fullName}`);
+    if (platform === "facebook") {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (platform === "x") {
+      window.open(`https://twitter.com/intent/tweet?url=${url}&text=${title}`, "_blank", "noopener,noreferrer");
+      return;
+    }
+    void navigator.clipboard.writeText(window.location.href).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }).catch(() => {
-      const textarea = document.createElement('textarea');
-      textarea.value = window.location.href;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      window.setTimeout(() => setCopied(false), 2000);
+      window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
     });
   };
 
-  const handleGetDirections = () => {
-    const address = sd.locationAddress || '';
-    if (!address) return;
-    const encodedAddress = encodeURIComponent(address);
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if (isIOS) window.open(`maps://maps.google.com/maps?daddr=${encodedAddress}&ll=`);
-    else window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`);
+  const getDirections = () => {
+    if (!service.locationAddress) return;
+    window.open(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(service.locationAddress)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   };
 
-  const handleAddToCalendar = () => {
-    const event = {
-      title: `Funeral Service - ${announcement.deceasedFirstName} ${announcement.deceasedLastName}`,
-      description: `Funeral service at ${sd.location || 'TBD'}`,
-      location: sd.locationAddress || sd.location || '',
-      startDate: sd.funeralDate || '',
-      endDate: sd.funeralDate || '',
-    };
-    const icsContent = [
-      'BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT',
-      `DTSTART:${(event.startDate || '').replace(/[-:]/g, '')}`,
-      `DTEND:${(event.endDate || '').replace(/[-:]/g, '')}`,
-      `SUMMARY:${event.title}`, `DESCRIPTION:${event.description}`, `LOCATION:${event.location}`,
-      'END:VEVENT', 'END:VCALENDAR'
-    ].join('\n');
-    const blob = new Blob([icsContent], { type: 'text/calendar' });
-    const urlObj = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = urlObj;
-    link.download = 'funeral-service.ics';
-    document.body.appendChild(link);
+  const addToCalendar = () => {
+    if (!service.funeralDate) return;
+    const compactDate = service.funeralDate.replace(/[-:]/g, "");
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VEVENT",
+      `DTSTART:${compactDate}`,
+      `DTEND:${compactDate}`,
+      `SUMMARY:Funeral Service - ${fullName}`,
+      `DESCRIPTION:Funeral service at ${service.location || "To be announced"}`,
+      `LOCATION:${service.locationAddress || service.location || ""}`,
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ];
+    const href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/calendar" }));
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = `${announcement.slug}-service.ics`;
     link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(urlObj);
+    URL.revokeObjectURL(href);
   };
 
   return (
-    <div className="min-h-screen relative" style={{ backgroundColor: '#09070c' }}>
-      <div
-        className="fixed inset-0 bg-cover bg-center announcement-print-bg"
-        style={{
-          backgroundImage: `url(${backgroundImage})`,
-          opacity: 0.12,
-          transform: 'scale(1.1)',
-          animation: 'announcement-slow-zoom 60s ease-in-out infinite alternate',
-          zIndex: 0
-        }}
-      />
-      <StarField />
-      <div className="fixed inset-0 pointer-events-none announcement-print-bg" style={{ background: 'radial-gradient(ellipse at center, transparent 20%, rgba(9,7,12,0.7) 70%, #09070c 100%)', zIndex: 2 }} />
+    <main className="memorial-page">
+      {showPreviewBanner && <div className="memorial-preview-banner">Staff Preview - Not Yet Published</div>}
 
-      {showPreviewBanner && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-3 py-2 px-4" style={{ backgroundColor: 'rgba(201,169,110,0.95)', color: '#09070c' }}>
-          <span style={{ fontFamily: 'Cinzel, serif', fontSize: '10px', letterSpacing: '0.2em', fontWeight: 600, textTransform: 'uppercase' as const }}>STAFF PREVIEW — NOT YET PUBLISHED</span>
-        </div>
-      )}
+      <div className="memorial-shell" style={{ paddingTop: showPreviewBanner ? "36px" : 0 }}>
+        <MemorialBrandHero
+          firstName={announcement.deceasedFirstName}
+          lastName={announcement.deceasedLastName}
+          portraitSrc={announcement.portraitImagePath || fallbackPortrait}
+          dateOfBirth={announcement.dateOfBirth}
+          dateOfPassing={announcement.dateOfPassing}
+          epitaph={announcement.epitaph}
+        />
 
-      <div className="relative mx-auto" style={{ maxWidth: '780px', zIndex: 3, paddingTop: showPreviewBanner ? '36px' : '0' }}>
-
-        {/* HERO — full-width portrait */}
-        <div
-          className="relative overflow-hidden"
-          style={{ height: 'min(75vh, 680px)', minHeight: '440px' }}
-          data-testid="section-hero"
-        >
-          <div
-            className="absolute inset-0 bg-cover bg-top"
-            style={{ backgroundImage: `url(${portraitSrc})` }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background: 'linear-gradient(to bottom, rgba(9,7,12,0.55) 0%, rgba(9,7,12,0.1) 30%, rgba(9,7,12,0.15) 55%, rgba(9,7,12,0.75) 78%, #09070c 100%)'
-            }}
-          />
-
-          <div className="absolute top-8 left-1/2 transform -translate-x-1/2 text-center" data-print-hidden>
-            <div className="w-[80px] h-[80px] mx-auto flex items-center justify-center mb-2">
-              <img src={logoImage} alt="Norwert Hills" className="w-16 h-16 object-contain" style={{ filter: 'brightness(1.2) contrast(1.1)' }} />
-            </div>
-            <div style={{ fontFamily: 'Cinzel, serif', fontSize: '8.5px', letterSpacing: '0.3em', color: '#c9a96e', textTransform: 'uppercase' }}>NORWERT HILLS</div>
-          </div>
-
-          <div className="absolute bottom-0 left-0 right-0 text-center px-8 pb-10">
-            {(announcement.dateOfBirth || announcement.dateOfPassing) && (
-              <div className="mb-3" style={{ fontFamily: 'Cinzel, serif', fontSize: '9px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>
-                {announcement.dateOfBirth}{announcement.dateOfBirth && announcement.dateOfPassing ? ' · ' : ''}{announcement.dateOfPassing}
-              </div>
-            )}
-            <h1 className="mb-2" data-testid="text-deceased-name" style={{ lineHeight: '1.1' }}>
-              <span className="text-[44px] sm:text-[64px]" style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', color: '#e8cfa0', display: 'inline' }}>{announcement.deceasedFirstName}</span>{' '}
-              <span className="text-[44px] sm:text-[64px]" style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400, letterSpacing: '0.06em', color: '#f5f0e8', display: 'inline' }}>{announcement.deceasedLastName}</span>
-            </h1>
-            {announcement.epitaph && (
-              <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', fontStyle: 'italic', color: 'rgba(245,240,232,0.45)' }}>{announcement.epitaph}</div>
-            )}
-          </div>
+        <div className="print-only hidden">
+          <h1>{fullName}</h1>
+          <p>{[announcement.dateOfBirth, announcement.dateOfPassing].filter(Boolean).join(" - ")}</p>
         </div>
 
-        {/* Print-only header */}
-        <div className="print-only hidden text-center py-6 border-b" style={{ display: 'none' }}>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: '28pt', color: '#2c1a00' }}>
-            {announcement.deceasedFirstName} {announcement.deceasedLastName}
-          </div>
-          {(announcement.dateOfBirth || announcement.dateOfPassing) && (
-            <div style={{ fontFamily: 'Georgia, serif', fontSize: '12pt', color: '#555' }}>
-              {announcement.dateOfBirth}{announcement.dateOfBirth && announcement.dateOfPassing ? ' – ' : ''}{announcement.dateOfPassing}
-            </div>
-          )}
-        </div>
-
-        <div className="relative px-6 sm:px-12 announcement-print-content" style={{ background: 'radial-gradient(ellipse at 20% 100%, rgba(90,50,8,0.18) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(40,20,55,0.15) 0%, transparent 50%), #09070c' }}>
-          <div className="absolute inset-0 pointer-events-none announcement-print-bg" style={{ background: 'linear-gradient(65deg, transparent 0%, rgba(201,169,110,0.07) 50%, transparent 100%), linear-gradient(115deg, transparent 0%, rgba(201,169,110,0.07) 50%, transparent 100%)', mixBlendMode: 'overlay' }} />
-
-          <GoldDivider />
-
-          {(sd.viewingDate || sd.funeralDate || sd.location || sd.interment) && (
-            <div className="mb-[52px]" data-testid="section-service-info">
-              <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>SERVICE INFORMATION</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-px" style={{ backgroundColor: 'rgba(201,169,110,0.18)' }}>
-                {sd.viewingDate && (
-                  <div className="p-7 text-center" style={{ backgroundColor: 'rgba(9,7,12,0.85)' }}>
-                    <div className="mb-2" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', color: '#c9a96e', textTransform: 'uppercase' }}>VIEWING</div>
-                    <div className="mb-1" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '19px', fontWeight: 300, color: '#f5f0e8' }}>{sd.viewingDate}</div>
-                    {sd.viewingTime && <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '14px', fontStyle: 'italic', color: 'rgba(245,240,232,0.4)' }}>{sd.viewingTime}</div>}
-                  </div>
+        <div className="memorial-content announcement-print-content">
+          {(service.viewingDate || service.funeralDate || service.location || service.interment) && (
+            <section data-testid="section-service-info">
+              <GoldDivider />
+              <SectionTitle>Service Information</SectionTitle>
+              <div className="memorial-service-grid">
+                {service.viewingDate && (
+                  <ServiceItem label="Viewing" value={service.viewingDate} detail={service.viewingTime} />
                 )}
-                {sd.funeralDate && (
-                  <div className="p-7 text-center" style={{ backgroundColor: 'rgba(9,7,12,0.85)' }}>
-                    <div className="mb-2" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', color: '#c9a96e', textTransform: 'uppercase' }}>FUNERAL SERVICE</div>
-                    <div className="mb-1" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '19px', fontWeight: 300, color: '#f5f0e8' }}>{sd.funeralDate}</div>
-                    {sd.funeralTime && <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '14px', fontStyle: 'italic', color: 'rgba(245,240,232,0.4)' }}>{sd.funeralTime}</div>}
-                  </div>
+                {service.funeralDate && (
+                  <ServiceItem label="Funeral Service" value={service.funeralDate} detail={service.funeralTime} />
                 )}
-                {sd.location && (
-                  <div className="p-7 text-center" style={{ backgroundColor: 'rgba(9,7,12,0.85)' }}>
-                    <div className="mb-2" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', color: '#c9a96e', textTransform: 'uppercase' }}>LOCATION</div>
-                    <div className="mb-1" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '19px', fontWeight: 300, color: '#f5f0e8' }}>{sd.location}</div>
-                    {sd.locationAddress && <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '14px', fontStyle: 'italic', color: 'rgba(245,240,232,0.4)' }}>{sd.locationAddress}</div>}
-                  </div>
+                {service.location && (
+                  <ServiceItem label="Location" value={service.location} detail={service.locationAddress} />
                 )}
-                {sd.interment && (
-                  <div className="p-7 text-center" style={{ backgroundColor: 'rgba(9,7,12,0.85)' }}>
-                    <div className="mb-2" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', color: '#c9a96e', textTransform: 'uppercase' }}>INTERMENT</div>
-                    <div className="mb-1" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '19px', fontWeight: 300, color: '#f5f0e8' }}>{sd.interment}</div>
-                    {sd.intermentDetails && <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '14px', fontStyle: 'italic', color: 'rgba(245,240,232,0.4)' }}>{sd.intermentDetails}</div>}
-                  </div>
+                {service.interment && (
+                  <ServiceItem label="Interment" value={service.interment} detail={service.intermentDetails} />
                 )}
               </div>
-            </div>
-          )}
-
-          {sd.locationAddress && (
-            <div className="mb-[52px] flex justify-center gap-3 flex-wrap" data-print-hidden>
-              <button
-                onClick={handleGetDirections}
-                className="flex items-center gap-2 px-5 py-3 transition-all hover:bg-opacity-70 cursor-pointer"
-                style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: 'rgba(201,169,110,0.15)', color: '#c9a96e', border: '1px solid rgba(201,169,110,0.25)', textTransform: 'uppercase' }}
-                data-testid="button-get-directions"
-              >
-                Get Directions
-              </button>
-              {sd.funeralDate && (
-                <button
-                  onClick={handleAddToCalendar}
-                  className="flex items-center gap-2 px-5 py-3 transition-all hover:bg-opacity-70 cursor-pointer"
-                  style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: 'rgba(201,169,110,0.08)', color: 'rgba(201,169,110,0.7)', border: '1px solid rgba(201,169,110,0.15)', textTransform: 'uppercase' }}
-                  data-testid="button-add-to-calendar"
-                >
-                  Add to Calendar
-                </button>
-              )}
-            </div>
+              <div className="memorial-command-row" data-print-hidden>
+                {service.locationAddress && (
+                  <button className="memorial-button memorial-button-primary" onClick={getDirections}>
+                    <MapPin size={15} />
+                    Directions
+                  </button>
+                )}
+                {service.funeralDate && (
+                  <button className="memorial-button" onClick={addToCalendar}>
+                    <CalendarPlus size={15} />
+                    Add Reminder
+                  </button>
+                )}
+              </div>
+            </section>
           )}
 
           {timelineEvents.length > 0 && (
-            <>
+            <section>
               <GoldDivider />
-              <div className="mb-[52px]">
-                <h2 className="text-center mb-8" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>LIFE EVENTS</h2>
-                <VerticalTimeline events={timelineEvents} />
-              </div>
-            </>
+              <SectionTitle>Life Events</SectionTitle>
+              <Timeline events={timelineEvents} />
+            </section>
           )}
 
           {announcement.memorialSongUrl && (
-            <>
+            <section data-testid="section-music" data-print-hidden>
               <GoldDivider />
-              <div className="mb-[52px]" data-testid="section-music" data-print-hidden>
-                <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>MUSICAL SELECTION</h2>
-                {renderSongEmbed(announcement.memorialSongUrl)}
+              <SectionTitle>Musical Selection</SectionTitle>
+              <div className="memorial-media-section">
+                <MediaEmbed url={announcement.memorialSongUrl} title={`Musical selection for ${fullName}`} />
               </div>
-            </>
+            </section>
           )}
 
           {announcement.briefObituary && (
-            <>
+            <section data-testid="section-obituary">
               <GoldDivider />
-              <div className="mb-[52px]" data-testid="section-obituary">
-                <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>OBITUARY</h2>
-                <div style={{ fontFamily: 'EB Garamond, serif', fontSize: '17px', color: 'rgba(245,240,232,0.58)', lineHeight: '1.9', textAlign: 'justify' }}>
-                  {announcement.briefObituary.split('\n').map((p, i) => <p key={i} className={i > 0 ? 'mt-4' : ''}>{p}</p>)}
-                </div>
+              <SectionTitle>Obituary</SectionTitle>
+              <div className="memorial-obituary">
+                {announcement.briefObituary.split("\n").map((paragraph, index) => (
+                  <p key={`${paragraph.slice(0, 20)}-${index}`}>{paragraph}</p>
+                ))}
               </div>
-            </>
+            </section>
           )}
 
-          {announcement.fullObituary && (
-            <div className="mb-[52px] flex justify-center" data-print-hidden>
-              <Link href={`/obituaries/${announcement.slug}`}>
-                <span className="flex items-center gap-2 px-6 py-3 transition-all hover:bg-opacity-70 cursor-pointer" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: 'rgba(201,169,110,0.15)', color: '#c9a96e', border: '1px solid rgba(201,169,110,0.25)', textTransform: 'uppercase' }} data-testid="link-full-obituary">
-                  VIEW FULL OBITUARY & GUESTBOOK
-                </span>
-              </Link>
+          <section data-print-hidden>
+            <GoldDivider />
+            <SectionTitle>Remember &amp; Honor</SectionTitle>
+            <div className="memorial-actions">
+              <FutureAction
+                icon={<BookOpen size={20} />}
+                title="Guestbook"
+                href={announcement.fullObituary ? `/obituaries/${announcement.slug}` : undefined}
+                availableLabel="Share a memory"
+              />
+              <FutureAction icon={<Flower2 size={20} />} title="Send Flowers" />
+              <FutureAction icon={<Gift size={20} />} title="Memorial Gifts" />
             </div>
-          )}
+          </section>
 
           {gallery.photos && gallery.photos.length > 0 && (
-            <>
+            <section data-testid="section-gallery">
               <GoldDivider />
-              <div className="mb-[52px]" data-testid="section-gallery">
-                <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>PHOTO GALLERY</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {gallery.photos.map((photo, i) => (
-                    <div
-                      key={i}
-                      className="aspect-square overflow-hidden rounded cursor-pointer transition-opacity hover:opacity-80"
-                      style={{ border: '1px solid rgba(201,169,110,0.18)' }}
-                      onClick={() => setLightboxPhoto(photo)}
-                      data-testid={`img-gallery-${i}`}
-                    >
-                      <img src={photo} alt={`Memorial photo ${i + 1}`} className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
+              <SectionTitle>Photo Gallery</SectionTitle>
+              <div className="memorial-gallery">
+                {gallery.photos.map((photo, index) => (
+                  <button
+                    className="memorial-gallery-image"
+                    key={`${photo}-${index}`}
+                    onClick={() => setLightboxPhoto(photo)}
+                    aria-label={`Open memorial photo ${index + 1}`}
+                  >
+                    <img src={photo} alt={`${fullName} memorial photo ${index + 1}`} loading="lazy" />
+                  </button>
+                ))}
               </div>
-            </>
+            </section>
           )}
 
           {gallery.tributeVideoUrls && gallery.tributeVideoUrls.length > 0 && (
-            <>
+            <section data-testid="section-tribute-videos" data-print-hidden>
               <GoldDivider />
-              <div className="mb-[52px]" data-testid="section-tribute-videos" data-print-hidden>
-                <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>TRIBUTE VIDEOS</h2>
-                <div className="space-y-4">
-                  {gallery.tributeVideoUrls.map((videoUrl, i) => (
-                    <div key={i}>{renderSongEmbed(videoUrl)}</div>
-                  ))}
-                </div>
+              <SectionTitle>Tribute Videos</SectionTitle>
+              <div className="memorial-media-stack">
+                {gallery.tributeVideoUrls.map((videoUrl, index) => (
+                  <MediaEmbed key={`${videoUrl}-${index}`} url={videoUrl} title={`${fullName} tribute ${index + 1}`} />
+                ))}
               </div>
-            </>
+            </section>
           )}
 
           {gallery.livestreamUrl && (
-            <>
+            <section data-testid="section-livestream" data-print-hidden>
               <GoldDivider />
-              <div className="mb-[52px]" data-testid="section-livestream" data-print-hidden>
-                <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>LIVESTREAM</h2>
-                {renderSongEmbed(gallery.livestreamUrl)}
+              <div className="memorial-media-heading">
+                <PlayCircle size={20} />
+                <SectionTitle>Service Video</SectionTitle>
               </div>
-            </>
+              <div className="memorial-media-section">
+                <MediaEmbed url={gallery.livestreamUrl} title={`${fullName} service`} />
+              </div>
+            </section>
           )}
 
-          <div className="mb-[52px]" data-testid="section-share" data-print-hidden>
-            <h2 className="text-center mb-7" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.38em', color: '#c9a96e', textTransform: 'uppercase' }}>SHARE THIS MEMORIAL</h2>
-            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-              <button onClick={() => handleShare('Facebook')} className="flex items-center gap-2 px-4 py-2.5" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: '#1877f2', color: 'white', textTransform: 'uppercase' }} data-testid="button-share-facebook"><Facebook size={14} /> FACEBOOK</button>
-              <button onClick={() => handleShare('Instagram')} className="flex items-center gap-2 px-4 py-2.5" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', background: 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)', color: 'white', textTransform: 'uppercase' }} data-testid="button-share-instagram"><Instagram size={14} /> INSTAGRAM</button>
-              <button onClick={() => handleShare('Twitter')} className="flex items-center gap-2 px-4 py-2.5" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: '#000000', color: 'white', textTransform: 'uppercase' }} data-testid="button-share-x"><Twitter size={14} />X</button>
-              <button onClick={handleCopyLink} className="flex items-center gap-2 px-4 py-2.5 transition-all" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: copied ? 'rgba(201,169,110,0.2)' : 'rgba(255,255,255,0.03)', color: '#c9a96e', border: `1px solid ${copied ? 'rgba(201,169,110,0.4)' : 'rgba(201,169,110,0.18)'}`, textTransform: 'uppercase' }} data-testid="button-copy-link">{copied ? <Check size={14} /> : <Copy size={14} />}{copied ? 'COPIED!' : 'COPY LINK'}</button>
-              <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2.5 transition-all" style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', backgroundColor: 'rgba(255,255,255,0.03)', color: 'rgba(201,169,110,0.6)', border: '1px solid rgba(201,169,110,0.12)', textTransform: 'uppercase' }} data-testid="button-print"><Printer size={14} />PRINT</button>
+          <section className="memorial-share" data-testid="section-share" data-print-hidden>
+            <GoldDivider />
+            <SectionTitle>Share This Memorial</SectionTitle>
+            <div className="memorial-command-row">
+              <button className="memorial-button" onClick={() => share("facebook")} aria-label="Share on Facebook">
+                <Facebook size={16} />
+                Facebook
+              </button>
+              <button className="memorial-button" onClick={() => share("instagram")} aria-label="Share on Instagram">
+                <Instagram size={16} />
+                Instagram
+              </button>
+              <button className="memorial-button" onClick={() => share("x")} aria-label="Share on X">
+                <Twitter size={16} />
+                X
+              </button>
+              <button className="memorial-button" onClick={copyLink}>
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? "Copied" : "Copy Link"}
+              </button>
+              <button className="memorial-button" onClick={() => window.print()}>
+                <Printer size={16} />
+                Print
+              </button>
             </div>
-          </div>
+          </section>
 
-          <GoldDivider />
-
-          <div className="text-center pb-[60px] pt-8" style={{ borderTop: '1px solid rgba(201,169,110,0.18)' }}>
-            <div className="w-[44px] h-[44px] rounded-full mx-auto flex items-center justify-center mb-6" style={{ backgroundColor: 'rgba(9,7,12,0.55)', border: '1px solid #c9a96e' }} data-print-hidden>
-              <img src={logoImage} alt="Norwert Hills" className="w-8 h-8 object-contain" />
-            </div>
-            <p className="mb-6 max-w-md mx-auto" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', fontStyle: 'italic', color: 'rgba(245,240,232,0.2)', lineHeight: '1.8' }}>"Well done, good and faithful servant."</p>
-            <div style={{ fontFamily: 'Cinzel, serif', fontSize: '8px', letterSpacing: '0.3em', color: 'rgba(201,169,110,0.2)', textTransform: 'uppercase' }}>
-              NORWERT HILLS FUNERAL & CREMATION SERVICES<br />1601 W. Thomas St., Hammond, LA 70401
-            </div>
-          </div>
+          <footer className="memorial-footer">
+            <img src="/assets/logo-crest.png" alt="Norwert Hills crest" />
+            <p>"Well done, good and faithful servant."</p>
+            <address>
+              Norwert Hills Funeral &amp; Cremation Services
+              <br />
+              1601 W. Thomas St., Hammond, LA 70401
+            </address>
+          </footer>
         </div>
       </div>
 
       {lightboxPhoto && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ backgroundColor: 'rgba(9,7,12,0.96)' }}
+          className="memorial-lightbox"
           onClick={() => setLightboxPhoto(null)}
-          data-testid="lightbox-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Memorial photo"
         >
-          <button
-            className="absolute top-5 right-5 flex items-center justify-center w-10 h-10 rounded-full transition-colors"
-            style={{ backgroundColor: 'rgba(201,169,110,0.15)', color: '#c9a96e', border: '1px solid rgba(201,169,110,0.3)' }}
-            onClick={() => setLightboxPhoto(null)}
-            data-testid="button-lightbox-close"
-          >
-            <X size={18} />
+          <button onClick={() => setLightboxPhoto(null)} aria-label="Close photo">
+            <X size={20} />
           </button>
-          <img
-            src={lightboxPhoto}
-            alt="Memorial photo"
-            className="max-w-full max-h-full object-contain px-4 py-16"
-            onClick={e => e.stopPropagation()}
-            style={{ maxHeight: '90vh', maxWidth: '90vw' }}
-            data-testid="lightbox-image"
-          />
+          <img src={lightboxPhoto} alt={`${fullName} memorial`} onClick={(event) => event.stopPropagation()} />
         </div>
       )}
-    </div>
+    </main>
   );
 }

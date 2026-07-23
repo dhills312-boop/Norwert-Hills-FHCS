@@ -1,0 +1,412 @@
+.memorial-page {
+  --memorial-gold: #c9a96e;
+  --memorial-ivory: #f5f0e8;
+  --memorial-ink: #09070c;
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 13%, rgba(201, 169, 110, 0.17), transparent 27rem),
+    radial-gradient(circle at 15% 55%, rgba(100, 59, 27, 0.12), transparent 35rem),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 10px),
+    var(--memorial-ink);
+  color: var(--memorial-ivory);
+}
+
+.memorial-page::before {
+  position: fixed;
+  z-index: 0;
+  inset: 22px;
+  border: 1px solid rgba(201, 169, 110, 0.1);
+  content: "";
+  pointer-events: none;
+}
+
+.memorial-page::after {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  background:
+    linear-gradient(115deg, transparent 0%, rgba(255, 220, 160, 0.035) 48%, transparent 57%),
+    radial-gradient(circle at center, transparent 48%, rgba(0, 0, 0, 0.48) 100%);
+  content: "";
+  pointer-events: none;
+}
+
+.memorial-shell {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 1100px);
+  margin-inline: auto;
+}
+
+.memorial-hero {
+  position: relative;
+  display: flex;
+  min-height: 760px;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3rem 4rem 4rem;
+}
+
+.memorial-brand-seal {
+  display: grid;
+  grid-template-columns: minmax(2.5rem, 7rem) 6.5rem minmax(2.5rem, 7rem);
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  width: 100%;
+  margin-bottom: 3.5rem;
+}
+
+.memorial-brand-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 169, 110, 0.62));
+}
+
+.memorial-brand-line-right {
+  transform: rotate(180deg);
+}
+
+.memorial-brand-mark {
+  display: grid;
+  width: 6.5rem;
+  height: 6.5rem;
+  place-items: center;
+  border: 1px solid rgba(201, 169, 110, 0.5);
+  border-radius: 50%;
+  background: rgba(12, 9, 10, 0.86);
+  box-shadow: 0 0 42px rgba(201, 169, 110, 0.15);
+}
+
+.memorial-brand-mark img {
+  width: 4.9rem;
+  height: 4.9rem;
+  object-fit: contain;
+}
+
+.memorial-hero-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 430px) minmax(0, 1fr);
+  align-items: center;
+  gap: 4.5rem;
+}
+
+.memorial-portrait-frame {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 1;
+  margin-inline: auto;
+  border: 2px solid rgba(201, 169, 110, 0.78);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(201, 169, 110, 0.12), transparent 45%),
+    #100c0d;
+  box-shadow:
+    0 0 0 9px rgba(8, 6, 8, 0.76),
+    0 0 0 11px rgba(201, 169, 110, 0.18),
+    0 0 86px rgba(201, 169, 110, 0.25),
+    0 30px 80px rgba(0, 0, 0, 0.48);
+}
+
+.memorial-portrait-halo {
+  position: absolute;
+  inset: -15%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 169, 110, 0.13), transparent 67%);
+  filter: blur(22px);
+}
+
+.memorial-portrait {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.memorial-portrait::after {
+  position: absolute;
+  inset: 1rem;
+  border: 1px solid rgba(255, 245, 219, 0.11);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 34px rgba(255, 245, 219, 0.06),
+    inset 0 -34px 42px rgba(9, 7, 12, 0.26);
+  content: "";
+  pointer-events: none;
+}
+
+.memorial-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 28%;
+  filter: contrast(1.04) brightness(0.94) saturate(0.88);
+  transform: scale(1.035);
+}
+
+.memorial-hero-copy {
+  min-width: 0;
+  text-align: left;
+}
+
+.memorial-eyebrow,
+.memorial-life-dates,
+.memorial-brand-name {
+  font-family: Montserrat, "Segoe UI", sans-serif;
+  text-transform: uppercase;
+}
+
+.memorial-eyebrow {
+  margin: 0 0 1.4rem;
+  color: rgba(201, 169, 110, 0.9);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+}
+
+.memorial-name {
+  max-width: 10ch;
+  margin: 0;
+  color: #f8f1e7;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 4.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 0.94;
+  text-wrap: balance;
+}
+
+.memorial-life-dates {
+  margin: 1.5rem 0 0;
+  color: rgba(201, 169, 110, 0.92);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  line-height: 1.7;
+}
+
+.memorial-epitaph {
+  max-width: 34rem;
+  margin: 1.9rem 0 0;
+  color: rgba(245, 240, 232, 0.68);
+  font-family: "EB Garamond", Georgia, serif;
+  font-size: 1.2rem;
+  font-style: italic;
+  line-height: 1.65;
+}
+
+.memorial-brand-name {
+  margin: 3.6rem 0 0;
+  color: rgba(201, 169, 110, 0.48);
+  font-size: 0.58rem;
+  letter-spacing: 0.28em;
+  text-align: center;
+}
+
+.memorial-content {
+  position: relative;
+  padding: 0 4rem;
+}
+
+.memorial-section-title {
+  color: var(--memorial-gold);
+  font-family: Cinzel, Georgia, serif;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  line-height: 1.5;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.memorial-service-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgba(201, 169, 110, 0.2);
+  background: rgba(201, 169, 110, 0.18);
+}
+
+.memorial-service-item {
+  min-height: 9.5rem;
+  padding: 1.8rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.025), transparent 60%),
+    rgba(9, 7, 12, 0.9);
+  text-align: center;
+}
+
+.memorial-service-label {
+  margin-bottom: 0.7rem;
+  color: var(--memorial-gold);
+  font-family: Montserrat, "Segoe UI", sans-serif;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+.memorial-service-value {
+  color: var(--memorial-ivory);
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.45rem;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.memorial-service-detail {
+  margin-top: 0.45rem;
+  color: rgba(245, 240, 232, 0.58);
+  font-family: Montserrat, "Segoe UI", sans-serif;
+  font-size: 0.74rem;
+  line-height: 1.55;
+}
+
+.memorial-button {
+  display: inline-flex;
+  min-height: 2.8rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid rgba(201, 169, 110, 0.3);
+  background: rgba(201, 169, 110, 0.08);
+  color: rgba(245, 240, 232, 0.86);
+  font-family: Montserrat, "Segoe UI", sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.memorial-button:hover,
+.memorial-button:focus-visible {
+  border-color: rgba(201, 169, 110, 0.62);
+  background: rgba(201, 169, 110, 0.15);
+  color: var(--memorial-gold);
+  outline: none;
+}
+
+.memorial-button-primary {
+  background: var(--memorial-gold);
+  color: var(--memorial-ink);
+}
+
+.memorial-button-primary:hover,
+.memorial-button-primary:focus-visible {
+  background: #ddc28e;
+  color: var(--memorial-ink);
+}
+
+.memorial-gallery-image {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border: 1px solid rgba(201, 169, 110, 0.2);
+  background: #100c0d;
+}
+
+.memorial-gallery-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 240ms ease, filter 240ms ease;
+}
+
+.memorial-gallery-image:hover img,
+.memorial-gallery-image:focus-visible img {
+  filter: brightness(1.05);
+  transform: scale(1.025);
+}
+
+.memorial-obituary {
+  max-width: 45rem;
+  margin-inline: auto;
+  color: rgba(245, 240, 232, 0.72);
+  font-family: "EB Garamond", Georgia, serif;
+  font-size: 1.16rem;
+  line-height: 1.85;
+  text-align: left;
+}
+
+@media (max-width: 800px) {
+  .memorial-page::before {
+    inset: 10px;
+  }
+
+  .memorial-hero {
+    min-height: auto;
+    padding: 2.5rem 1.4rem 3.5rem;
+  }
+
+  .memorial-brand-seal {
+    grid-template-columns: minmax(2rem, 5rem) 5.5rem minmax(2rem, 5rem);
+    gap: 0.8rem;
+    margin-bottom: 3rem;
+  }
+
+  .memorial-brand-mark {
+    width: 5.5rem;
+    height: 5.5rem;
+  }
+
+  .memorial-brand-mark img {
+    width: 4.1rem;
+    height: 4.1rem;
+  }
+
+  .memorial-hero-layout {
+    grid-template-columns: 1fr;
+    gap: 3.2rem;
+  }
+
+  .memorial-portrait-frame {
+    width: min(78vw, 350px);
+  }
+
+  .memorial-hero-copy {
+    text-align: center;
+  }
+
+  .memorial-name {
+    max-width: 13ch;
+    margin-inline: auto;
+    font-size: 3rem;
+    line-height: 0.98;
+  }
+
+  .memorial-epitaph {
+    margin-inline: auto;
+  }
+
+  .memorial-content {
+    padding-inline: 1.35rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .memorial-name {
+    font-size: 2.45rem;
+  }
+
+  .memorial-service-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .memorial-service-item {
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memorial-page *,
+  .memorial-page *::before,
+  .memorial-page *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

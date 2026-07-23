@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, formTemplates, serviceCatalog, arrangements } from "@shared/schema";
+import { users, formTemplates, serviceCatalog, arrangements, announcements, type InsertAnnouncement } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "./auth";
 
@@ -173,6 +173,74 @@ async function seedServiceCatalog() {
   console.log("Service catalog seeded.");
 }
 
+const MEMORIAL_ANNOUNCEMENTS: InsertAnnouncement[] = [
+  {
+    slug: "jane-ross",
+    deceasedFirstName: "Jane Sheila",
+    deceasedLastName: "Ross",
+    briefObituary: "Jane Sheila Ross is remembered with love by her family, friends, and all whose lives she touched.",
+    epitaph: "Forever loved. Forever remembered.",
+    serviceDetails: {
+      viewingDate: "Saturday, July 11, 2026",
+      viewingTime: "10:00 - 11:00 AM",
+      funeralDate: "Saturday, July 11, 2026",
+      funeralTime: "11:00 AM",
+      location: "Morning Star Baptist Church",
+      locationAddress: "1601 Lamarque St., Mandeville, LA 70448",
+      officiant: "Pastor Norwert Hill Jr.",
+    },
+    portraitImagePath: "/assets/announcements/jane-ross/portrait.jpg",
+    mediaGallery: {
+      portraitCrop: { x: 50, y: 24, scale: 1.1 },
+      teaserVideoUrl: "/assets/announcements/jane-ross/memorial-teaser.mp4",
+      tributeVideoUrls: ["/assets/announcements/jane-ross/memorial-tribute.mp4"],
+      videoPosterUrl: "/assets/announcements/jane-ross/video-poster.jpg",
+    },
+    isPublished: true,
+    isFeatured: false,
+    memorialStatus: "published",
+  },
+  {
+    slug: "ronnie-white",
+    deceasedFirstName: "Ronnie",
+    deceasedLastName: "White",
+    briefObituary: "Ronnie White is remembered for a life of love and a legacy that will remain in the hearts of family and friends.",
+    epitaph: "A life of love. A lasting legacy.",
+    serviceDetails: {
+      viewingDate: "Saturday, June 27, 2026",
+      viewingTime: "9:00 - 11:00 AM",
+      funeralDate: "Saturday, June 27, 2026",
+      funeralTime: "11:00 AM",
+      location: "Showers of Blessings Deliverance Temple",
+      locationAddress: "507 S. Cypress St., Hammond, LA 70403",
+    },
+    portraitImagePath: "/assets/announcements/ronnie-white/portrait.jpg",
+    mediaGallery: {
+      portraitCrop: { x: 50, y: 22, scale: 1.12 },
+      teaserVideoUrl: "/assets/announcements/ronnie-white/memorial-teaser.mp4",
+      tributeVideoUrls: ["/assets/announcements/ronnie-white/memorial-tribute.mp4"],
+      videoPosterUrl: "/assets/announcements/ronnie-white/video-poster.jpg",
+    },
+    isPublished: true,
+    isFeatured: false,
+    memorialStatus: "published",
+  },
+];
+
+async function seedMemorialAnnouncements() {
+  for (const memorial of MEMORIAL_ANNOUNCEMENTS) {
+    const [existing] = await db
+      .select({ id: announcements.id })
+      .from(announcements)
+      .where(eq(announcements.slug, memorial.slug));
+
+    if (!existing) {
+      await db.insert(announcements).values(memorial);
+      console.log(`Memorial announcement seeded: ${memorial.slug}`);
+    }
+  }
+}
+
 async function seedExampleArrangements() {
   const existing = await db.select().from(arrangements);
   if (existing.length > 0) return;
@@ -245,6 +313,7 @@ export async function seedDatabase() {
     await seedFormTemplates();
     await seedServiceCatalog();
     await seedExampleArrangements();
+    await seedMemorialAnnouncements();
 
     const adminEmail = process.env.ADMIN_EMAIL;
     const adminPassword = process.env.ADMIN_PASSWORD;

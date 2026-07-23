@@ -78,7 +78,7 @@ export interface IStorage {
   getAnnouncement(id: string): Promise<Announcement | undefined>;
   getAnnouncementBySlug(slug: string): Promise<Announcement | undefined>;
   getAnnouncementByArrangementId(arrangementId: string): Promise<Announcement | undefined>;
-  listPublishedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath">[]>;
+  listPublishedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath" | "mediaGallery">[]>;
   createAnnouncement(data: InsertAnnouncement): Promise<Announcement>;
   updateAnnouncement(id: string, data: Partial<InsertAnnouncement>): Promise<Announcement | undefined>;
   updateAnnouncementStatus(id: string, status: MemorialStatus, scheduledAt?: Date | null): Promise<Announcement | undefined>;
@@ -88,7 +88,7 @@ export interface IStorage {
   createCondolenceMessage(data: InsertCondolenceMessage): Promise<CondolenceMessage>;
   deleteCondolenceMessage(id: string): Promise<void>;
 
-  listFeaturedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath">[]>;
+  listFeaturedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath" | "mediaGallery">[]>;
   getTimelineEvents(announcementId: string): Promise<MemorialTimelineEvent[]>;
   createTimelineEvent(data: InsertMemorialTimelineEvent): Promise<MemorialTimelineEvent>;
   updateTimelineEvent(id: string, data: Partial<Pick<InsertMemorialTimelineEvent, 'eventYear' | 'eventLabel' | 'eventDescription' | 'displayOrder'>>): Promise<MemorialTimelineEvent | undefined>;
@@ -314,7 +314,7 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(announcements).orderBy(desc(announcements.createdAt));
   }
 
-  async listPublishedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath">[]> {
+  async listPublishedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath" | "mediaGallery">[]> {
     return db
       .select({
         slug: announcements.slug,
@@ -324,6 +324,7 @@ export class DatabaseStorage implements IStorage {
         dateOfPassing: announcements.dateOfPassing,
         briefObituary: announcements.briefObituary,
         portraitImagePath: announcements.portraitImagePath,
+        mediaGallery: announcements.mediaGallery,
       })
       .from(announcements)
       .where(eq(announcements.isPublished, true))
@@ -389,7 +390,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(condolenceMessages).where(eq(condolenceMessages.id, id));
   }
 
-  async listFeaturedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath">[]> {
+  async listFeaturedAnnouncements(): Promise<Pick<Announcement, "slug" | "deceasedFirstName" | "deceasedLastName" | "dateOfBirth" | "dateOfPassing" | "briefObituary" | "portraitImagePath" | "mediaGallery">[]> {
     return db
       .select({
         slug: announcements.slug,
@@ -399,6 +400,7 @@ export class DatabaseStorage implements IStorage {
         dateOfPassing: announcements.dateOfPassing,
         briefObituary: announcements.briefObituary,
         portraitImagePath: announcements.portraitImagePath,
+        mediaGallery: announcements.mediaGallery,
       })
       .from(announcements)
       .where(and(eq(announcements.isPublished, true), eq(announcements.isFeatured, true)))

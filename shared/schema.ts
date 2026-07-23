@@ -242,15 +242,25 @@ export interface ServiceDetails {
   funeralTime?: string;
   location?: string;
   locationAddress?: string;
+  officiant?: string;
   interment?: string;
   intermentDetails?: string;
   [key: string]: unknown;
+}
+
+export interface PortraitCrop {
+  x?: number;
+  y?: number;
+  scale?: number;
 }
 
 export interface MediaGallery {
   photos?: string[];
   tributeVideoUrls?: string[];
   livestreamUrl?: string;
+  teaserVideoUrl?: string;
+  videoPosterUrl?: string;
+  portraitCrop?: PortraitCrop;
   [key: string]: unknown;
 }
 

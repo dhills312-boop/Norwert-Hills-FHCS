@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { useAnnouncementFonts } from '@/hooks/use-announcement-fonts';
+import type { PortraitCrop } from '@shared/schema';
+import { portraitCropStyle } from '@/lib/portrait-crop';
 
 interface FeaturedAnnouncement {
   slug: string;
@@ -11,6 +13,7 @@ interface FeaturedAnnouncement {
   dateOfPassing?: string;
   briefObituary?: string;
   portraitImagePath?: string;
+  mediaGallery?: { portraitCrop?: PortraitCrop };
 }
 
 export default function LifeStories() {
@@ -118,9 +121,11 @@ function FeaturedCard({ item, large }: { item: FeaturedAnnouncement; large: bool
         }}
         data-testid={`card-featured-${item.slug}`}
       >
-        <div
-          className="absolute inset-0 bg-cover bg-top transition-transform duration-700 group-hover:scale-105"
-          style={{ backgroundImage: `url(${portraitSrc})` }}
+        <img
+          src={portraitSrc}
+          alt={fullName}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700"
+          style={portraitCropStyle(item.mediaGallery?.portraitCrop)}
         />
         <div
           className="absolute inset-0"

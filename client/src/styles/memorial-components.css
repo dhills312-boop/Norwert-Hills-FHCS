@@ -188,14 +188,25 @@
   color: var(--memorial-gold);
 }
 
-.memorial-video-frame,
-.memorial-native-video {
+.memorial-video-frame {
   width: 100%;
   overflow: hidden;
   aspect-ratio: 16 / 9;
   border: 1px solid rgba(201, 169, 110, 0.22);
   background: #000;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+}
+
+.memorial-native-video {
+  display: block;
+  width: min(100%, 430px);
+  max-height: 78vh;
+  margin-inline: auto;
+  aspect-ratio: 9 / 16;
+  border: 1px solid rgba(201, 169, 110, 0.22);
+  background: #000;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+  object-fit: contain;
 }
 
 .memorial-video-frame iframe {

@@ -17,6 +17,7 @@ import {
 import { useEffect, useState } from "react";
 import { Link, useRoute } from "wouter";
 import MemorialBrandHero from "@/components/MemorialBrandHero";
+import type { PortraitCrop } from "@shared/schema";
 import { useAnnouncementFonts } from "@/hooks/use-announcement-fonts";
 import "@/styles/memorial-brand.css";
 
@@ -27,6 +28,7 @@ interface ServiceDetails {
   funeralTime?: string;
   location?: string;
   locationAddress?: string;
+  officiant?: string;
   interment?: string;
   intermentDetails?: string;
 }
@@ -35,6 +37,9 @@ interface MediaGallery {
   photos?: string[];
   tributeVideoUrls?: string[];
   livestreamUrl?: string;
+  teaserVideoUrl?: string;
+  videoPosterUrl?: string;
+  portraitCrop?: PortraitCrop;
 }
 
 interface AnnouncementData {
@@ -100,7 +105,7 @@ function getYouTubeId(url: string) {
   return match?.[1] || "";
 }
 
-function MediaEmbed({ url, title }: { url: string; title: string }) {
+function MediaEmbed({ url, title, poster }: { url: string; title: string; poster?: string }) {
   const youtubeId = getYouTubeId(url);
 
   if (youtubeId) {
@@ -129,7 +134,7 @@ function MediaEmbed({ url, title }: { url: string; title: string }) {
 
   if (/\.(mp4|webm|mov)(?:$|\?)/i.test(url)) {
     return (
-      <video className="memorial-native-video" controls preload="metadata">
+      <video className="memorial-native-video" controls preload="metadata" poster={poster}>
         <source src={url} />
         Your browser does not support this memorial video.
       </video>
@@ -414,6 +419,7 @@ export default function AnnouncementPage() {
           dateOfBirth={announcement.dateOfBirth}
           dateOfPassing={announcement.dateOfPassing}
           epitaph={announcement.epitaph}
+          portraitCrop={gallery.portraitCrop}
         />
 
         <div className="print-only hidden">
@@ -422,7 +428,7 @@ export default function AnnouncementPage() {
         </div>
 
         <div className="memorial-content announcement-print-content">
-          {(service.viewingDate || service.funeralDate || service.location || service.interment) && (
+          {(service.viewingDate || service.funeralDate || service.location || service.officiant || service.interment) && (
             <section data-testid="section-service-info">
               <GoldDivider />
               <SectionTitle>Service Information</SectionTitle>
@@ -435,6 +441,9 @@ export default function AnnouncementPage() {
                 )}
                 {service.location && (
                   <ServiceItem label="Location" value={service.location} detail={service.locationAddress} />
+                )}
+                {service.officiant && (
+                  <ServiceItem label="Officiating" value={service.officiant} />
                 )}
                 {service.interment && (
                   <ServiceItem label="Interment" value={service.interment} detail={service.intermentDetails} />
@@ -521,13 +530,32 @@ export default function AnnouncementPage() {
             </section>
           )}
 
+          {gallery.teaserVideoUrl && (
+            <section data-testid="section-memorial-preview" data-print-hidden>
+              <GoldDivider />
+              <SectionTitle>Memorial Preview</SectionTitle>
+              <div className="memorial-media-section">
+                <MediaEmbed
+                  url={gallery.teaserVideoUrl}
+                  title={`${fullName} memorial preview`}
+                  poster={gallery.videoPosterUrl}
+                />
+              </div>
+            </section>
+          )}
+
           {gallery.tributeVideoUrls && gallery.tributeVideoUrls.length > 0 && (
             <section data-testid="section-tribute-videos" data-print-hidden>
               <GoldDivider />
               <SectionTitle>Tribute Videos</SectionTitle>
               <div className="memorial-media-stack">
                 {gallery.tributeVideoUrls.map((videoUrl, index) => (
-                  <MediaEmbed key={`${videoUrl}-${index}`} url={videoUrl} title={`${fullName} tribute ${index + 1}`} />
+                  <MediaEmbed
+                    key={`${videoUrl}-${index}`}
+                    url={videoUrl}
+                    title={`${fullName} tribute ${index + 1}`}
+                    poster={gallery.videoPosterUrl}
+                  />
                 ))}
               </div>
             </section>

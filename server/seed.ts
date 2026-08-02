@@ -191,7 +191,7 @@ const MEMORIAL_ANNOUNCEMENTS: InsertAnnouncement[] = [
     },
     portraitImagePath: "/assets/announcements/jane-ross/portrait.jpg",
     mediaGallery: {
-      portraitCrop: { x: 50, y: 24, scale: 1.1 },
+      portraitCrop: { x: 50, y: 31, scale: 1.28 },
       teaserVideoUrl: "/assets/announcements/jane-ross/memorial-teaser.mp4",
       tributeVideoUrls: ["/assets/announcements/jane-ross/memorial-tribute.mp4"],
       videoPosterUrl: "/assets/announcements/jane-ross/video-poster.jpg",
@@ -216,7 +216,7 @@ const MEMORIAL_ANNOUNCEMENTS: InsertAnnouncement[] = [
     },
     portraitImagePath: "/assets/announcements/ronnie-white/portrait.jpg",
     mediaGallery: {
-      portraitCrop: { x: 50, y: 22, scale: 1.12 },
+      portraitCrop: { x: 50, y: 30, scale: 1.3 },
       teaserVideoUrl: "/assets/announcements/ronnie-white/memorial-teaser.mp4",
       tributeVideoUrls: ["/assets/announcements/ronnie-white/memorial-tribute.mp4"],
       videoPosterUrl: "/assets/announcements/ronnie-white/video-poster.jpg",
@@ -237,6 +237,28 @@ async function seedMemorialAnnouncements() {
     if (!existing) {
       await db.insert(announcements).values(memorial);
       console.log(`Memorial announcement seeded: ${memorial.slug}`);
+    } else {
+      await db
+        .update(announcements)
+        .set({
+          deceasedFirstName: memorial.deceasedFirstName,
+          deceasedLastName: memorial.deceasedLastName,
+          dateOfBirth: memorial.dateOfBirth,
+          dateOfPassing: memorial.dateOfPassing,
+          briefObituary: memorial.briefObituary,
+          fullObituary: memorial.fullObituary,
+          epitaph: memorial.epitaph,
+          serviceDetails: memorial.serviceDetails,
+          portraitImagePath: memorial.portraitImagePath,
+          memorialSongUrl: memorial.memorialSongUrl,
+          mediaGallery: memorial.mediaGallery,
+          isPublished: memorial.isPublished,
+          isFeatured: memorial.isFeatured,
+          memorialStatus: memorial.memorialStatus,
+          scheduledAt: memorial.scheduledAt,
+        })
+        .where(eq(announcements.id, existing.id));
+      console.log(`Memorial announcement synced: ${memorial.slug}`);
     }
   }
 }

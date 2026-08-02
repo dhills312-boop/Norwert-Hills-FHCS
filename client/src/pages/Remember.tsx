@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Search, ArrowRight, User } from "lucide-react";
 import type { PortraitCrop } from "@shared/schema";
 import { portraitCropStyle } from "@/lib/portrait-crop";
+import { getRememberPortrait, type RememberPortrait } from "@/lib/remember-portraits";
 
 type PublishedAnnouncement = {
   slug: string;
@@ -18,9 +19,66 @@ type PublishedAnnouncement = {
   mediaGallery?: { portraitCrop?: PortraitCrop } | null;
 };
 
+function PortraitStage({
+  portrait,
+  fullName,
+  crop,
+  compact = false,
+}: {
+  portrait: RememberPortrait | null;
+  fullName: string;
+  crop?: PortraitCrop;
+  compact?: boolean;
+}) {
+  if (!portrait) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-secondary">
+        <User className={compact ? "w-5 h-5 text-muted-foreground/40" : "w-16 h-16 text-muted-foreground/30"} />
+      </div>
+    );
+  }
+
+  if (portrait.mode === "photo") {
+    return (
+      <img
+        src={portrait.src}
+        alt={fullName}
+        className="w-full h-full object-cover"
+        style={portraitCropStyle(crop)}
+        loading="lazy"
+      />
+    );
+  }
+
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-[#080909]">
+      <div className="absolute inset-0 bg-[url('/assets/texture-marble.webp')] bg-cover opacity-[0.07]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(201,169,110,0.16),transparent_55%)]" />
+      <div
+        className={compact
+          ? "absolute left-1/2 top-1/2 h-[82%] aspect-square -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/25"
+          : "absolute left-1/2 top-[12%] w-[82%] aspect-square -translate-x-1/2 rounded-full border border-primary/25 shadow-[0_0_50px_rgba(201,169,110,0.08)]"}
+      />
+      <img
+        src={portrait.src}
+        alt={fullName}
+        className={portrait.mode === "crest"
+          ? "absolute inset-0 w-full h-full object-contain object-center"
+          : "absolute inset-0 w-full h-full object-contain object-bottom drop-shadow-[0_18px_26px_rgba(0,0,0,0.48)]"}
+        style={{
+          transform: `translateY(${portrait.offsetY}%) scale(${portrait.scale})`,
+          transformOrigin: portrait.mode === "crest" ? "50% 50%" : "50% 100%",
+        }}
+        loading="lazy"
+      />
+      {!compact && <div className="absolute inset-x-0 bottom-0 h-[24%] bg-gradient-to-t from-[#080909] to-transparent" />}
+    </div>
+  );
+}
 function MemorialCard({ item, index }: { item: PublishedAnnouncement; index: number }) {
   const fullName = `${item.deceasedFirstName} ${item.deceasedLastName}`;
   const dates = [item.dateOfBirth, item.dateOfPassing].filter(Boolean).join(" – ");
+  const portrait = getRememberPortrait(item.slug, item.portraitImagePath);
 
   return (
     <motion.div
@@ -31,19 +89,11 @@ function MemorialCard({ item, index }: { item: PublishedAnnouncement; index: num
       <Link href={`/announcements/${item.slug}`} data-testid={`card-memorial-${item.slug}`}>
         <div className="group relative flex flex-col overflow-hidden bg-card border border-white/8 hover:border-primary/30 transition-all duration-500 cursor-pointer h-full">
           <div className="relative aspect-[3/4] overflow-hidden bg-background flex-shrink-0">
-            {item.portraitImagePath ? (
-              <img
-                src={item.portraitImagePath}
-                alt={fullName}
-                className="w-full h-full object-cover transition-transform duration-700"
-                style={portraitCropStyle(item.mediaGallery?.portraitCrop)}
-                loading="lazy"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-secondary">
-                <User className="w-16 h-16 text-muted-foreground/30" />
-              </div>
-            )}
+            <PortraitStage
+              portrait={portrait}
+              fullName={fullName}
+              crop={item.mediaGallery?.portraitCrop}
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
           </div>
 
@@ -160,6 +210,7 @@ export default function Remember() {
                 <div className="divide-y divide-white/5">
                   {archive.map((item, i) => {
                     const fullName = `${item.deceasedFirstName} ${item.deceasedLastName}`;
+                    const portrait = getRememberPortrait(item.slug, item.portraitImagePath);
                     return (
                       <motion.div
                         key={item.slug}
@@ -173,18 +224,9 @@ export default function Remember() {
                           className="flex items-center justify-between py-5 group hover:bg-background/40 px-2 -mx-2 transition-colors"
                         >
                           <div className="flex items-center gap-5">
-                            {item.portraitImagePath ? (
-                              <img
-                                src={item.portraitImagePath}
-                                alt={fullName}
-                                className="w-12 h-12 rounded-full object-cover flex-shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
-                                style={portraitCropStyle(item.mediaGallery?.portraitCrop)}
-                              />
-                            ) : (
-                              <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                                <User className="w-5 h-5 text-muted-foreground/40" />
-                              </div>
-                            )}
+                            <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-white/10 opacity-80 group-hover:opacity-100 transition-opacity">
+                              <PortraitStage portrait={portrait} fullName={fullName} crop={item.mediaGallery?.portraitCrop} compact />
+                            </div>
                             <div>
                               <p className="font-serif text-lg text-foreground group-hover:text-primary transition-colors">{fullName}</p>
                               {item.dateOfPassing && (

@@ -1,3 +1,14 @@
 @import "./memorial-base.css";
 @import "./memorial-components.css";
 @import "./memorial-mobile-override.css";
+.memorial-livestream-notice {
+  text-align: center;
+}
+
+.memorial-livestream-notice p {
+  margin: 0 auto 1.5rem;
+  max-width: 660px;
+  color: rgba(245, 240, 232, 0.76);
+  font-size: 1rem;
+  line-height: 1.8;
+}

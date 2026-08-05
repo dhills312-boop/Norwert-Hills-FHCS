@@ -175,6 +175,28 @@ async function seedServiceCatalog() {
 
 const MEMORIAL_ANNOUNCEMENTS: InsertAnnouncement[] = [
   {
+    slug: "charles-clines-jr",
+    deceasedFirstName: "Charles",
+    deceasedLastName: "Clines Jr.",
+    briefObituary:
+      "Family and friends are invited to join the funeral service for Charles Clines Jr. by livestream on Sunday, August 9, 2026. The service will be available through Facebook Live and directly through the Norwert Hills website for those who cannot attend in person.",
+    epitaph: "Honoring a life remembered by family, friends, and community.",
+    serviceDetails: {
+      funeralDate: "Sunday, August 9, 2026",
+      funeralTime: "12:45 PM CT",
+      location: "Livestream available on Facebook Live and thenhfcs.com",
+      locationAddress: "1601 W. Thomas St., Hammond, LA 70401",
+    },
+    portraitImagePath: "/assets/logo-crest.png",
+    mediaGallery: {
+      livestreamUrl: "https://www.facebook.com/profile.php?id=61590433896394",
+      portraitCrop: { x: 50, y: 50, scale: 0.72 },
+    },
+    isPublished: true,
+    isFeatured: true,
+    memorialStatus: "published",
+  },
+  {
     slug: "jane-ross",
     deceasedFirstName: "Jane Sheila",
     deceasedLastName: "Ross",

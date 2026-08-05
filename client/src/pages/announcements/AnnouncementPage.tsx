@@ -466,6 +466,31 @@ export default function AnnouncementPage() {
             </section>
           )}
 
+          {gallery.livestreamUrl && (
+            <section data-testid="section-livestream-notice" data-print-hidden>
+              <GoldDivider />
+              <div className="memorial-media-heading">
+                <PlayCircle size={20} />
+                <SectionTitle>Livestream Service</SectionTitle>
+              </div>
+              <div className="memorial-media-section memorial-livestream-notice">
+                <p>
+                  This funeral service will be livestreamed for family and friends who cannot attend in person.
+                  Watch through Facebook Live or return to this memorial page when the service begins.
+                </p>
+                <div className="memorial-command-row">
+                  <a className="memorial-button memorial-button-primary" href={gallery.livestreamUrl} target="_blank" rel="noreferrer">
+                    <Facebook size={15} />
+                    Watch on Facebook Live
+                  </a>
+                  <button className="memorial-button" onClick={copyLink}>
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                    {copied ? "Copied" : "Copy Website Link"}
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
           {timelineEvents.length > 0 && (
             <section>
               <GoldDivider />
